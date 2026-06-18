@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar CSV - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/ui-utils.js"></script>
+    <script src="/assets/js/pwa-utils.js"></script>
+    <script src="/assets/js/csv-parser.js"></script>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="/manifest.json">
+
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">📥 Importar Resultados CSV</h1>
+        <p class="text-slate-500 mb-6">Sube el CSV exportado por el bot de Discord</p>
+
+        <!-- Paso 1: Buscar y seleccionar partida -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-2">1. Busca y selecciona la partida</label>
+
+            <!-- Buscador -->
+            <input type="text" id="search-game" placeholder="Buscar por nombre o ID de partida..." 
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3"
+                onkeyup="searchGames()">
+
+            <!-- Lista de partidas -->
+            <div id="games-list" class="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
+                <div class="text-center text-slate-400 py-4">Cargando partidas...</div>
+            </div>
+
+            <!-- Partida seleccionada -->
+            <div id="selected-game-info" class="hidden mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p class="text-sm text-amber-800 font-medium">Partida seleccionada: <span id="selected-name"></span></p>
+            </div>
+        </div>
+
+        <!-- Paso 2: Subir CSV -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-2">2. Sube el archivo CSV</label>
+            <input type="file" id="csv-file" accept=".csv" 
+                class="w-full px-3 py-2 rounded-lg border border-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-900 file:font-bold hover:file:bg-amber-400">
+            <p class="text-xs text-slate-400 mt-2">Formato: Nation,Username,Id ,...,Total (como exporta el bot)</p>
+        </div>
+
+        <!-- Paso 3: Preview -->
+        <div id="preview-section" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800">3. Verifica los datos</h3>
+                <div class="flex gap-2">
+                    <button onclick="resetImport()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition">Volver</button>
+                    <button onclick="confirmImport()" class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-400 transition">✓ Confirmar Importación</button>
+                </div>
+            </div>
+            <div id="preview-content" class="bg-white rounded-xl border border-slate-200 p-4 overflow-x-auto"></div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="result-section" class="hidden">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                <div class="text-3xl mb-2">✅</div>
+                <h3 class="font-bold text-green-800">¡Importación completada!</h3>
+                <p id="result-text" class="text-green-600 text-sm mt-1"></p>
+                <button onclick="resetAll()" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-400 transition">Importar otro</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        requireAdmin();
+
+        let allGames = [];
+        let selectedGameId = null;
+        let parsedData = null;
+
+        async function loadGames() {
+            // Cargar TODAS las partidas EXCEPTO archivadas
+            const { data, error } = await supabase
+                .from('games')
+                .select('id, name, game_id, status, csv_imported, alliances(name, tag)')
+                .neq('status', 'archived')  // <-- EXCLUIR ARCHIVADAS
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error cargando partidas:', error);
+                document.getElementById('games-list').innerHTML = '<div class="text-center text-red-500 py-4">Error cargando partidas</div>';
+                return;
+            }
+
+            allGames = data || [];
+            renderGames(allGames);
+
+            // Pre-seleccionar si viene por URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const preselected = urlParams.get('game');
+            if (preselected) {
+                selectGame(preselected);
+            }
+        }
+
+        function renderGames(games) {
+            const container = document.getElementById('games-list');
+
+            if (games.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-4">No hay partidas disponibles</div>';
+                return;
+            }
+
+            container.innerHTML = games.map(g => `
+                <div onclick="selectGame('${g.id}')" 
+                     class="game-item p-3 border-b hover:bg-amber-50 cursor-pointer transition ${selectedGameId === g.id ? 'bg-amber-100 border-amber-300' : ''}"
+                     data-id="${g.id}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-medium text-slate-800">${g.name}</span>
+                            <span class="text-xs text-slate-500 ml-2">(${g.game_id})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${g.csv_imported ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ CSV</span>' : ''}
+                            <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">${g.status}</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-1">
+                        ${g.alliances ? g.alliances.name : 'Global'} • ${formatDate(g.created_at)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function searchGames() {
+            const q = document.getElementById('search-game').value.toLowerCase();
+            const filtered = allGames.filter(g => 
+                g.name.toLowerCase().includes(q) ||
+                g.game_id.toLowerCase().includes(q) ||
+                g.id.toLowerCase().includes(q)
+            );
+            renderGames(filtered);
+        }
+
+        function selectGame(id) {
+            selectedGameId = id;
+            const game = allGames.find(g => g.id === id);
+
+            if (game) {
+                document.getElementById('selected-name').textContent = `${game.name} (${game.game_id})`;
+                document.getElementById('selected-game-info').classList.remove('hidden');
+
+                // Actualizar visual de selección
+                document.querySelectorAll('.game-item').forEach(el => {
+                    el.classList.toggle('bg-amber-100', el.dataset.id === id);
+                    el.classList.toggle('border-amber-300', el.dataset.id === id);
+                });
+            }
+        }
+
+        document.getElementById('csv-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+
+            if (!selectedGameId) {
+                showToast('Selecciona una partida primero', 'warning');
+                this.value = '';
+                return;
+            }
+
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    parsedData = parseSupremacyCSV(event.target.result);
+
+                    document.getElementById('preview-section').classList.remove('hidden');
+                    document.getElementById('preview-content').innerHTML = generatePreviewHTML(parsedData);
+                } catch (err) {
+                    showToast('Error parseando CSV: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function resetImport() {
+            document.getElementById('preview-section').classList.add('hidden');
+            document.getElementById('csv-file').value = '';
+            parsedData = null;
+        }
+
+        function resetAll() {
+            resetImport();
+            document.getElementById('result-section').classList.add('hidden');
+            selectedGameId = null;
+            document.getElementById('selected-game-info').classList.add('hidden');
+            document.querySelectorAll('.game-item').forEach(el => {
+                el.classList.remove('bg-amber-100', 'border-amber-300');
+            });
+        }
+
+        async function confirmImport() {
+            if (!parsedData || !selectedGameId) return;
+
+            const btn = document.querySelector('#preview-section button:last-child');
+            btn.disabled = true;
+            btn.textContent = 'Importando...';
+
+            try {
+                for (const player of parsedData.players) {
+                    await supabase.from('players').upsert({
+                        id: player.player_id,
+                        current_username: player.username,
+                        last_seen: new Date().toISOString()
+                    }, { onConflict: 'id' });
+
+                    await supabase.from('game_results').insert({
+                        game_id: selectedGameId,
+                        player_id: player.player_id,
+                        nation: player.nation,
+                        kills: player.kills,
+                        deaths: player.deaths,
+                        kd_ratio: player.kd_ratio,
+                        raw_csv_data: player.raw_csv
+                    });
+                }
+
+                for (const player of parsedData.players) {
+                    const { data: results } = await supabase
+                        .from('game_results')
+                        .select('kills, deaths')
+                        .eq('player_id', player.player_id);
+
+                    const totalKills = results.reduce((s, r) => s + r.kills, 0);
+                    const totalDeaths = results.reduce((s, r) => s + r.deaths, 0);
+
+                    await supabase.from('players').update({
+                        total_kills: totalKills,
+                        total_deaths: totalDeaths,
+                        games_played: results.length,
+                        current_username: player.username
+                    }).eq('id', player.player_id);
+                }
+
+                await supabase.from('games').update({ csv_imported: true }).eq('id', selectedGameId);
+
+                document.getElementById('preview-section').classList.add('hidden');
+                document.getElementById('result-section').classList.remove('hidden');
+                document.getElementById('result-text').textContent = 
+                    `${parsedData.importedCount} jugadores importados, ${parsedData.totalRows - parsedData.importedCount} bots ignorados`;
+
+                showToast('Importación completada', 'success');
+                loadGames(); // Recargar lista para actualizar estado
+
+            } catch (err) {
+                showToast('Error en importación: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '✓ Confirmar Importación';
+            }
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>

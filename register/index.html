@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/ui-utils.js"></script>
+    <script src="/assets/js/pwa-utils.js"></script>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="/manifest.json">
+
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="public">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-md mx-auto px-4 py-8">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <div class="text-center mb-6">
+                <div class="text-3xl mb-2">📝</div>
+                <h1 class="text-xl font-bold text-slate-800">Pre-registro</h1>
+                <p class="text-slate-500 text-sm" id="game-name">Cargando...</p>
+            </div>
+
+            <form id="register-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu ID de jugador (del juego) *</label>
+                    <input type="number" id="reg-id" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                        placeholder="Ej: 99702975">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu username *</label>
+                    <input type="text" id="reg-username" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                        placeholder="Ej: Tlaloc27">
+                </div>
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" id="reg-rules" required class="mt-1 w-5 h-5 rounded border-slate-300 text-amber-500 focus:ring-amber-500">
+                    <label class="text-sm text-slate-600">
+                        Acepto las <a id="rules-link" href="#" target="_blank" class="text-amber-600 font-bold">reglas y términos</a> de esta partida
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
+                    Confirmar Registro
+                </button>
+            </form>
+
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p class="text-xs text-blue-700">💡 Tu navegador recordará tu ID y username para futuros registros</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game');
+
+        if (!gameId) location.href = '/';
+
+        // Cargar datos guardados
+        const saved = getPlayerData();
+        if (saved.playerId) document.getElementById('reg-id').value = saved.playerId;
+        if (saved.username) document.getElementById('reg-username').value = saved.username;
+
+        async function loadGame() {
+            const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
+            if (!game || game.status !== 'open') {
+                document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Esta partida no está abierta para registro</div>';
+                return;
+            }
+
+            document.getElementById('game-name').textContent = game.name;
+            if (game.rules_pdf_url) {
+                document.getElementById('rules-link').href = game.rules_pdf_url;
+            }
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const playerId = document.getElementById('reg-id').value;
+            const username = document.getElementById('reg-username').value.trim();
+
+            // Guardar para futuro
+            savePlayerData(playerId, username);
+
+            // Verificar si ya está registrado
+            const { data: existing } = await supabase
+                .from('registrations')
+                .select('id')
+                .eq('game_id', gameId)
+                .eq('player_id', playerId);
+
+            if (existing && existing.length > 0) {
+                showToast('Ya estás registrado en esta partida', 'warning');
+                return;
+            }
+
+            const { error } = await supabase.from('registrations').insert({
+                game_id: gameId,
+                player_id: parseInt(playerId),
+                username: username,
+                accepted_rules: true
+            });
+
+            if (error) {
+                showToast('Error: ' + error.message, 'error');
+            } else {
+                showToast('¡Registro exitoso!', 'success');
+                this.innerHTML = '<div class="text-center py-4"><div class="text-3xl mb-2">✅</div><p class="font-bold text-green-600">¡Registrado!</p><p class="text-sm text-slate-500">Te contactaremos con los detalles de la partida</p></div>';
+            }
+        });
+
+        loadGame();
+    </script>
+</body>
+</html>

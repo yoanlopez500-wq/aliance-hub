@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Partidas - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/ui-utils.js"></script>
+    <script src="/assets/js/pwa-utils.js"></script>
+    <style>
+        .modal { display: none; }
+        .modal.active { display: flex; }
+    </style>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="/manifest.json">
+
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">🎮 Partidas</h1>
+                <p class="text-slate-500">Gestiona todas las partidas</p>
+            </div>
+            <button onclick="openModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">
+                ➕ Nueva Partida
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="filterGames('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
+            <button onclick="filterGames('draft')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="draft">Borradores</button>
+            <button onclick="filterGames('open')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="open">Abiertas</button>
+            <button onclick="filterGames('in_progress')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="in_progress">En curso</button>
+            <button onclick="filterGames('finished')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="finished">Finalizadas</button>
+            <button onclick="filterGames('archived')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="archived">Archivadas</button>
+        </div>
+
+        <!-- Lista -->
+        <div id="games-list" class="space-y-3">
+            <div class="text-center py-8 text-slate-400">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- Modal Crear/Editar -->
+    <div id="game-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-100">
+                <h2 class="text-xl font-bold text-slate-800" id="modal-title">Nueva Partida</h2>
+            </div>
+            <form id="game-form" class="p-6 space-y-4">
+                <input type="hidden" id="game-uuid">
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ID de la partida (del juego) *</label>
+                    <input type="text" id="game-id" required
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                        placeholder="ej: torneo-aguilas-feb-2025">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="game-name" required
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                        placeholder="Nombre de la partida">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+                    <textarea id="game-desc" rows="2"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                        placeholder="Descripción breve"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tipo *</label>
+                        <select id="game-type" required
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                            <option value="internal">Interna (max 10)</option>
+                            <option value="duel">Duelo</option>
+                            <option value="tournament">Torneo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Máx. Jugadores *</label>
+                        <input type="number" id="game-max" required min="2" max="500" value="10"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Alianza (opcional)</label>
+                    <select id="game-alliance"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                        <option value="">-- Global / Sin alianza --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">URL del PDF de reglas</label>
+                    <input type="url" id="game-rules"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
+                        placeholder="https://drive.google.com/...">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña (opcional)</label>
+                        <input type="text" id="game-password"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
+                            placeholder="Dejar vacío = pública">
+                    </div>
+                    <div class="flex items-center">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="game-show-id" checked
+                                class="w-5 h-5 rounded border-slate-300 text-amber-500 focus:ring-amber-500">
+                            <span class="text-sm text-slate-700">Mostrar ID públicamente</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+                    <select id="game-status" required
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                        <option value="draft">Borrador</option>
+                        <option value="open">Abierta</option>
+                        <option value="in_progress">En curso</option>
+                        <option value="finished">Finalizada</option>
+                        <option value="archived">Archivada</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400 transition">
+                        Guardar
+                    </button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300 transition">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        requireAdmin();
+
+        let allGames = [];
+        let alliances = [];
+
+        async function loadAlliances() {
+            const { data } = await supabase.from('alliances').select('id, name, tag').order('name');
+            alliances = data || [];
+            const select = document.getElementById('game-alliance');
+            select.innerHTML = '<option value="">-- Global / Sin alianza --</option>' +
+                alliances.map(a => `<option value="${a.id}">${a.name} [${a.tag}]</option>`).join('');
+        }
+
+        async function loadGames() {
+            showLoading('games-list');
+            const { data, error } = await supabase
+                .from('games')
+                .select('*, alliances(name, tag)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                document.getElementById('games-list').innerHTML = `<div class="text-red-500">Error: ${error.message}</div>`;
+                return;
+            }
+
+            allGames = data || [];
+            renderGames(allGames);
+        }
+
+        function renderGames(games) {
+            const container = document.getElementById('games-list');
+            if (games.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border border-slate-200">Sin partidas</div>';
+                return;
+            }
+
+            container.innerHTML = games.map(g => `
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            ${getStatusBadge(g.status)}
+                            ${getTypeBadge(g.type)}
+                            ${g.password ? '<span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">🔒</span>' : ''}
+                            ${g.csv_imported ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ CSV</span>' : ''}
+                        </div>
+                        <h3 class="font-bold text-slate-800">${g.name}</h3>
+                        <p class="text-xs text-slate-500">ID: ${g.show_game_id ? g.game_id : '•••••'} • ${g.alliances ? g.alliances.name : 'Global'} • ${formatDate(g.created_at)}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="/admin/game-detail.html?id=${g.id}" class="px-3 py-1.5 bg-slate-800 text-white text-sm rounded hover:bg-slate-700 transition">Ver</a>
+                        <button onclick="editGame('${g.id}')" class="px-3 py-1.5 bg-amber-500 text-slate-900 text-sm rounded font-bold hover:bg-amber-400 transition">Editar</button>
+                        <button onclick="deleteGame('${g.id}')" class="px-3 py-1.5 bg-red-100 text-red-600 text-sm rounded hover:bg-red-200 transition">🗑</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterGames(status) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === status) {
+                    btn.className = 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium';
+                } else {
+                    btn.className = 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
+                }
+            });
+            renderGames(status === 'all' ? allGames : allGames.filter(g => g.status === status));
+        }
+
+        function openModal() {
+            document.getElementById('game-form').reset();
+            document.getElementById('game-uuid').value = '';
+            document.getElementById('modal-title').textContent = 'Nueva Partida';
+            document.getElementById('game-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('game-modal').classList.remove('active');
+        }
+
+        async function editGame(id) {
+            const game = allGames.find(g => g.id === id);
+            if (!game) return;
+
+            document.getElementById('game-uuid').value = game.id;
+            document.getElementById('game-id').value = game.game_id;
+            document.getElementById('game-name').value = game.name;
+            document.getElementById('game-desc').value = game.description || '';
+            document.getElementById('game-type').value = game.type;
+            document.getElementById('game-max').value = game.max_players;
+            document.getElementById('game-alliance').value = game.alliance_id || '';
+            document.getElementById('game-rules').value = game.rules_pdf_url || '';
+            document.getElementById('game-password').value = game.password || '';
+            document.getElementById('game-show-id').checked = game.show_game_id;
+            document.getElementById('game-status').value = game.status;
+
+            document.getElementById('modal-title').textContent = 'Editar Partida';
+            document.getElementById('game-modal').classList.add('active');
+        }
+
+        async function deleteGame(id) {
+            if (!confirmAction('¿Eliminar esta partida? Se perderán todos los registros asociados.')) return;
+
+            const { error } = await supabase.from('games').delete().eq('id', id);
+            if (error) {
+                showToast('Error al eliminar: ' + error.message, 'error');
+            } else {
+                showToast('Partida eliminada', 'success');
+                loadGames();
+            }
+        }
+
+        document.getElementById('game-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const uuid = document.getElementById('game-uuid').value;
+            const data = {
+                game_id: document.getElementById('game-id').value.trim(),
+                name: document.getElementById('game-name').value.trim(),
+                description: document.getElementById('game-desc').value.trim(),
+                type: document.getElementById('game-type').value,
+                max_players: parseInt(document.getElementById('game-max').value),
+                alliance_id: document.getElementById('game-alliance').value || null,
+                rules_pdf_url: document.getElementById('game-rules').value.trim() || null,
+                password: document.getElementById('game-password').value.trim() || null,
+                show_game_id: document.getElementById('game-show-id').checked,
+                status: document.getElementById('game-status').value
+            };
+
+            let result;
+            if (uuid) {
+                result = await supabase.from('games').update(data).eq('id', uuid);
+            } else {
+                result = await supabase.from('games').insert([data]);
+            }
+
+            if (result.error) {
+                showToast('Error: ' + result.error.message, 'error');
+            } else {
+                showToast(uuid ? 'Partida actualizada' : 'Partida creada', 'success');
+                closeModal();
+                loadGames();
+            }
+        });
+
+        document.getElementById('game-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        loadAlliances();
+        loadGames();
+    </script>
+</body>
+</html>
