@@ -4,17 +4,44 @@
     <meta charset="utf-8">
     <title>Alliance Hub</title>
     <script>
-        sessionStorage.redirect = location.pathname + location.search + location.hash;
-        location.replace('/');
-    </script>
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="/manifest.json">
+        // Single Page Apps for GitHub Pages
+        // https://github.com/rafgraph/spa-github-pages
+        // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
+        // This script takes the current url and converts the path and query
+        // string into just a query string, and then redirects the browser
+        // to the new url with only a query string and hash fragment.
+        //
+        // Example:
+        // https://username.github.io/repo-name/one/two?a=b&c=d#qwe
+        // becomes:
+        // https://username.github.io/repo-name/?p=/one/two&q=a=b~and~c=d#qwe
+        // Which then is handled by the script in index.html
 
+        // If we're on localhost, don't redirect (for development)
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            // do nothing
+        } else {
+            // Count path segments to keep (for GitHub Pages project sites)
+            // Auto-detect: if URL is /repo-name/path, keep 1 segment
+            var pathSegmentsToKeep = 0;
+            var path = location.pathname;
+            var parts = path.split('/').filter(function(p) { return p.length > 0; });
+
+            // Si hay al menos un segmento y no parece ser una página (.html)
+            if (parts.length >= 1 && !parts[0].includes('.') && parts[0].length > 0) {
+                pathSegmentsToKeep = 1;
+            }
+
+            var l = window.location;
+            l.replace(
+                l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?p=/' +
+                l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+                (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+                l.hash
+            );
+        }
+    </script>
 </head>
 <body></body>
 </html>

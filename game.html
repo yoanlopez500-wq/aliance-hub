@@ -12,11 +12,12 @@
     <script src="assets/js/pwa-utils.js"></script>
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="manifest.json"">
 
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
@@ -66,7 +67,7 @@
         const gameId = urlParams.get('id');
 
         if (!gameId) {
-            location.href = '/';
+            location.href = 'index.html';
         }
 
         async function loadGame() {
@@ -97,7 +98,7 @@
                 </div>
                 ${game.status === 'open' ? `
                     <div class="mt-4">
-                        <a href="/register/index.html?game=${game.id}" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">
+                        <a href="register/index.html?game=${game.id}" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">
                             Registrarme en esta partida
                         </a>
                     </div>
@@ -125,7 +126,7 @@
                             <td class="p-3 font-bold ${i < 3 ? 'text-amber-600' : 'text-slate-400'}">${i + 1}</td>
                             <td class="p-3">${r.nation}</td>
                             <td class="p-3 font-medium">
-                                <a href="/player.html?id=${r.player_id}" class="hover:text-amber-600">${r.players?.current_username || '?'}</a>
+                                <a href="player.html?id=${r.player_id}" class="hover:text-amber-600">${r.players?.current_username || '?'}</a>
                             </td>
                             <td class="p-3 text-right text-green-600 font-bold">${r.kills.toLocaleString()}</td>
                             <td class="p-3 text-right text-red-500">${r.deaths.toLocaleString()}</td>

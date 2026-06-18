@@ -1,36 +1,49 @@
 // service-worker.js
 const CACHE_NAME = 'alliance-hub-v1';
+
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/login.html',
-  '/rankings.html',
-  '/game.html',
-  '/player.html',
-  '/assets/js/config.js',
-  '/assets/js/auth.js',
-  '/assets/js/ui-utils.js',
-  '/assets/js/csv-parser.js',
-  '/assets/css/style.css',
-  '/manifest.json'
+  './',
+  './index.html',
+  './login.html',
+  './rankings.html',
+  './game.html',
+  './player.html',
+  './admin/index.html',
+  './admin/games.html',
+  './admin/game-detail.html',
+  './admin/alliances.html',
+  './admin/players.html',
+  './admin/import.html',
+  './admin/invites.html',
+  './register/index.html',
+  './assets/js/config.js',
+  './assets/js/auth.js',
+  './assets/js/ui-utils.js',
+  './assets/js/csv-parser.js',
+  './assets/js/pwa-utils.js',
+  './assets/css/style.css',
+  './manifest.json'
 ];
 
-// Instalar: cachear recursos estáticos
-self.addEventListener('install', event => {
+self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .catch(err => console.log('Cache install error:', err))
+      .then(function(cache) {
+        console.log('Alliance Hub SW: Caching...');
+        return cache.addAll(urlsToCache);
+      })
+      .catch(function(err) {
+        console.log('SW Cache install error:', err);
+      })
   );
   self.skipWaiting();
 });
 
-// Activar: limpiar caches viejas
-self.addEventListener('activate', event => {
+self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map(function(cacheName) {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
@@ -41,22 +54,34 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: estrategia Network First, fallback a cache
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', function(event) {
+  // IGNORAR requests que no son GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // IGNORAR requests de terceros (Supabase, analytics, extensiones)
+  var url = new URL(event.request.url);
+  if (url.hostname !== self.location.hostname) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
-      .then(response => {
-        // Si la respuesta es válida, actualizar cache
+      .then(function(response) {
+        // Solo cachear respuestas válidas
         if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
+          var responseClone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseClone).catch(function(err) {
+              console.log('Cache put error:', err);
+            });
           });
         }
         return response;
       })
-      .catch(() => {
-        // Si falla la red, servir desde cache
+      .catch(function() {
+        // Fallback a cache
         return caches.match(event.request);
       })
   );

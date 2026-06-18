@@ -28,23 +28,41 @@
     </script>
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="manifest.json"">
 
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
 <script>
-    // SPA redirect handler para GitHub Pages
-    (function() {
-        const redirect = sessionStorage.redirect;
-        delete sessionStorage.redirect;
-        if (redirect && redirect !== '/') {
-            history.replaceState(null, null, redirect);
+    // Single Page Apps for GitHub Pages
+    // https://github.com/rafgraph/spa-github-pages
+    // This script checks to see if a redirect is present in the query string
+    // and converts it back into the correct url and adds it to the
+    // browser's history using window.history.replaceState(...),
+    // which won't cause the browser to attempt to load the new url.
+    // When the single page app is loaded further down in this file,
+    // the correct url will be waiting in the browser's history for
+    // the single page app to route accordingly.
+    (function(l) {
+        if (l.search) {
+            var q = {};
+            l.search.slice(1).split('&').forEach(function(v) {
+                var a = v.split('=');
+                q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
+            });
+            if (q.p !== undefined) {
+                window.history.replaceState(null, null,
+                    l.pathname.slice(0, -1) + (q.p || '') +
+                    (q.q ? ('?' + q.q) : '') +
+                    l.hash
+                );
+            }
         }
-    })();
+    }(window.location))
 </script>
 
     <script>
@@ -66,7 +84,7 @@
                 </p>
                 <div class="mt-6 flex flex-wrap justify-center gap-3">
                     <a href="#games" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
-                    <a href="/rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">🏆 Rankings</a>
+                    <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">🏆 Rankings</a>
                 </div>
             </div>
         </div>
@@ -167,8 +185,8 @@
                             </div>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <a href="/game.html?id=${game.id}" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>
-                            ${game.status === 'open' ? `<a href="/register/index.html?game=${game.id}" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>` : ''}
+                            <a href="game.html?id=${game.id}" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>
+                            ${game.status === 'open' ? `<a href="register/index.html?game=${game.id}" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>` : ''}
                         </div>
                     </div>
                 </div>

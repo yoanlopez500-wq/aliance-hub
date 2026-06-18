@@ -6,21 +6,22 @@
     <title>Detalle Partida - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/auth.js"></script>
-    <script src="/assets/js/ui-utils.js"></script>
-    <script src="/assets/js/pwa-utils.js"></script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/ui-utils.js"></script>
+    <script src="../assets/js/pwa-utils.js"></script>
     <style>
         .modal { display: none; }
         .modal.active { display: flex; }
     </style>
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
+    <link rel="manifest" href="../manifest.json"">
 
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
@@ -37,7 +38,7 @@
             <button onclick="changeStatus('in_progress')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition">Iniciar partida</button>
             <button onclick="changeStatus('finished')" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-400 transition">Finalizar</button>
             <button onclick="changeStatus('archived')" class="px-4 py-2 bg-slate-500 text-white rounded-lg font-bold hover:bg-slate-400 transition">Archivar</button>
-            <a href="/admin/import.html" id="btn-import" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition hidden">📥 Importar CSV</a>
+            <a href="./import.html" id="btn-import" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition hidden">📥 Importar CSV</a>
         </div>
 
         <!-- Registrados -->
@@ -57,7 +58,7 @@
                 <h2 class="font-bold text-slate-800">🏆 Resultados</h2>
                 <div class="flex gap-2">
                     <button onclick="openAddResultModal()" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-400 transition">➕ Añadir Manual</button>
-                    <a href="/admin/import.html?game=${gameId}" id="btn-import-inline" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">📥 Importar CSV</a>
+                    <a href="./import.html?game=${gameId}" id="btn-import-inline" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">📥 Importar CSV</a>
                 </div>
             </div>
             <div id="results-list">
@@ -141,7 +142,7 @@
         requireAdmin();
 
         const gameId = new URLSearchParams(window.location.search).get('id');
-        if (!gameId) location.href = '/admin/games.html';
+        if (!gameId) location.href = './games.html';
 
         let currentGame = null;
 
