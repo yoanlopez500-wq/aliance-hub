@@ -17,8 +17,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json"">
-
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
@@ -34,7 +33,6 @@
             </button>
         </div>
 
-        <!-- Nuevo código generado -->
         <div id="new-code-section" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
             <h3 class="font-bold text-green-800 mb-2">✅ Código Generado</h3>
             <div class="flex items-center gap-3">
@@ -44,7 +42,6 @@
             <p class="text-green-600 text-sm mt-2">Comparte este código. Expira en 7 días.</p>
         </div>
 
-        <!-- Lista de códigos -->
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <h2 class="font-bold text-slate-800 mb-4">Historial de Códigos</h2>
             <div id="codes-list" class="overflow-x-auto">
@@ -110,9 +107,7 @@
             btn.textContent = 'Generando...';
 
             try {
-                // Llamar a la función RPC de Supabase
                 const { data, error } = await supabase.rpc('create_invite_code');
-
                 if (error) throw error;
 
                 document.getElementById('new-code').textContent = data;

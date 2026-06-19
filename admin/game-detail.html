@@ -21,8 +21,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json"">
-
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
@@ -32,7 +31,6 @@
             <div class="text-center py-8 text-slate-400">Cargando...</div>
         </div>
 
-        <!-- Acciones admin -->
         <div class="flex flex-wrap gap-3 mb-6">
             <button onclick="changeStatus('open')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-400 transition">Abrir registro</button>
             <button onclick="changeStatus('in_progress')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition">Iniciar partida</button>
@@ -41,7 +39,6 @@
             <a href="./import.html" id="btn-import" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition hidden">📥 Importar CSV</a>
         </div>
 
-        <!-- Registrados -->
         <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-bold text-slate-800">👥 Registrados (<span id="reg-count">0</span>)</h2>
@@ -52,7 +49,6 @@
             </div>
         </div>
 
-        <!-- Resultados importados / Edición manual -->
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-bold text-slate-800">🏆 Resultados</h2>
@@ -67,7 +63,6 @@
         </div>
     </div>
 
-    <!-- Modal: Añadir/Editar Resultado Manual -->
     <div id="result-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md">
             <div class="p-6 border-b">
@@ -113,7 +108,6 @@
         </div>
     </div>
 
-    <!-- Modal: Añadir Registro Manual -->
     <div id="reg-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md">
             <div class="p-6 border-b">
@@ -181,10 +175,10 @@
             if ((game.status === 'finished' || game.status === 'archived') && !game.csv_imported) {
                 const btn = document.getElementById('btn-import');
                 btn.classList.remove('hidden');
-                btn.href = `/admin/import.html?game=${gameId}`;
+                btn.href = `./import.html?game=${gameId}`;
             }
 
-            document.getElementById('btn-import-inline').href = `/admin/import.html?game=${gameId}`;
+            document.getElementById('btn-import-inline').href = `./import.html?game=${gameId}`;
 
             loadRegistrations();
             loadResults();
@@ -277,7 +271,6 @@
             `;
         }
 
-        // Modal Resultados
         function openAddResultModal() {
             document.getElementById('result-form').reset();
             document.getElementById('result-uuid').value = '';
@@ -319,7 +312,6 @@
             const deaths = parseInt(document.getElementById('result-deaths').value) || 0;
             const kd = deaths === 0 ? kills : parseFloat((kills / deaths).toFixed(2));
 
-            // Crear/actualizar jugador
             await supabase.from('players').upsert({
                 id: playerId,
                 current_username: username,
@@ -348,7 +340,6 @@
                 showToast(uuid ? 'Resultado actualizado' : 'Resultado añadido', 'success');
                 closeResultModal();
 
-                // Recalcular stats del jugador
                 const { data: allResults } = await supabase
                     .from('game_results')
                     .select('kills, deaths')
@@ -364,7 +355,6 @@
                     current_username: username
                 }).eq('id', playerId);
 
-                // Marcar partida como importada si ahora tiene resultados
                 await supabase.from('games').update({ csv_imported: true }).eq('id', gameId);
 
                 loadResults();
@@ -383,7 +373,6 @@
             } else {
                 showToast('Resultado eliminado', 'success');
 
-                // Recalcular stats del jugador afectado
                 if (result) {
                     const { data: allResults } = await supabase
                         .from('game_results')
@@ -404,7 +393,6 @@
             }
         }
 
-        // Modal Registros
         function openAddRegistrationModal() {
             document.getElementById('reg-form').reset();
             document.getElementById('reg-modal').classList.add('active');
@@ -455,7 +443,6 @@
             }
         }
 
-        // Cerrar modales al hacer click fuera
         document.getElementById('result-modal').addEventListener('click', function(e) {
             if (e.target === this) closeResultModal();
         });

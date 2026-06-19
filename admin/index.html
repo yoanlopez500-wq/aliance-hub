@@ -21,8 +21,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json"">
-
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
@@ -33,7 +32,6 @@
             <p class="text-slate-500">Resumen de la plataforma</p>
         </div>
 
-        <!-- Stats Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div class="stat-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                 <div class="text-3xl font-bold text-amber-600" id="dash-games">-</div>
@@ -53,7 +51,6 @@
             </div>
         </div>
 
-        <!-- Acciones rápidas -->
         <div class="grid md:grid-cols-2 gap-6 mb-8">
             <div class="bg-white rounded-xl border border-slate-200 p-6">
                 <h3 class="font-bold text-slate-800 mb-4">⚡ Acciones Rápidas</h3>
@@ -89,7 +86,6 @@
                 </div>
             </div>
 
-            <!-- Últimas partidas -->
             <div class="bg-white rounded-xl border border-slate-200 p-6">
                 <h3 class="font-bold text-slate-800 mb-4">🎮 Últimas Partidas</h3>
                 <div id="recent-games" class="space-y-3">
@@ -98,7 +94,6 @@
             </div>
         </div>
 
-        <!-- Top jugadores -->
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-bold text-slate-800">🏆 Top Jugadores (KD Global)</h3>
@@ -115,7 +110,6 @@
 
         async function loadDashboard() {
             try {
-                // Stats
                 const { count: gamesCount } = await supabase.from('games').select('*', { count: 'exact', head: true });
                 const { count: playersCount } = await supabase.from('players').select('*', { count: 'exact', head: true });
                 const { count: alliancesCount } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
@@ -126,7 +120,6 @@
                 document.getElementById('dash-alliances').textContent = alliancesCount || 0;
                 document.getElementById('dash-results').textContent = resultsCount || 0;
 
-                // Últimas partidas
                 const { data: recentGames } = await supabase
                     .from('games')
                     .select('*, alliances(name, tag)')
@@ -136,7 +129,7 @@
                 const recentContainer = document.getElementById('recent-games');
                 if (recentGames && recentGames.length > 0) {
                     recentContainer.innerHTML = recentGames.map(g => `
-                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition cursor-pointer" onclick="location.href='/admin/game-detail.html?id=${g.id}'">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition cursor-pointer" onclick="location.href='./game-detail.html?id=${g.id}'">
                             <div>
                                 <div class="font-medium text-slate-800">${g.name}</div>
                                 <div class="text-xs text-slate-500">${g.alliances ? g.alliances.name : 'Global'} • ${formatDate(g.created_at)}</div>
@@ -148,7 +141,6 @@
                     recentContainer.innerHTML = '<div class="text-center text-slate-400 py-4">Sin partidas aún</div>';
                 }
 
-                // Top jugadores
                 const { data: topPlayers } = await supabase
                     .from('players')
                     .select('*, alliances(tag)')

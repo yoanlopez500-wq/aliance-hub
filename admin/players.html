@@ -17,8 +17,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json"">
-
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
@@ -34,7 +33,6 @@
             </button>
         </div>
 
-        <!-- Buscador -->
         <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
             <div class="flex gap-3">
                 <input type="text" id="search" placeholder="Buscar por username o ID..." 
@@ -46,13 +44,11 @@
             </div>
         </div>
 
-        <!-- Lista de jugadores -->
         <div id="players-list" class="overflow-x-auto">
             <div class="text-center py-8 text-slate-400">Cargando...</div>
         </div>
     </div>
 
-    <!-- Modal Editar/Crear Jugador -->
     <div id="player-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b">
@@ -60,7 +56,6 @@
             </div>
             <form id="player-form" class="p-6 space-y-4">
                 <input type="hidden" id="player-id">
-
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">ID del jugador (número del juego) *</label>
                     <input type="number" id="edit-id" required
@@ -92,8 +87,6 @@
                         <input type="number" id="edit-games" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
                     </div>
                 </div>
-
-                <!-- Gestión de partidas -->
                 <div class="border-t pt-4 mt-4">
                     <h3 class="font-bold text-slate-800 mb-3">🎮 Gestionar Partidas</h3>
                     <div id="player-games-list" class="space-y-2 max-h-40 overflow-y-auto">
@@ -106,7 +99,6 @@
                         <button type="button" onclick="addPlayerToGame()" class="px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-400">Añadir</button>
                     </div>
                 </div>
-
                 <div class="flex gap-3 pt-4">
                     <button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button>
                     <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
@@ -134,7 +126,6 @@
             alliances = alli || [];
             allGames = games || [];
 
-            // Poblar selects
             const allianceSelect = document.getElementById('edit-alliance');
             allianceSelect.innerHTML = '<option value="">-- Sin alianza --</option>' +
                 alliances.map(a => `<option value="${a.id}">${a.name} [${a.tag}]</option>`).join('');
@@ -227,7 +218,7 @@
 
             document.getElementById('player-id').value = p.id;
             document.getElementById('edit-id').value = p.id;
-            document.getElementById('edit-id').disabled = true; // No permitir cambiar ID
+            document.getElementById('edit-id').disabled = true;
             document.getElementById('edit-username').value = p.current_username;
             document.getElementById('edit-alliance').value = p.current_alliance_id || '';
             document.getElementById('edit-kills').value = p.total_kills || 0;
@@ -235,13 +226,10 @@
             document.getElementById('edit-games').value = p.games_played || 0;
             document.getElementById('modal-title').textContent = 'Editar Jugador';
 
-            // Cargar partidas del jugador
             await loadPlayerGames(id);
 
-            // Poblar select de partidas disponibles (filtrar las que ya tiene)
             const { data: regs } = await supabase.from('registrations').select('game_id').eq('player_id', id);
             const registeredIds = (regs || []).map(r => r.game_id);
-
             const availableGames = allGames.filter(g => !registeredIds.includes(g.id));
             document.getElementById('add-game-select').innerHTML = '<option value="">-- Añadir a partida --</option>' +
                 availableGames.map(g => `<option value="${g.id}">${g.name} (${g.status})</option>`).join('');
@@ -294,7 +282,6 @@
             } else {
                 showToast('Jugador añadido a la partida', 'success');
                 loadPlayerGames(currentPlayerId);
-                // Actualizar select
                 const { data: regs } = await supabase.from('registrations').select('game_id').eq('player_id', currentPlayerId);
                 const registeredIds = (regs || []).map(r => r.game_id);
                 const availableGames = allGames.filter(g => !registeredIds.includes(g.id));
@@ -338,7 +325,6 @@
 
             let result;
             if (id) {
-                // Actualizar (sin cambiar el ID)
                 result = await supabase.from('players').update({
                     current_username: data.current_username,
                     current_alliance_id: data.current_alliance_id,
@@ -348,7 +334,6 @@
                     last_seen: data.last_seen
                 }).eq('id', id);
             } else {
-                // Crear nuevo
                 result = await supabase.from('players').insert([data]);
             }
 

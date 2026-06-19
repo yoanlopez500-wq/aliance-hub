@@ -17,8 +17,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="manifest.json"">
-
+    <link rel="manifest" href="manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
     <div id="admin-nav"></div>
@@ -98,7 +97,6 @@
         async function loadRankings() {
             const allianceFilter = document.getElementById('filter-alliance').value;
 
-            // Jugadores
             let query = supabase.from('players').select('*, alliances(name, tag)').gt('total_deaths', 0);
             if (allianceFilter) query = query.eq('current_alliance_id', allianceFilter);
 
@@ -126,7 +124,6 @@
                 }).join('');
             }
 
-            // Alianzas (agregado simple)
             const { data: allianceStats } = await supabase
                 .from('players')
                 .select('current_alliance_id, alliances(name, tag), total_kills, total_deaths')

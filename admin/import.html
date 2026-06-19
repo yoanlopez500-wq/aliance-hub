@@ -18,8 +18,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json"">
-
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
@@ -28,27 +27,19 @@
         <h1 class="text-2xl font-bold text-slate-800 mb-2">📥 Importar Resultados CSV</h1>
         <p class="text-slate-500 mb-6">Sube el CSV exportado por el bot de Discord</p>
 
-        <!-- Paso 1: Buscar y seleccionar partida -->
         <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-2">1. Busca y selecciona la partida</label>
-
-            <!-- Buscador -->
             <input type="text" id="search-game" placeholder="Buscar por nombre o ID de partida..." 
                 class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3"
                 onkeyup="searchGames()">
-
-            <!-- Lista de partidas -->
             <div id="games-list" class="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
                 <div class="text-center text-slate-400 py-4">Cargando partidas...</div>
             </div>
-
-            <!-- Partida seleccionada -->
             <div id="selected-game-info" class="hidden mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                 <p class="text-sm text-amber-800 font-medium">Partida seleccionada: <span id="selected-name"></span></p>
             </div>
         </div>
 
-        <!-- Paso 2: Subir CSV -->
         <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-2">2. Sube el archivo CSV</label>
             <input type="file" id="csv-file" accept=".csv" 
@@ -56,7 +47,6 @@
             <p class="text-xs text-slate-400 mt-2">Formato: Nation,Username,Id ,...,Total (como exporta el bot)</p>
         </div>
 
-        <!-- Paso 3: Preview -->
         <div id="preview-section" class="hidden">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-bold text-slate-800">3. Verifica los datos</h3>
@@ -68,7 +58,6 @@
             <div id="preview-content" class="bg-white rounded-xl border border-slate-200 p-4 overflow-x-auto"></div>
         </div>
 
-        <!-- Resultado -->
         <div id="result-section" class="hidden">
             <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                 <div class="text-3xl mb-2">✅</div>
@@ -87,11 +76,10 @@
         let parsedData = null;
 
         async function loadGames() {
-            // Cargar TODAS las partidas EXCEPTO archivadas
             const { data, error } = await supabase
                 .from('games')
                 .select('id, name, game_id, status, csv_imported, alliances(name, tag)')
-                .neq('status', 'archived')  // <-- EXCLUIR ARCHIVADAS
+                .neq('status', 'archived')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -103,7 +91,6 @@
             allGames = data || [];
             renderGames(allGames);
 
-            // Pre-seleccionar si viene por URL
             const urlParams = new URLSearchParams(window.location.search);
             const preselected = urlParams.get('game');
             if (preselected) {
@@ -113,7 +100,6 @@
 
         function renderGames(games) {
             const container = document.getElementById('games-list');
-
             if (games.length === 0) {
                 container.innerHTML = '<div class="text-center text-slate-400 py-4">No hay partidas disponibles</div>';
                 return;
@@ -158,7 +144,6 @@
                 document.getElementById('selected-name').textContent = `${game.name} (${game.game_id})`;
                 document.getElementById('selected-game-info').classList.remove('hidden');
 
-                // Actualizar visual de selección
                 document.querySelectorAll('.game-item').forEach(el => {
                     el.classList.toggle('bg-amber-100', el.dataset.id === id);
                     el.classList.toggle('border-amber-300', el.dataset.id === id);
@@ -258,7 +243,7 @@
                     `${parsedData.importedCount} jugadores importados, ${parsedData.totalRows - parsedData.importedCount} bots ignorados`;
 
                 showToast('Importación completada', 'success');
-                loadGames(); // Recargar lista para actualizar estado
+                loadGames();
 
             } catch (err) {
                 showToast('Error en importación: ' + err.message, 'error');

@@ -7,22 +7,14 @@
         // Single Page Apps for GitHub Pages
         // https://github.com/rafgraph/spa-github-pages
         // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
-        // This script takes the current url and converts the path and query
-        // string into just a query string, and then redirects the browser
-        // to the new url with only a query string and hash fragment.
-        //
-        // Example:
-        // https://username.github.io/repo-name/one/two?a=b&c=d#qwe
-        // becomes:
-        // https://username.github.io/repo-name/?p=/one/two&q=a=b~and~c=d#qwe
-        // Which then is handled by the script in index.html
 
-        // If we're on localhost, don't redirect (for development)
-        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            // do nothing
+        // PROTECCIÓN ANTI-BUCLE: Si ya estamos en un redirect, no hacer nada
+        if (location.search.includes('?p=') || location.search.includes('&q=')) {
+            // Ya estamos en el proceso de redirect, salir
+        } else if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            // Localhost: no redirigir
         } else {
-            // Count path segments to keep (for GitHub Pages project sites)
-            // Auto-detect: if URL is /repo-name/path, keep 1 segment
+            // Detectar segmentos de path a conservar (para GitHub Pages project sites)
             var pathSegmentsToKeep = 0;
             var path = location.pathname;
             var parts = path.split('/').filter(function(p) { return p.length > 0; });
