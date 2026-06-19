@@ -3,37 +3,44 @@
 <head>
     <meta charset="utf-8">
     <title>Alliance Hub</title>
-    <script>
+    <script type="text/javascript">
         // Single Page Apps for GitHub Pages
+        // MIT License
         // https://github.com/rafgraph/spa-github-pages
-        // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
+        //
+        // Este script toma la URL actual y convierte el path y query string
+        // en solo un query string, luego redirige al navegador.
+        //
+        // Ejemplo para project site (con pathSegmentsToKeep = 1):
+        // https://username.github.io/repo-name/one/two?a=b&c=d#qwe
+        // se convierte en:
+        // https://username.github.io/repo-name/?/one/two&a=b~and~c=d#qwe
+        //
+        // NOTA: Este archivo debe tener al menos 512 bytes para IE
 
-        // PROTECCIÓN ANTI-BUCLE: Si ya estamos en un redirect, no hacer nada
-        if (location.search.includes('?p=') || location.search.includes('&q=')) {
-            // Ya estamos en el proceso de redirect, salir
-        } else if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            // Localhost: no redirigir
-        } else {
-            // Detectar segmentos de path a conservar (para GitHub Pages project sites)
-            var pathSegmentsToKeep = 0;
-            var path = location.pathname;
-            var parts = path.split('/').filter(function(p) { return p.length > 0; });
+        // Para Project Pages (sin custom domain), poner pathSegmentsToKeep = 1
+        // Esto preserva el nombre del repo en la URL
+        var pathSegmentsToKeep = 1;
 
-            // Si hay al menos un segmento y no parece ser una página (.html)
-            if (parts.length >= 1 && !parts[0].includes('.') && parts[0].length > 0) {
-                pathSegmentsToKeep = 1;
-            }
-
-            var l = window.location;
-            l.replace(
-                l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?p=/' +
-                l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-                (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-                l.hash
-            );
-        }
+        var l = window.location;
+        l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+            l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+        );
     </script>
 </head>
-<body></body>
+<body>
+    <!-- Padding para asegurar que el archivo tenga más de 512 bytes (requerido por IE) -->
+    <!--
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+    nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+    eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt
+    in culpa qui officia deserunt mollit anim id est laborum.
+    -->
+</body>
 </html>
