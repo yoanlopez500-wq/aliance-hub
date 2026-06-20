@@ -7,10 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
-    <script src="../assets/js/ui-utils.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-    <!-- PWA Meta Tags -->
+<!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -50,10 +50,14 @@
                     </label>
                 </div>
 
-                <button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
+                <button type="submit" id="submit-btn" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
                     Confirmar Registro
                 </button>
             </form>
+
+            <div id="error-display" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm text-red-700 font-medium" id="error-text"></p>
+            </div>
 
             <div class="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p class="text-xs text-blue-700">💡 Tu navegador recordará tu ID y username para futuros registros</p>
@@ -65,56 +69,163 @@
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('game');
 
-        if (!gameId) location.href = '../index.html';
+        if (!gameId) {
+            console.error('No game ID provided');
+            location.href = '../index.html';
+        }
 
+        // Cargar datos guardados
         const saved = getPlayerData();
         if (saved.playerId) document.getElementById('reg-id').value = saved.playerId;
         if (saved.username) document.getElementById('reg-username').value = saved.username;
 
         async function loadGame() {
-            const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
-            if (!game || game.status !== 'open') {
-                document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Esta partida no está abierta para registro</div>';
-                return;
-            }
+            try {
+                const { data: game, error } = await supabase
+                    .from('games')
+                    .select('*')
+                    .eq('id', gameId)
+                    .single();
 
-            document.getElementById('game-name').textContent = game.name;
-            if (game.rules_pdf_url) {
-                document.getElementById('rules-link').href = game.rules_pdf_url;
+                if (error) {
+                    console.error('Error cargando partida:', error);
+                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Error cargando partida: ' + error.message + '</div>';
+                    return;
+                }
+
+                if (!game) {
+                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Partida no encontrada</div>';
+                    return;
+                }
+
+                if (game.status !== 'open') {
+                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Esta partida no está abierta para registro (estado: ' + game.status + ')</div>';
+                    return;
+                }
+
+                document.getElementById('game-name').textContent = game.name;
+                if (game.rules_pdf_url) {
+                    document.getElementById('rules-link').href = game.rules_pdf_url;
+                }
+            } catch (err) {
+                console.error('Error inesperado:', err);
+                document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Error inesperado</div>';
             }
+        }
+
+        function showError(msg) {
+            const errDiv = document.getElementById('error-display');
+            const errText = document.getElementById('error-text');
+            errText.textContent = msg;
+            errDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error-display').classList.add('hidden');
         }
 
         document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            hideError();
 
-            const playerId = document.getElementById('reg-id').value;
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+
+            const playerId = parseInt(document.getElementById('reg-id').value);
             const username = document.getElementById('reg-username').value.trim();
 
-            savePlayerData(playerId, username);
-
-            const { data: existing } = await supabase
-                .from('registrations')
-                .select('id')
-                .eq('game_id', gameId)
-                .eq('player_id', playerId);
-
-            if (existing && existing.length > 0) {
-                showToast('Ya estás registrado en esta partida', 'warning');
+            if (!playerId || playerId <= 0) {
+                showError('El ID de jugador debe ser un número válido');
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Registro';
                 return;
             }
 
-            const { error } = await supabase.from('registrations').insert({
-                game_id: gameId,
-                player_id: parseInt(playerId),
-                username: username,
-                accepted_rules: true
-            });
+            if (!username || username.length < 2) {
+                showError('El username debe tener al menos 2 caracteres');
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Registro';
+                return;
+            }
 
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
+            // Guardar para futuro
+            savePlayerData(playerId, username);
+
+            try {
+                // PASO 1: Verificar si ya está registrado en esta partida
+                const { data: existing, error: checkError } = await supabase
+                    .from('registrations')
+                    .select('id')
+                    .eq('game_id', gameId)
+                    .eq('player_id', playerId);
+
+                if (checkError) {
+                    console.error('Error verificando registro:', checkError);
+                    showError('Error verificando registro: ' + checkError.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Confirmar Registro';
+                    return;
+                }
+
+                if (existing && existing.length > 0) {
+                    showToast('Ya estás registrado en esta partida', 'warning');
+                    btn.disabled = false;
+                    btn.textContent = 'Confirmar Registro';
+                    return;
+                }
+
+                // PASO 2: Crear/actualizar el jugador en la tabla players (upsert)
+                // Esto es CRÍTICO: si el jugador no existe, la FK de registrations falla
+                const { error: playerError } = await supabase
+                    .from('players')
+                    .upsert({
+                        id: playerId,
+                        current_username: username,
+                        last_seen: new Date().toISOString()
+                    }, { onConflict: 'id' });
+
+                if (playerError) {
+                    console.error('Error creando jugador:', playerError);
+                    showError('Error guardando jugador: ' + playerError.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Confirmar Registro';
+                    return;
+                }
+
+                // PASO 3: Insertar el registro
+                const { error: regError } = await supabase
+                    .from('registrations')
+                    .insert({
+                        game_id: gameId,
+                        player_id: playerId,
+                        username: username,
+                        accepted_rules: true
+                    });
+
+                if (regError) {
+                    console.error('Error en registro:', regError);
+                    showError('Error en registro: ' + regError.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Confirmar Registro';
+                    return;
+                }
+
+                // ÉXITO
                 showToast('¡Registro exitoso!', 'success');
-                this.innerHTML = '<div class="text-center py-4"><div class="text-3xl mb-2">✅</div><p class="font-bold text-green-600">¡Registrado!</p><p class="text-sm text-slate-500">Te contactaremos con los detalles de la partida</p></div>';
+                this.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="text-3xl mb-2">✅</div>
+                        <p class="font-bold text-green-600">¡Registrado!</p>
+                        <p class="text-sm text-slate-500">Te contactaremos con los detalles de la partida</p>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('Error inesperado:', err);
+                showError('Error inesperado: ' + (err.message || 'Intenta de nuevo'));
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Registro';
             }
         });
 
