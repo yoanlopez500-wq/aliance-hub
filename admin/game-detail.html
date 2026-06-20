@@ -54,7 +54,7 @@
                 <h2 class="font-bold text-slate-800">🏆 Resultados</h2>
                 <div class="flex gap-2">
                     <button onclick="openAddResultModal()" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-400 transition">➕ Añadir Manual</button>
-                    <a href="./import.html?game=${gameId}" id="btn-import-inline" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">📥 Importar CSV</a>
+                    <a id="btn-import-inline" href="./import.html" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">📥 Importar CSV</a>
                 </div>
             </div>
             <div id="results-list">
@@ -216,7 +216,7 @@
                                 <td class="p-2 font-medium">${r.username}</td>
                                 <td class="p-2 text-slate-500 text-xs">${formatDate(r.registered_at)}</td>
                                 <td class="p-2">
-                                    <button onclick="deleteRegistration(${r.id})" class="text-red-500 hover:text-red-700 text-sm">🗑</button>
+                                    <button onclick="deleteRegistration('${r.id}')" class="text-red-500 hover:text-red-700 text-sm">🗑</button>
                                 </td>
                             </tr>
                         `).join('')}
