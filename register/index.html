@@ -224,18 +224,20 @@
                 return;
             }
 
-            // Insertar registro
+            // 1. Crear/actualizar jugador PRIMERO (requerido por FK)
+            await supabase.from('players').upsert({
+                id: playerId,
+                current_username: username,
+                last_seen: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+            // 2. Insertar registro
             const { data: newReg, error } = await supabase.from('registrations').insert({
                 game_id: gameId,
                 player_id: playerId,
                 username: username,
                 accepted_rules: true
             }).select().single();
-
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-                return;
-            }
 
             showToast('¡Registro exitoso!', 'success');
             showRegisteredState(playerId, username, newReg);
