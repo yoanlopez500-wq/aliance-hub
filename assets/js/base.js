@@ -1,8 +1,7 @@
 // assets/js/base.js
-// Variables y funciones compartidas para TODOS los scripts
-// Este archivo debe cargarse PRIMERO, antes de auth.js y pwa-utils.js
+// Funciones compartidas + sistema de caché controlado por Supabase
 
-// Detectar base path UNA SOLA VEZ
+// Detectar base path
 window.__AH_BASE_PATH = (function() {
     var path = window.location.pathname;
     var parts = path.split('/').filter(function(p) { return p.length > 0; });
@@ -19,7 +18,105 @@ function ahPath(p) {
     return base + p;
 }
 
-// Toast
+// ============================================
+// CACHÉ CONTROLADO
+// ============================================
+// Versión del caché - se invalida desde Supabase
+const CACHE_VERSION_KEY = 'ah_cache_version';
+const CURRENT_CACHE_VERSION = 'v12'; // Cambiar esto para forzar limpieza
+
+// Verificar si necesitamos limpiar caché
+async function checkCacheVersion() {
+    try {
+        // Consultar versión de caché desde Supabase (tabla app_settings)
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'cache_version')
+            .single();
+
+        var serverVersion = (data && data.value) ? data.value : CURRENT_CACHE_VERSION;
+        var localVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+        if (localVersion !== serverVersion) {
+            console.log('Cache version mismatch:', localVersion, '→', serverVersion, '- Limpiando caché...');
+            // Limpiar TODO excepto datos de jugador (ID + username)
+            var playerId = localStorage.getItem('ah_player_id');
+            var username = localStorage.getItem('ah_username');
+
+            // Limpiar localStorage excepto datos esenciales
+            var keysToKeep = ['ah_player_id', 'ah_username'];
+            var keysToRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (keysToKeep.indexOf(key) === -1) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+
+            // Restaurar datos de jugador
+            if (playerId) localStorage.setItem('ah_player_id', playerId);
+            if (username) localStorage.setItem('ah_username', username);
+
+            // Actualizar versión
+            localStorage.setItem(CACHE_VERSION_KEY, serverVersion);
+
+            // Limpiar caché del Service Worker también
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) {
+                        if (name !== 'alliance-hub-v12') {
+                            caches.delete(name);
+                        }
+                    });
+                });
+            }
+
+            return true; // Se limpió
+        }
+        return false; // No se necesitó limpiar
+    } catch (e) {
+        console.error('Error checking cache version:', e);
+        return false;
+    }
+}
+
+// ============================================
+// FUNCIONES DE JUGADOR (persisten en caché)
+// ============================================
+function savePlayerData(playerId, username) {
+    localStorage.setItem('ah_player_id', playerId);
+    localStorage.setItem('ah_username', username);
+}
+
+function getPlayerData() {
+    return { 
+        playerId: localStorage.getItem('ah_player_id'), 
+        username: localStorage.getItem('ah_username') 
+    };
+}
+
+function clearPlayerData() {
+    localStorage.removeItem('ah_player_id');
+    localStorage.removeItem('ah_username');
+}
+
+// ============================================
+// REGISTRO POR PARTIDA (NO persiste en caché, consulta Supabase)
+// ============================================
+// Guarda solo el último gameId registrado para UX, pero NO el estado de registro
+function saveLastRegisteredGame(gameId) {
+    localStorage.setItem('ah_last_game', gameId);
+}
+
+function getLastRegisteredGame() {
+    return localStorage.getItem('ah_last_game');
+}
+
+// ============================================
+// UI UTILS
+// ============================================
 function showToast(message, type) {
     var colors = { info: 'bg-blue-500', success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500' };
     var toast = document.createElement('div');
@@ -69,17 +166,3 @@ function showLoading(elementId, text) {
 }
 
 function confirmAction(message) { return confirm(message); }
-
-function savePlayerData(playerId, username) {
-    localStorage.setItem('ah_player_id', playerId);
-    localStorage.setItem('ah_username', username);
-}
-
-function getPlayerData() {
-    return { playerId: localStorage.getItem('ah_player_id'), username: localStorage.getItem('ah_username') };
-}
-
-function clearPlayerData() {
-    localStorage.removeItem('ah_player_id');
-    localStorage.removeItem('ah_username');
-}
