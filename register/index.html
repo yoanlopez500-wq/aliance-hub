@@ -186,7 +186,7 @@
             // Mostrar datos del jugador
             document.getElementById('reg-player-id').textContent = playerId;
             document.getElementById('reg-player-name').textContent = username;
-            document.getElementById('reg-game-status').textContent = getStatusBadge(currentGame.status);
+            document.getElementById('reg-game-status').innerHTML = getStatusBadge(currentGame.status);
 
             // Mostrar ID de partida si está configurado
             if (currentGame.show_game_id) {

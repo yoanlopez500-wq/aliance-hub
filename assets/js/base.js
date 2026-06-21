@@ -28,22 +28,28 @@ const CURRENT_CACHE_VERSION = 'v12'; // Cambiar esto para forzar limpieza
 // Verificar si necesitamos limpiar caché
 async function checkCacheVersion() {
     try {
-        // Consultar versión de caché desde Supabase (tabla app_settings)
+        // Consultar versión de caché desde Supabase
+        // Usar .maybeSingle() para evitar 406 cuando no hay fila
         const { data, error } = await supabase
             .from('app_settings')
             .select('value')
             .eq('key', 'cache_version')
-            .single();
-
+            .maybeSingle();
+        
+        if (error) {
+            console.log('Cache version check skipped:', error.message);
+            return false;
+        }
+        
         var serverVersion = (data && data.value) ? data.value : CURRENT_CACHE_VERSION;
         var localVersion = localStorage.getItem(CACHE_VERSION_KEY);
-
+        
         if (localVersion !== serverVersion) {
             console.log('Cache version mismatch:', localVersion, '→', serverVersion, '- Limpiando caché...');
             // Limpiar TODO excepto datos de jugador (ID + username)
             var playerId = localStorage.getItem('ah_player_id');
             var username = localStorage.getItem('ah_username');
-
+            
             // Limpiar localStorage excepto datos esenciales
             var keysToKeep = ['ah_player_id', 'ah_username'];
             var keysToRemove = [];
@@ -54,25 +60,14 @@ async function checkCacheVersion() {
                 }
             }
             keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
-
+            
             // Restaurar datos de jugador
             if (playerId) localStorage.setItem('ah_player_id', playerId);
             if (username) localStorage.setItem('ah_username', username);
-
+            
             // Actualizar versión
             localStorage.setItem(CACHE_VERSION_KEY, serverVersion);
-
-            // Limpiar caché del Service Worker también
-            if ('caches' in window) {
-                caches.keys().then(function(names) {
-                    names.forEach(function(name) {
-                        if (name !== 'alliance-hub-v12') {
-                            caches.delete(name);
-                        }
-                    });
-                });
-            }
-
+            
             return true; // Se limpió
         }
         return false; // No se necesitó limpiar
