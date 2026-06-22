@@ -10,7 +10,7 @@
     <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-<!-- PWA Meta Tags -->
+    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,7 +23,8 @@
     <div id="admin-nav"></div>
 
     <div class="max-w-md mx-auto px-4 py-8">
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <!-- ESTADO 1: Formulario de registro -->
+        <div id="register-form-container" class="bg-white rounded-2xl border border-slate-200 p-6">
             <div class="text-center mb-6">
                 <div class="text-3xl mb-2">📝</div>
                 <h1 class="text-xl font-bold text-slate-800">Pre-registro</h1>
@@ -50,18 +51,66 @@
                     </label>
                 </div>
 
-                <button type="submit" id="submit-btn" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
+                <button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
                     Confirmar Registro
                 </button>
             </form>
 
-            <div id="error-display" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-sm text-red-700 font-medium" id="error-text"></p>
-            </div>
-
             <div class="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p class="text-xs text-blue-700">💡 Tu navegador recordará tu ID y username para futuros registros</p>
             </div>
+        </div>
+
+        <!-- ESTADO 2: Ya registrado - muestra info de la partida -->
+        <div id="registered-info" class="hidden bg-white rounded-2xl border border-slate-200 p-6">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-2">✅</div>
+                <h1 class="text-2xl font-bold text-green-700">¡Inscrito!</h1>
+                <p class="text-slate-500 text-sm" id="registered-game-name">Cargando...</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- ID de partida (si show_game_id es true) -->
+                <div id="game-id-display" class="hidden p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <p class="text-xs text-amber-700 uppercase font-bold tracking-wide mb-1">ID de la partida</p>
+                    <div class="flex items-center gap-2">
+                        <code id="game-id-value" class="text-lg font-mono font-bold text-amber-800">---</code>
+                        <button onclick="copyToClipboard('game-id-value')" class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded hover:bg-amber-300">📋 Copiar</button>
+                    </div>
+                </div>
+
+                <!-- Contraseña (si existe) -->
+                <div id="game-password-display" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <p class="text-xs text-purple-700 uppercase font-bold tracking-wide mb-1">Contraseña</p>
+                    <div class="flex items-center gap-2">
+                        <code id="game-password-value" class="text-lg font-mono font-bold text-purple-800">---</code>
+                        <button onclick="copyToClipboard('game-password-value')" class="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded hover:bg-purple-300">📋 Copiar</button>
+                    </div>
+                </div>
+
+                <!-- Info de la partida -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase font-bold tracking-wide mb-2">Detalles</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-500">Tu ID:</span> <span id="reg-player-id" class="font-medium">---</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Username:</span> <span id="reg-player-name" class="font-medium">---</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Estado:</span> <span id="reg-game-status" class="font-medium">---</span></div>
+                    </div>
+                </div>
+
+                <!-- Botón para volver -->
+                <a href="../index.html" class="block w-full text-center bg-slate-800 text-white font-bold py-3 rounded-lg hover:bg-slate-700 transition">
+                    ← Volver al inicio
+                </a>
+            </div>
+        </div>
+
+        <!-- ESTADO 3: Partida no abierta -->
+        <div id="game-closed" class="hidden bg-white rounded-2xl border border-slate-200 p-6 text-center">
+            <div class="text-5xl mb-3">🔒</div>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Registro cerrado</h2>
+            <p class="text-slate-500 mb-4">Esta partida no está abierta para registro.</p>
+            <a href="../index.html" class="inline-block bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition">Ver otras partidas</a>
         </div>
     </div>
 
@@ -69,167 +118,152 @@
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('game');
 
-        if (!gameId) {
-            console.error('No game ID provided');
-            location.href = '../index.html';
-        }
+        if (!gameId) location.href = '../index.html';
 
-        // Cargar datos guardados
+        var currentGame = null;
+        var isRegistered = false;
+
+        // Cargar datos guardados del jugador
         const saved = getPlayerData();
         if (saved.playerId) document.getElementById('reg-id').value = saved.playerId;
         if (saved.username) document.getElementById('reg-username').value = saved.username;
 
-        async function loadGame() {
-            try {
-                const { data: game, error } = await supabase
-                    .from('games')
+        async function initPage() {
+            // Verificar versión de caché
+            await checkCacheVersion();
+
+            // Cargar datos de la partida
+            const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
+            if (!game) {
+                location.href = '../index.html';
+                return;
+            }
+            currentGame = game;
+
+            // Mostrar nombre de la partida
+            document.getElementById('game-name').textContent = game.name;
+            document.getElementById('registered-game-name').textContent = game.name;
+
+            // Si la partida no está abierta, mostrar mensaje
+            if (game.status !== 'open') {
+                document.getElementById('register-form-container').classList.add('hidden');
+                document.getElementById('game-closed').classList.remove('hidden');
+                return;
+            }
+
+            // Si hay URL de reglas, mostrar link
+            if (game.rules_pdf_url) {
+                document.getElementById('rules-link').href = game.rules_pdf_url;
+            }
+
+            // Verificar si el jugador YA está registrado (consultando Supabase)
+            const savedPlayer = getPlayerData();
+            if (savedPlayer.playerId) {
+                const { data: existing } = await supabase
+                    .from('registrations')
                     .select('*')
-                    .eq('id', gameId)
+                    .eq('game_id', gameId)
+                    .eq('player_id', parseInt(savedPlayer.playerId))
                     .single();
 
-                if (error) {
-                    console.error('Error cargando partida:', error);
-                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Error cargando partida: ' + error.message + '</div>';
+                if (existing) {
+                    // SÍ está registrado - mostrar info de la partida
+                    showRegisteredState(savedPlayer.playerId, savedPlayer.username, existing);
                     return;
                 }
+            }
 
-                if (!game) {
-                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Partida no encontrada</div>';
-                    return;
-                }
+            // NO está registrado - mostrar formulario
+            document.getElementById('register-form-container').classList.remove('hidden');
+            document.getElementById('registered-info').classList.add('hidden');
+        }
 
-                if (game.status !== 'open') {
-                    document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Esta partida no está abierta para registro (estado: ' + game.status + ')</div>';
-                    return;
-                }
+        function showRegisteredState(playerId, username, registration) {
+            isRegistered = true;
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('registered-info').classList.remove('hidden');
 
-                document.getElementById('game-name').textContent = game.name;
-                if (game.rules_pdf_url) {
-                    document.getElementById('rules-link').href = game.rules_pdf_url;
-                }
-            } catch (err) {
-                console.error('Error inesperado:', err);
-                document.querySelector('.bg-white').innerHTML = '<div class="text-center py-8 text-red-500">Error inesperado</div>';
+            // Mostrar datos del jugador
+            document.getElementById('reg-player-id').textContent = playerId;
+            document.getElementById('reg-player-name').textContent = username;
+            document.getElementById('reg-game-status').innerHTML = getStatusBadge(currentGame.status);
+
+            // Mostrar ID de partida si está configurado
+            if (currentGame.show_game_id) {
+                document.getElementById('game-id-display').classList.remove('hidden');
+                document.getElementById('game-id-value').textContent = currentGame.game_id;
+            }
+
+            // Mostrar contraseña si existe
+            if (currentGame.password) {
+                document.getElementById('game-password-display').classList.remove('hidden');
+                document.getElementById('game-password-value').textContent = currentGame.password;
             }
         }
 
-        function showError(msg) {
-            const errDiv = document.getElementById('error-display');
-            const errText = document.getElementById('error-text');
-            errText.textContent = msg;
-            errDiv.classList.remove('hidden');
-        }
-
-        function hideError() {
-            document.getElementById('error-display').classList.add('hidden');
-        }
-
+        // Formulario de registro
         document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            hideError();
-
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.textContent = 'Procesando...';
 
             const playerId = parseInt(document.getElementById('reg-id').value);
             const username = document.getElementById('reg-username').value.trim();
 
-            if (!playerId || playerId <= 0) {
-                showError('El ID de jugador debe ser un número válido');
-                btn.disabled = false;
-                btn.textContent = 'Confirmar Registro';
-                return;
-            }
-
-            if (!username || username.length < 2) {
-                showError('El username debe tener al menos 2 caracteres');
-                btn.disabled = false;
-                btn.textContent = 'Confirmar Registro';
-                return;
-            }
-
-            // Guardar para futuro
+            // Guardar datos del jugador para futuro
             savePlayerData(playerId, username);
 
-            try {
-                // PASO 1: Verificar si ya está registrado en esta partida
-                const { data: existing, error: checkError } = await supabase
-                    .from('registrations')
-                    .select('id')
-                    .eq('game_id', gameId)
-                    .eq('player_id', playerId);
+            // Verificar si ya está registrado (doble check)
+            const { data: existing } = await supabase
+                .from('registrations')
+                .select('id')
+                .eq('game_id', gameId)
+                .eq('player_id', playerId);
 
-                if (checkError) {
-                    console.error('Error verificando registro:', checkError);
-                    showError('Error verificando registro: ' + checkError.message);
-                    btn.disabled = false;
-                    btn.textContent = 'Confirmar Registro';
-                    return;
-                }
-
-                if (existing && existing.length > 0) {
-                    showToast('Ya estás registrado en esta partida', 'warning');
-                    btn.disabled = false;
-                    btn.textContent = 'Confirmar Registro';
-                    return;
-                }
-
-                // PASO 2: Crear/actualizar el jugador en la tabla players (upsert)
-                // Esto es CRÍTICO: si el jugador no existe, la FK de registrations falla
-                const { error: playerError } = await supabase
-                    .from('players')
-                    .upsert({
-                        id: playerId,
-                        current_username: username,
-                        last_seen: new Date().toISOString()
-                    }, { onConflict: 'id' });
-
-                if (playerError) {
-                    console.error('Error creando jugador:', playerError);
-                    showError('Error guardando jugador: ' + playerError.message);
-                    btn.disabled = false;
-                    btn.textContent = 'Confirmar Registro';
-                    return;
-                }
-
-                // PASO 3: Insertar el registro
-                const { error: regError } = await supabase
-                    .from('registrations')
-                    .insert({
-                        game_id: gameId,
-                        player_id: playerId,
-                        username: username,
-                        accepted_rules: true
-                    });
-
-                if (regError) {
-                    console.error('Error en registro:', regError);
-                    showError('Error en registro: ' + regError.message);
-                    btn.disabled = false;
-                    btn.textContent = 'Confirmar Registro';
-                    return;
-                }
-
-                // ÉXITO
-                showToast('¡Registro exitoso!', 'success');
-                this.innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="text-3xl mb-2">✅</div>
-                        <p class="font-bold text-green-600">¡Registrado!</p>
-                        <p class="text-sm text-slate-500">Te contactaremos con los detalles de la partida</p>
-                    </div>
-                `;
-
-            } catch (err) {
-                console.error('Error inesperado:', err);
-                showError('Error inesperado: ' + (err.message || 'Intenta de nuevo'));
-                btn.disabled = false;
-                btn.textContent = 'Confirmar Registro';
+            if (existing && existing.length > 0) {
+                showToast('Ya estás registrado en esta partida', 'warning');
+                showRegisteredState(playerId, username, existing[0]);
+                return;
             }
+
+            // 1. Crear/actualizar jugador PRIMERO (requerido por FK)
+            await supabase.from('players').upsert({
+                id: playerId,
+                current_username: username,
+                last_seen: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+            // 2. Insertar registro
+            const { data: newReg, error } = await supabase.from('registrations').insert({
+                game_id: gameId,
+                player_id: playerId,
+                username: username,
+                accepted_rules: true
+            }).select().single();
+
+            showToast('¡Registro exitoso!', 'success');
+            showRegisteredState(playerId, username, newReg);
         });
 
-        loadGame();
+        // Helper para copiar al portapapeles
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copiado al portapapeles', 'success');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Copiado al portapapeles', 'success');
+            });
+        }
+
+        window.copyToClipboard = copyToClipboard;
+
+        // Iniciar
+        initPage();
     </script>
 </body>
 </html>

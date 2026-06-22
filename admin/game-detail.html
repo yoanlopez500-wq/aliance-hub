@@ -405,9 +405,17 @@
         document.getElementById('reg-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const playerId = parseInt(document.getElementById('reg-player-id').value);
+                        const playerId = parseInt(document.getElementById('reg-player-id').value);
             const username = document.getElementById('reg-username').value.trim();
 
+            // 1. Crear/actualizar jugador PRIMERO (requerido por FK)
+            await supabase.from('players').upsert({
+                id: playerId,
+                current_username: username,
+                last_seen: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+            // 2. Luego insertar registro
             const { error } = await supabase.from('registrations').insert({
                 game_id: gameId,
                 player_id: playerId,
