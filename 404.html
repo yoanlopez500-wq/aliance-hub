@@ -1,46 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <title>Alliance Hub</title>
-    <script type="text/javascript">
-        // Single Page Apps for GitHub Pages
-        // MIT License
-        // https://github.com/rafgraph/spa-github-pages
-        //
-        // Este script toma la URL actual y convierte el path y query string
-        // en solo un query string, luego redirige al navegador.
-        //
-        // Ejemplo para project site (con pathSegmentsToKeep = 1):
-        // https://username.github.io/repo-name/one/two?a=b&c=d#qwe
-        // se convierte en:
-        // https://username.github.io/repo-name/?/one/two&a=b~and~c=d#qwe
-        //
-        // NOTA: Este archivo debe tener al menos 512 bytes para IE
-
-        // Para Project Pages (sin custom domain), poner pathSegmentsToKeep = 1
-        // Esto preserva el nombre del repo en la URL
-        var pathSegmentsToKeep = 1;
-
-        var l = window.location;
-        l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-            l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-        );
-    </script>
-</head>
+<head><meta charset="utf-8"><title>Alliance Hub V2</title>
+<script type="text/javascript">
+var pathSegmentsToKeep = 1;
+var l = window.location;
+l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' + l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') + (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') + l.hash);
+</script></head>
 <body>
-    <!-- Padding para asegurar que el archivo tenga más de 512 bytes (requerido por IE) -->
-    <!--
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-    nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
-    eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt
-    in culpa qui officia deserunt mollit anim id est laborum.
-    -->
+<!-- Padding para IE -->
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 </body>
 </html>

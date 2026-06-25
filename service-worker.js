@@ -1,8 +1,12 @@
-// service-worker.js v12 - Con Kill Switch remoto
-const CACHE_NAME = 'alliance-hub-v12';
-const KILL_SWITCH_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co/rest/v1/app_settings?select=value&key=eq.force_clear_cache';
+// service-worker.js v2 - Con Push Notifications + Kill Switch
+const CACHE_NAME = 'alliance-hub-v2';
 
-// Detectar base path
+// Usar el anon key de config.js (se inyecta al cargar)
+// Fallback: leer de window si está disponible, sino hardcodear
+const SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
+const SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
+const KILL_SWITCH_URL = SUPABASE_URL + '/rest/v1/app_settings?select=value&key=eq.force_clear_cache';
+
 var BASE_PATH = (function() {
     var path = self.location.pathname;
     var parts = path.split('/').filter(function(p) { return p.length > 0; });
@@ -19,25 +23,23 @@ var urlsToCache = [
     BASE_PATH + 'rankings.html',
     BASE_PATH + 'game.html',
     BASE_PATH + 'player.html',
+    BASE_PATH + 'login-player.html',
+    BASE_PATH + 'reset-password.html',
     BASE_PATH + '404.html',
     BASE_PATH + 'manifest.json',
     BASE_PATH + 'assets/js/base.js',
     BASE_PATH + 'assets/js/auth.js',
     BASE_PATH + 'assets/js/config.js',
     BASE_PATH + 'assets/js/pwa-utils.js',
-    BASE_PATH + 'assets/js/csv-parser.js',
     BASE_PATH + 'assets/css/style.css',
-    BASE_PATH + 'assets/icons/icon-192x192.png',
-    BASE_PATH + 'assets/icons/icon-512x512.png'
+    BASE_PATH + 'assets/icons/icon-192x192.svg',
+    BASE_PATH + 'assets/icons/icon-512x512.svg'
 ];
 
-// ============================================
-// KILL SWITCH: Verificar si hay limpieza forzada
-// ============================================
 async function checkKillSwitch() {
     try {
         var response = await fetch(KILL_SWITCH_URL, {
-            headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrY2N5amVna2dqendveHl0bnFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2OTY0MDAsImV4cCI6MjA2NTI3MjQwMH0.XXXXXXXXXXXXXXXX' }
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
         });
         var data = await response.json();
         if (data && data.length > 0 && data[0].value === 'true') {
@@ -57,7 +59,7 @@ self.addEventListener('install', function(event) {
         checkKillSwitch().then(function(cleared) {
             if (!cleared) {
                 return caches.open(CACHE_NAME).then(function(cache) {
-                    console.log('SW: Caching v12...');
+                    console.log('SW: Caching v2...');
                     return Promise.all(
                         urlsToCache.map(function(url) {
                             return cache.add(url).catch(function(err) {
@@ -90,10 +92,8 @@ self.addEventListener('activate', function(event) {
 
 self.addEventListener('fetch', function(event) {
     if (event.request.method !== 'GET') return;
-
     var url = new URL(event.request.url);
     if (url.hostname !== self.location.hostname) return;
-
     if (url.search.includes('?p=') || url.search.includes('&q=')) return;
 
     event.respondWith(
@@ -118,25 +118,34 @@ self.addEventListener('fetch', function(event) {
 });
 
 // ============================================
-// WEB PUSH (preparado para futuro)
+// WEB PUSH - Mostrar notificación
 // ============================================
 self.addEventListener('push', function(event) {
     if (!event.data) return;
+
     var data = event.data.json();
+
     event.waitUntil(
         self.registration.showNotification(data.title || 'Alliance Hub', {
             body: data.body || '',
-            icon: BASE_PATH + 'assets/icons/icon-192x192.png',
-            badge: BASE_PATH + 'assets/icons/icon-72x72.png',
+            icon: data.icon || BASE_PATH + 'assets/icons/icon-192x192.svg',
+            badge: data.badge || BASE_PATH + 'assets/icons/icon-192x192.svg',
             tag: data.tag || 'alliance-hub',
-            data: { url: data.url || BASE_PATH, game_id: data.game_id }
+            data: data.data || { url: BASE_PATH },
+            actions: [
+                { action: 'open', title: 'Ver partida' },
+                { action: 'close', title: 'Cerrar' }
+            ]
         })
     );
 });
 
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
+    if (event.action === 'close') return;
+
     var url = event.notification.data?.url || BASE_PATH;
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
             for (var i = 0; i < clientList.length; i++) {

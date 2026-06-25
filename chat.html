@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Alliance Hub V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/base.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/pwa-utils.js"></script>
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        .chat-message { animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-indicator::after { content: '...'; animation: typing 1.5s infinite; }
+        @keyframes typing { 0%, 100% { content: '.'; } 33% { content: '..'; } 66% { content: '...'; } }
+        .chat-container { height: calc(100vh - 280px); }
+        @media (max-width: 768px) { .chat-container { height: calc(100vh - 240px); } }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-6xl mx-auto px-4 py-4">
+        <div class="flex gap-4 h-full">
+            <!-- Sidebar de canales -->
+            <div class="w-64 flex-shrink-0 hidden md:block">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <h3 class="font-bold text-slate-800 mb-3">💬 Canales</h3>
+                    <div id="channels-list" class="space-y-1">
+                        <!-- Se genera dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Usuarios online -->
+                <div class="bg-white rounded-xl border border-slate-200 p-4 mt-4">
+                    <h3 class="font-bold text-slate-800 mb-3 text-sm">🟢 Online</h3>
+                    <div id="online-users" class="space-y-1 text-sm">
+                        <div class="text-slate-400 text-xs">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área principal de chat -->
+            <div class="flex-1">
+                <div class="bg-white rounded-xl border border-slate-200 flex flex-col">
+                    <!-- Header del canal -->
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h2 class="font-bold text-slate-800" id="current-channel-name">Selecciona un canal</h2>
+                            <p class="text-xs text-slate-500" id="current-channel-desc"></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="showChannelActions()" class="px-3 py-1.5 bg-amber-500 text-slate-900 text-sm rounded font-bold hover:bg-amber-400 transition">⚡ Acciones</button>
+                            <button onclick="showReportModal()" class="px-3 py-1.5 bg-red-100 text-red-600 text-sm rounded hover:bg-red-200 transition">🚩 Reportar</button>
+                        </div>
+                    </div>
+
+                    <!-- Mensajes -->
+                    <div id="chat-messages" class="chat-container overflow-y-auto p-4 space-y-3">
+                        <div class="text-center text-slate-400 py-8">Selecciona un canal para empezar</div>
+                    </div>
+
+                    <!-- Input -->
+                    <div class="p-4 border-t border-slate-100">
+                        <div class="flex gap-2">
+                            <input type="text" id="chat-input" placeholder="Escribe un mensaje..." 
+                                class="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
+                                onkeypress="if(event.key==='Enter')sendMessage()">
+                            <button onclick="sendMessage()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition">Enviar</button>
+                        </div>
+                        <div id="typing-indicator" class="text-xs text-slate-400 mt-1 h-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de acciones del canal -->
+    <div id="actions-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-slate-800 mb-4">⚡ Acciones del Canal</h3>
+            <div id="actions-list" class="space-y-2">
+                <!-- Se genera dinámicamente según el canal -->
+            </div>
+            <button onclick="closeActionsModal()" class="mt-4 w-full bg-slate-200 text-slate-700 font-bold py-2 rounded-lg hover:bg-slate-300">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de reporte -->
+    <div id="report-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-red-800 mb-2">🚩 Reportar Mensaje</h3>
+            <p class="text-sm text-slate-500 mb-4">Se enviarán los últimos 20 mensajes del contexto para auditoría.</p>
+            <textarea id="report-reason" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none mb-4" placeholder="Describe la infracción..."></textarea>
+            <div class="flex gap-3">
+                <button onclick="submitReport()" class="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-lg hover:bg-red-400">Enviar Reporte</button>
+                <button onclick="closeReportModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de solicitud de duelo -->
+    <div id="duel-request-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-slate-800 mb-4">⚔️ Solicitar Duelo</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Alianza contrincante</label>
+                    <select id="duel-target-alliance" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha propuesta</label>
+                    <input type="datetime-local" id="duel-date" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Reglas especiales</label>
+                    <textarea id="duel-rules" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Reglas adicionales..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="submitDuelRequest()" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Enviar Solicitud</button>
+                    <button onclick="closeDuelModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN DE CANALES
+        // ============================================
+        var CHANNELS = {
+            admin_global: {
+                name: '🌐 Global Admins',
+                desc: 'Chat para todos los administradores',
+                topic: 'admin-global',
+                minRole: 'moderator',
+                icon: '🌐'
+            },
+            alliance_global: {
+                name: '🏴 Global Alianzas',
+                desc: 'Chat entre líderes de todas las alianzas',
+                topic: 'alliance-global',
+                minRole: 'alliance_leader',
+                icon: '🏴'
+            }
+        };
+
+        var currentChannel = null;
+        var realtimeChannel = null;
+        var presenceChannel = null;
+        var myRole = null;
+        var myId = null;
+        var myName = null;
+        var myAllianceId = null;
+        var isAdmin = false;
+
+        async function initChat() {
+            // Determinar quién soy
+            var sessionData = await supabase.auth.getSession();
+            if (sessionData.data.session) {
+                isAdmin = true;
+                myId = sessionData.data.session.user.id;
+                myName = sessionData.data.session.user.email;
+
+                var { data: admin } = await supabase.from('admin_users').select('role, alliance_id').eq('id', myId).single();
+                if (admin) {
+                    myRole = admin.role;
+                    myAllianceId = admin.alliance_id;
+                }
+            } else {
+                // Jugador normal (lazy login)
+                var playerData = getPlayerData();
+                myId = playerData.playerId;
+                myName = playerData.username;
+                myAllianceId = playerData.allianceId;
+                myRole = 'player';
+            }
+
+            renderChannels();
+
+            // Cargar canal por defecto o del URL
+            var urlParams = new URLSearchParams(window.location.search);
+            var channelKey = urlParams.get('channel') || 'admin_global';
+            if (CHANNELS[channelKey]) {
+                switchChannel(channelKey);
+            }
+        }
+
+        function renderChannels() {
+            var container = document.getElementById('channels-list');
+            var channels = Object.keys(CHANNELS).filter(function(key) {
+                var ch = CHANNELS[key];
+                if (!isAdmin && ch.minRole !== 'alliance_leader') return false;
+                if (isAdmin && ROLE_HIERARCHY[myRole] >= ROLE_HIERARCHY[ch.minRole]) return true;
+                if (!isAdmin && myAllianceId && ch.minRole === 'alliance_leader') return true;
+                return false;
+            });
+
+            container.innerHTML = channels.map(function(key) {
+                var ch = CHANNELS[key];
+                return '<button onclick="switchChannel(\'' + key + '\')" class="channel-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 transition ' + (currentChannel === key ? 'bg-amber-50 border border-amber-200' : '') + '" data-channel="' + key + '">' +
+                    '<div class="font-medium text-slate-800">' + ch.icon + ' ' + ch.name + '</div>' +
+                    '<div class="text-xs text-slate-500">' + ch.desc + '</div>' +
+                '</button>';
+            }).join('');
+        }
+
+        async function switchChannel(channelKey) {
+            if (currentChannel === channelKey) return;
+
+            // Desconectar canal anterior
+            if (realtimeChannel) {
+                await realtimeChannel.unsubscribe();
+                realtimeChannel = null;
+            }
+            if (presenceChannel) {
+                await presenceChannel.unsubscribe();
+                presenceChannel = null;
+            }
+
+            currentChannel = channelKey;
+            var ch = CHANNELS[channelKey];
+
+            document.getElementById('current-channel-name').textContent = ch.name;
+            document.getElementById('current-channel-desc').textContent = ch.desc;
+
+            // Actualizar UI de canales
+            document.querySelectorAll('.channel-btn').forEach(function(btn) {
+                btn.classList.toggle('bg-amber-50', btn.dataset.channel === channelKey);
+                btn.classList.toggle('border', btn.dataset.channel === channelKey);
+                btn.classList.toggle('border-amber-200', btn.dataset.channel === channelKey);
+            });
+
+            // Cargar mensajes locales
+            loadLocalMessages();
+
+            // Conectar a Realtime
+            connectRealtime(ch.topic);
+        }
+
+        function loadLocalMessages() {
+            var messages = getChatMessages(currentChannel);
+            var container = document.getElementById('chat-messages');
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-8 text-sm">No hay mensajes aún. ¡Sé el primero en escribir!</div>';
+                return;
+            }
+
+            container.innerHTML = messages.map(function(m) {
+                return renderMessage(m);
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderMessage(msg) {
+            var isMine = msg.sender_id === myId;
+            var time = new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            if (msg.type === 'system') {
+                return '<div class="text-center my-2"><span class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + msg.text + '</span></div>';
+            }
+
+            if (msg.type === 'action') {
+                return '<div class="text-center my-2"><span class="text-xs text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">⚡ ' + msg.text + '</span></div>';
+            }
+
+            return '<div class="chat-message flex ' + (isMine ? 'justify-end' : 'justify-start') + ' mb-2">' +
+                '<div class="max-w-[70%] ' + (isMine ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700') + ' rounded-2xl px-4 py-2">' +
+                    '<div class="flex items-center gap-2 mb-0.5">' +
+                        '<span class="text-xs font-bold ' + (isMine ? 'text-amber-700' : 'text-slate-600') + '">' + msg.sender_name + '</span>' +
+                        (msg.sender_role ? '<span class="text-[10px] px-1 rounded bg-white/50">' + msg.sender_role + '</span>' : '') +
+                        '<span class="text-[10px] text-slate-400">' + time + '</span>' +
+                    '</div>' +
+                    '<div class="text-sm">' + escapeHtml(msg.text) + '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // SUPABASE REALTIME (Broadcast + Presence)
+        // ============================================
+        function connectRealtime(topic) {
+            // Canal de Broadcast para mensajes
+            realtimeChannel = supabase.channel(topic, {
+                config: { broadcast: { self: true } }
+            });
+
+            realtimeChannel
+                .on('broadcast', { event: 'message' }, function(payload) {
+                    var msg = payload.payload;
+                    // Guardar localmente
+                    saveChatMessage(currentChannel, msg);
+                    // Mostrar
+                    var container = document.getElementById('chat-messages');
+                    var div = document.createElement('div');
+                    div.innerHTML = renderMessage(msg);
+                    container.appendChild(div.firstElementChild);
+                    container.scrollTop = container.scrollHeight;
+                })
+                .on('broadcast', { event: 'typing' }, function(payload) {
+                    var indicator = document.getElementById('typing-indicator');
+                    if (payload.payload.user_id !== myId) {
+                        indicator.textContent = payload.payload.user_name + ' está escribiendo...';
+                        indicator.classList.add('typing-indicator');
+                        setTimeout(function() {
+                            indicator.textContent = '';
+                            indicator.classList.remove('typing-indicator');
+                        }, 3000);
+                    }
+                })
+                .subscribe(function(status) {
+                    console.log('Chat channel status:', status);
+                    if (status === 'SUBSCRIBED') {
+                        // Enviar mensaje de sistema: usuario se unió
+                        broadcastMessage({
+                            type: 'system',
+                            text: myName + ' se unió al canal',
+                            sender_id: 'system',
+                            sender_name: 'Sistema'
+                        });
+                    }
+                });
+
+            // Canal de Presence para usuarios online
+            presenceChannel = supabase.channel(topic + '-presence', {
+                config: { presence: { key: myId } }
+            });
+
+            presenceChannel
+                .on('presence', { event: 'sync' }, function() {
+                    var state = presenceChannel.presenceState();
+                    updateOnlineUsers(state);
+                })
+                .on('presence', { event: 'join' }, function() {
+                    var state = presenceChannel.presenceState();
+                    updateOnlineUsers(state);
+                })
+                .on('presence', { event: 'leave' }, function() {
+                    var state = presenceChannel.presenceState();
+                    updateOnlineUsers(state);
+                })
+                .subscribe(async function(status) {
+                    if (status === 'SUBSCRIBED') {
+                        await presenceChannel.track({
+                            user_id: myId,
+                            user_name: myName,
+                            role: myRole,
+                            online_at: new Date().toISOString()
+                        });
+                    }
+                });
+        }
+
+        function updateOnlineUsers(state) {
+            var users = Object.keys(state).map(function(key) {
+                return state[key][0];
+            }).filter(function(u) { return u && u.user_id !== myId; });
+
+            var container = document.getElementById('online-users');
+            if (users.length === 0) {
+                container.innerHTML = '<div class="text-slate-400 text-xs">Solo tú estás online</div>';
+                return;
+            }
+
+            container.innerHTML = users.map(function(u) {
+                return '<div class="flex items-center gap-2">' +
+                    '<span class="w-2 h-2 bg-green-500 rounded-full"></span>' +
+                    '<span class="text-slate-700">' + u.user_name + '</span>' +
+                    (u.role ? '<span class="text-[10px] text-slate-400">(' + u.role + ')</span>' : '') +
+                '</div>';
+            }).join('');
+        }
+
+        function broadcastMessage(msg) {
+            if (!realtimeChannel) return;
+            realtimeChannel.send({
+                type: 'broadcast',
+                event: 'message',
+                payload: msg
+            });
+        }
+
+        // ============================================
+        // ENVIAR MENSAJE
+        // ============================================
+        var typingTimeout;
+        function sendMessage() {
+            var input = document.getElementById('chat-input');
+            var text = input.value.trim();
+            if (!text || !currentChannel) return;
+
+            var msg = {
+                sender_id: myId,
+                sender_name: myName,
+                sender_role: myRole,
+                text: text,
+                type: 'text'
+            };
+
+            // Guardar localmente
+            saveChatMessage(currentChannel, msg);
+
+            // Broadcast
+            broadcastMessage(msg);
+
+            // Mostrar inmediatamente (si self: true no funciona)
+            var container = document.getElementById('chat-messages');
+            var div = document.createElement('div');
+            div.innerHTML = renderMessage(msg);
+            container.appendChild(div.firstElementChild);
+            container.scrollTop = container.scrollHeight;
+
+            input.value = '';
+        }
+
+        // Typing indicator
+        document.getElementById('chat-input').addEventListener('input', function() {
+            if (!realtimeChannel) return;
+            realtimeChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { user_id: myId, user_name: myName }
+            });
+        });
+
+        // ============================================
+        // ACCIONES DEL CANAL
+        // ============================================
+        function showChannelActions() {
+            if (!currentChannel) return;
+            var ch = CHANNELS[currentChannel];
+            var actions = [];
+
+            if (currentChannel === 'alliance_global' || currentChannel.startsWith('alliance_')) {
+                actions.push({ icon: '⚔️', text: 'Solicitar Duelo', action: 'duel' });
+                actions.push({ icon: '📜', text: 'Ver Reglas de Duelos', action: 'rules' });
+            }
+
+            if (isAdmin) {
+                actions.push({ icon: '🎮', text: 'Crear Partida', action: 'create_match' });
+                actions.push({ icon: '🏆', text: 'Ver Rankings', action: 'rankings' });
+                actions.push({ icon: '🔔', text: 'Enviar Notificación', action: 'notify' });
+            }
+
+            actions.push({ icon: '📊', text: 'Stats del Canal', action: 'stats' });
+
+            var container = document.getElementById('actions-list');
+            container.innerHTML = actions.map(function(a) {
+                return '<button onclick="executeAction(\'' + a.action + '\')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-amber-50 transition flex items-center gap-3">' +
+                    '<span class="text-xl">' + a.icon + '</span>' +
+                    '<span class="font-medium text-slate-800">' + a.text + '</span>' +
+                '</button>';
+            }).join('');
+
+            document.getElementById('actions-modal').classList.remove('hidden');
+            document.getElementById('actions-modal').classList.add('flex');
+        }
+
+        function closeActionsModal() {
+            document.getElementById('actions-modal').classList.add('hidden');
+            document.getElementById('actions-modal').classList.remove('flex');
+        }
+
+        async function executeAction(action) {
+            closeActionsModal();
+
+            switch(action) {
+                case 'duel':
+                    showDuelModal();
+                    break;
+                case 'rules':
+                    showToast('Reglas: Los duelos son 5v5. El líder debe confirmar 5 miembros.', 'info');
+                    break;
+                case 'create_match':
+                    window.location.href = 'admin/matches.html?action=new';
+                    break;
+                case 'rankings':
+                    window.location.href = 'rankings.html';
+                    break;
+                case 'notify':
+                    if (!isAdmin) return;
+                    var text = prompt('Mensaje de notificación:');
+                    if (text) {
+                        broadcastMessage({
+                            type: 'action',
+                            text: 'NOTIFICACIÓN: ' + text,
+                            sender_id: myId,
+                            sender_name: myName
+                        });
+                    }
+                    break;
+                case 'stats':
+                    var msgs = getChatMessages(currentChannel);
+                    showToast('Mensajes en este canal: ' + msgs.length + ' (solo en tu dispositivo)', 'info');
+                    break;
+            }
+        }
+
+        // ============================================
+        // SOLICITUD DE DUELO
+        // ============================================
+        async function showDuelModal() {
+            var { data: alliances } = await supabase.from('alliances').select('id, name').neq('id', myAllianceId).order('name');
+            var select = document.getElementById('duel-target-alliance');
+            select.innerHTML = (alliances || []).map(function(a) {
+                return '<option value="' + a.id + '">' + a.name + '</option>';
+            }).join('');
+            document.getElementById('duel-request-modal').classList.remove('hidden');
+            document.getElementById('duel-request-modal').classList.add('flex');
+        }
+
+        function closeDuelModal() {
+            document.getElementById('duel-request-modal').classList.add('hidden');
+            document.getElementById('duel-request-modal').classList.remove('flex');
+        }
+
+        async function submitDuelRequest() {
+            var targetId = document.getElementById('duel-target-alliance').value;
+            var date = document.getElementById('duel-date').value;
+            var rules = document.getElementById('duel-rules').value;
+
+            if (!targetId || !date) { showToast('Completa todos los campos', 'warning'); return; }
+
+            // Crear mensaje de acción en el chat
+            broadcastMessage({
+                type: 'action',
+                text: '⚔️ Duelo solicitado vs ' + targetId + ' para el ' + new Date(date).toLocaleString('es-ES'),
+                sender_id: myId,
+                sender_name: myName
+            });
+
+            // También crear en la BD como partida borrador
+            var { data: myAlliance } = await supabase.from('alliances').select('name').eq('id', myAllianceId).single();
+            var { data: targetAlliance } = await supabase.from('alliances').select('name').eq('id', targetId).single();
+
+            var { error } = await supabase.from('matches').insert({
+                match_type: 'duel',
+                name: 'Duelo: ' + (myAlliance?.name || '?') + ' vs ' + (targetAlliance?.name || '?'),
+                status: 'draft',
+                alliance_a_id: myAllianceId,
+                alliance_b_id: targetId,
+                max_players: 10,
+                description: rules || 'Duelo 5v5 entre alianzas'
+            });
+
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Solicitud de duelo enviada', 'success'); closeDuelModal(); }
+        }
+
+        // ============================================
+        // REPORTE DE CHAT
+        // ============================================
+        function showReportModal() {
+            document.getElementById('report-modal').classList.remove('hidden');
+            document.getElementById('report-modal').classList.add('flex');
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal').classList.add('hidden');
+            document.getElementById('report-modal').classList.remove('flex');
+        }
+
+        async function submitReport() {
+            var reason = document.getElementById('report-reason').value.trim();
+            if (!reason) { showToast('Describe la infracción', 'warning'); return; }
+            if (!currentChannel) { showToast('Selecciona un canal primero', 'warning'); return; }
+
+            var messages = getChatMessages(currentChannel);
+            if (messages.length === 0) { showToast('No hay mensajes para reportar', 'warning'); return; }
+
+            // Obtener últimos 20 mensajes
+            var contextMessages = messages.slice(-20);
+
+            var { error } = await supabase.from('chat_reports').insert({
+                channel: currentChannel,
+                reporter_id: myId,
+                reporter_name: myName,
+                reason: reason,
+                context_messages: JSON.stringify(contextMessages),
+                reported_at: new Date().toISOString()
+            });
+
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Reporte enviado. Los admins revisarán el incidente.', 'success'); closeReportModal(); }
+        }
+
+        // Cerrar modales al hacer click fuera
+        document.getElementById('actions-modal').addEventListener('click', function(e) { if (e.target === this) closeActionsModal(); });
+        document.getElementById('report-modal').addEventListener('click', function(e) { if (e.target === this) closeReportModal(); });
+        document.getElementById('duel-request-modal').addEventListener('click', function(e) { if (e.target === this) closeDuelModal(); });
+
+        initChat();
+    </script>
+</body>
+</html>

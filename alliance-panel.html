@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Alianza - Alliance Hub V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/base.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/pwa-utils.js"></script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="public">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div id="alliance-header" class="mb-6">
+            <div class="text-center py-12 text-slate-400">Cargando...</div>
+        </div>
+
+        <!-- Solicitar unirse a alianza (si no tiene) -->
+        <div id="join-section" class="hidden bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <h2 class="font-bold text-slate-800 mb-3">🏴 Unirse a una Alianza</h2>
+            <p class="text-sm text-slate-500 mb-4">Solicita unirte a una alianza. El líder debe aprobar tu solicitud.</p>
+            <div id="alliances-list" class="space-y-2 max-h-60 overflow-y-auto">
+                <div class="text-center text-slate-400 py-4">Cargando alianzas...</div>
+            </div>
+        </div>
+
+        <!-- Estado de solicitud pendiente -->
+        <div id="pending-section" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-6 mb-6 text-center">
+            <div class="text-4xl mb-3">⏳</div>
+            <h2 class="font-bold text-orange-800">Solicitud Pendiente</h2>
+            <p class="text-orange-600 text-sm mt-2">Tu solicitud para unirte está esperando aprobación del líder.</p>
+        </div>
+
+        <!-- Partidas de la alianza -->
+        <div id="matches-section" class="hidden mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-bold text-slate-800">🎮 Partidas de tu Alianza</h2>
+                <a href="index.html" class="text-sm text-amber-600 hover:text-amber-700 font-medium">Ver todas →</a>
+            </div>
+            <div id="alliance-matches" class="space-y-3">
+                <div class="text-center text-slate-400 py-4">Cargando...</div>
+            </div>
+        </div>
+
+        <!-- Rankings de la alianza -->
+        <div id="rankings-section" class="hidden mb-6">
+            <h2 class="font-bold text-slate-800 mb-4">🏆 Rankings de tu Alianza</h2>
+            <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="text-left p-3">#</th>
+                            <th class="text-left p-3">Jugador</th>
+                            <th class="text-right p-3">Partidas</th>
+                            <th class="text-right p-3">Bajas</th>
+                            <th class="text-right p-3">Muertes</th>
+                            <th class="text-right p-3">KD</th>
+                            <th class="text-right p-3">Strikes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alliance-rankings"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Miembros de la alianza -->
+        <div id="members-section" class="hidden">
+            <h2 class="font-bold text-slate-800 mb-4">👥 Miembros</h2>
+            <div id="alliance-members" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div class="text-center text-slate-400 py-4">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var playerData = getPlayerData();
+        if (!playerData.playerId) { location.href = 'login-player.html'; }
+
+        var myAllianceId = null;
+        var myMembershipStatus = null;
+
+        async function init() {
+            // Verificar membresía del jugador
+            var { data: membership } = await supabase
+                .from('alliance_memberships')
+                .select('*, alliances(*)')
+                .eq('player_id', playerData.playerId)
+                .single();
+
+            if (!membership) {
+                // No tiene alianza, mostrar lista para unirse
+                document.getElementById('join-section').classList.remove('hidden');
+                loadAlliancesToJoin();
+                return;
+            }
+
+            myAllianceId = membership.alliance_id;
+            myMembershipStatus = membership.status;
+
+            if (myMembershipStatus === 'pending') {
+                document.getElementById('pending-section').classList.remove('hidden');
+                return;
+            }
+
+            if (myMembershipStatus === 'approved') {
+                // Mostrar panel completo
+                document.getElementById('matches-section').classList.remove('hidden');
+                document.getElementById('rankings-section').classList.remove('hidden');
+                document.getElementById('members-section').classList.remove('hidden');
+                loadAllianceHeader(membership.alliances);
+                loadAllianceMatches();
+                loadAllianceRankings();
+                loadAllianceMembers();
+            }
+        }
+
+        async function loadAllianceHeader(alliance) {
+            document.getElementById('alliance-header').innerHTML = 
+                '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center">' +
+                    '<div class="text-5xl mb-4">🏴</div>' +
+                    '<h1 class="text-3xl font-bold text-slate-800">' + alliance.name + '</h1>' +
+                    '<p class="text-slate-500 mt-2">[' + alliance.tag + '] ' + (alliance.description || '') + '</p>' +
+                '</div>';
+        }
+
+        async function loadAlliancesToJoin() {
+            var { data: alliances } = await supabase
+                .from('alliances')
+                .select('id, name, tag, description, leader_id')
+                .eq('status', 'active')
+                .order('name');
+
+            var container = document.getElementById('alliances-list');
+            if (!alliances || alliances.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-4">No hay alianzas disponibles</div>';
+                return;
+            }
+
+            container.innerHTML = alliances.map(function(a) {
+                return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">' +
+                    '<div>' +
+                        '<span class="font-bold text-slate-800">' + a.name + '</span>' +
+                        '<span class="text-xs text-slate-500 ml-2">[' + a.tag + ']</span>' +
+                        '<p class="text-xs text-slate-400">' + (a.description || '') + '</p>' +
+                    '</div>' +
+                    '<button onclick="requestJoin(\'' + a.id + '\')" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Solicitar</button>' +
+                '</div>';
+            }).join('');
+        }
+
+        async function requestJoin(allianceId) {
+            var { error } = await supabase.from('alliance_memberships').insert({
+                player_id: parseInt(playerData.playerId),
+                alliance_id: allianceId,
+                status: 'pending'
+            });
+
+            if (error) {
+                if (error.message.includes('unique')) {
+                    showToast('Ya tienes una solicitud pendiente o estás en una alianza', 'warning');
+                } else {
+                    showToast('Error: ' + error.message, 'error');
+                }
+            } else {
+                showToast('Solicitud enviada. Espera aprobación del líder.', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
+            }
+        }
+
+        async function loadAllianceMatches() {
+            if (!myAllianceId) return;
+            var { data: matches } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('alliance_id', myAllianceId)
+                .eq('is_private', false)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            var container = document.getElementById('alliance-matches');
+            if (!matches || matches.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 bg-white rounded-xl border border-slate-200 py-8">Sin partidas aún</div>';
+                return;
+            }
+
+            container.innerHTML = matches.map(function(m) {
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">' +
+                    '<div>' +
+                        '<div class="flex items-center gap-2 mb-1">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + '</div>' +
+                        '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
+                        '<p class="text-xs text-slate-500">' + formatDate(m.created_at) + '</p>' +
+                    '</div>' +
+                    '<a href="game.html?id=' + m.id + '" class="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver</a>' +
+                '</div>';
+            }).join('');
+        }
+
+        async function loadAllianceRankings() {
+            if (!myAllianceId) return;
+            var { data: players } = await supabase
+                .from('players')
+                .select('*, alliance_memberships!inner(alliance_id)')
+                .eq('alliance_memberships.alliance_id', myAllianceId)
+                .eq('alliance_memberships.status', 'approved')
+                .order('total_kills', { ascending: false });
+
+            var tbody = document.getElementById('alliance-rankings');
+            if (!players || players.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">Sin datos</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = players.map(function(p, i) {
+                var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills;
+                return '<tr class="border-b hover:bg-slate-50">' +
+                    '<td class="p-3 font-bold ' + (i < 3 ? 'text-amber-600' : 'text-slate-400') + '">' + (i + 1) + '</td>' +
+                    '<td class="p-3 font-medium"><a href="player.html?id=' + p.id + '" class="hover:text-amber-600">' + p.current_username + '</a></td>' +
+                    '<td class="p-3 text-right">' + (p.games_played || 0) + '</td>' +
+                    '<td class="p-3 text-right text-green-600 font-bold">' + (p.total_kills?.toLocaleString() || 0) + '</td>' +
+                    '<td class="p-3 text-right text-red-500">' + (p.total_deaths?.toLocaleString() || 0) + '</td>' +
+                    '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + kd + '</td>' +
+                    '<td class="p-3 text-right font-bold ' + ((p.strikes || 0) >= 2 ? 'text-red-600' : 'text-slate-600') + '">' + (p.strikes || 0) + '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        async function loadAllianceMembers() {
+            if (!myAllianceId) return;
+            var { data: members } = await supabase
+                .from('alliance_memberships')
+                .select('*, players(current_username, last_seen)')
+                .eq('alliance_id', myAllianceId)
+                .eq('status', 'approved');
+
+            var container = document.getElementById('alliance-members');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-4">Sin miembros</div>';
+                return;
+            }
+
+            container.innerHTML = members.map(function(m) {
+                var isOnline = m.players?.last_seen && (new Date() - new Date(m.players.last_seen)) < 300000;
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4 text-center">' +
+                    '<div class="text-2xl mb-2">👤</div>' +
+                    '<p class="font-bold text-slate-800 text-sm">' + (m.players?.current_username || '?') + '</p>' +
+                    '<p class="text-xs text-slate-400">ID: ' + m.player_id + '</p>' +
+                    '<div class="flex items-center justify-center gap-1 mt-2">' +
+                        '<span class="w-2 h-2 rounded-full ' + (isOnline ? 'bg-green-500' : 'bg-slate-300') + '"></span>' +
+                        '<span class="text-xs text-slate-500">' + (isOnline ? 'Online' : 'Offline') + '</span>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        init();
+    </script>
+</body>
+</html>
