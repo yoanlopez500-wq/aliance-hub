@@ -1,12 +1,9 @@
-// service-worker.js v2 - Con Push Notifications + Kill Switch
-const CACHE_NAME = 'alliance-hub-v2';
+// service-worker.js v3 - Schema public
+const CACHE_NAME = 'alliance-hub-v3';
 
-// Usar el anon key de config.js (se inyecta al cargar)
-// Fallback: leer de window si esta disponible, sino hardcodear
 const SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
 const SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
 
-// FIX: Usar schema v2 para app_settings (Accept-Profile header)
 const KILL_SWITCH_URL = SUPABASE_URL + '/rest/v1/app_settings?select=value&key=eq.force_clear_cache';
 const CACHE_VERSION_URL = SUPABASE_URL + '/rest/v1/app_settings?select=value&key=eq.cache_version';
 
@@ -28,31 +25,29 @@ var urlsToCache = [
     BASE_PATH + 'player.html',
     BASE_PATH + 'login-player.html',
     BASE_PATH + 'reset-password.html',
+    BASE_PATH + 'chat.html',
     BASE_PATH + '404.html',
     BASE_PATH + 'manifest.json',
     BASE_PATH + 'assets/js/base.js',
     BASE_PATH + 'assets/js/auth.js',
     BASE_PATH + 'assets/js/config.js',
     BASE_PATH + 'assets/js/pwa-utils.js',
+    BASE_PATH + 'assets/js/csv-parser.js',
     BASE_PATH + 'assets/css/style.css',
     BASE_PATH + 'assets/icons/icon-192x192.svg',
     BASE_PATH + 'assets/icons/icon-512x512.svg'
 ];
 
-// Headers para acceder al schema v2 desde el SW
-function getV2Headers() {
+function getHeaders() {
     return {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Accept-Profile': 'v2'
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
     };
 }
 
 async function checkKillSwitch() {
     try {
-        var response = await fetch(KILL_SWITCH_URL, {
-            headers: getV2Headers()
-        });
+        var response = await fetch(KILL_SWITCH_URL, { headers: getHeaders() });
         var data = await response.json();
         if (data && data.length > 0 && data[0].value === 'true') {
             console.log('SW: Kill switch activado - limpiando cache');
@@ -66,26 +61,21 @@ async function checkKillSwitch() {
     return false;
 }
 
-// FIX: Nueva funcion para verificar version de cache
 async function checkCacheVersion() {
     try {
-        var response = await fetch(CACHE_VERSION_URL, {
-            headers: getV2Headers()
-        });
+        var response = await fetch(CACHE_VERSION_URL, { headers: getHeaders() });
         var data = await response.json();
         if (data && data.length > 0) {
             var serverVersion = data[0].value;
             var cacheVersion = await caches.match('__cache_version__');
             var localVersion = cacheVersion ? await cacheVersion.text() : null;
-            
             if (localVersion !== serverVersion) {
                 console.log('SW: Cache version cambiada', localVersion, '->', serverVersion);
-                // Guardar nueva version
                 var versionResponse = new Response(serverVersion);
                 await caches.open(CACHE_NAME).then(function(cache) {
                     cache.put('__cache_version__', versionResponse);
                 });
-                return true; // Indica que se detecto cambio
+                return true;
             }
         }
     } catch (e) {
@@ -99,7 +89,7 @@ self.addEventListener('install', function(event) {
         checkKillSwitch().then(function(cleared) {
             if (!cleared) {
                 return caches.open(CACHE_NAME).then(function(cache) {
-                    console.log('SW: Caching v2...');
+                    console.log('SW: Caching v3...');
                     return Promise.all(
                         urlsToCache.map(function(url) {
                             return cache.add(url).catch(function(err) {
@@ -157,14 +147,9 @@ self.addEventListener('fetch', function(event) {
     );
 });
 
-// ============================================
-// WEB PUSH - Mostrar notificacion
-// ============================================
 self.addEventListener('push', function(event) {
     if (!event.data) return;
-
     var data = event.data.json();
-
     event.waitUntil(
         self.registration.showNotification(data.title || 'Alliance Hub', {
             body: data.body || '',
@@ -173,7 +158,7 @@ self.addEventListener('push', function(event) {
             tag: data.tag || 'alliance-hub',
             data: data.data || { url: BASE_PATH },
             actions: [
-                { action: 'open', title: 'Ver partida' },
+                { action: 'open', title: 'Ver' },
                 { action: 'close', title: 'Cerrar' }
             ]
         })
@@ -183,9 +168,7 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     if (event.action === 'close') return;
-
     var url = event.notification.data?.url || BASE_PATH;
-
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
             for (var i = 0; i < clientList.length; i++) {
