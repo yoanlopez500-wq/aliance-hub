@@ -1,5 +1,5 @@
 // assets/js/pwa-utils.js
-// PWA utilities + Push notifications + Install banner
+// PWA utilities + Push notifications + Install banner + Notification permission button
 // Depende de base.js (window.__AH_BASE_PATH)
 
 var deferredPrompt = null;
@@ -68,6 +68,43 @@ function dismissInstallBanner() {
     localStorage.setItem('ah_v2_banner_dismissed', 'true');
 }
 
+// ============================================
+// BOTON DE AUTORIZAR NOTIFICACIONES PUSH
+// ============================================
+function updateNotificationButton() {
+    var btn = document.getElementById('pwa-notify-btn');
+    if (!btn) return;
+
+    if (isPushSubscribed()) {
+        btn.innerHTML = '🔔 Notificaciones activas';
+        btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-green-500 text-white hover:bg-green-400 transition';
+        btn.onclick = unsubscribeFromPush;
+        btn.title = 'Click para desactivar notificaciones';
+    } else {
+        btn.innerHTML = '🔕 Activar notificaciones';
+        btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition';
+        btn.onclick = requestNotificationPermission;
+        btn.title = 'Recibe alertas de nuevas partidas';
+    }
+}
+
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        showToast('Tu navegador no soporta notificaciones', 'warning');
+        return;
+    }
+
+    var permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+        var success = await subscribeToPush();
+        if (success) {
+            updateNotificationButton();
+        }
+    } else if (permission === 'denied') {
+        showToast('Notificaciones bloqueadas. Activalas en la configuracion de tu navegador.', 'error');
+    }
+}
+
 // Boton flotante legacy (mantener por compatibilidad)
 var deferredPromptLegacy;
 function setupInstallButton() {
@@ -107,7 +144,7 @@ function registerSW() {
     if ('serviceWorker' in navigator) {
         var swPath = window.__AH_BASE_PATH + 'service-worker.js';
         navigator.serviceWorker.register(swPath, { scope: window.__AH_BASE_PATH })
-            .then(function(reg) { 
+            .then(function(reg) {
                 console.log('SW registrado:', reg.scope);
                 if (isLazyLoggedIn() && isPushSubscribed()) {
                     subscribeToPush();
@@ -123,6 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setupInstallButton();
     isAppInstalled = checkIfInstalled();
     updateInstallBanner();
+    updateNotificationButton();
+
     // Si el usuario cerro el banner previamente, respetar eso
     if (localStorage.getItem('ah_v2_banner_dismissed') === 'true' && !isAppInstalled) {
         setTimeout(function() {
@@ -136,3 +175,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 window.installPWA = installPWA;
 window.dismissInstallBanner = dismissInstallBanner;
+window.updateNotificationButton = updateNotificationButton;
+window.requestNotificationPermission = requestNotificationPermission;
