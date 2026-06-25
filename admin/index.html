@@ -97,9 +97,10 @@
             document.getElementById('d-alliances').textContent = ac || 0;
             document.getElementById('d-reports').textContent = rc || 0;
 
+            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
             var { data: recentMatches } = await supabase
                 .from('matches')
-                .select('*, alliances(name, tag)')
+                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
                 .order('created_at', { ascending: false })
                 .limit(5);
 
@@ -108,9 +109,11 @@
                 container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin partidas</div>';
             } else {
                 container.innerHTML = recentMatches.map(function(m) {
+                    // FIX: usar 'alliance' en lugar de 'alliances'
+                    var allianceInfo = m.alliance ? ' [' + m.alliance.tag + ']' : '';
                     return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">' +
                         '<div>' +
-                            '<p class="font-medium text-slate-800">' + m.name + '</p>' +
+                            '<p class="font-medium text-slate-800">' + m.name + allianceInfo + '</p>' +
                             '<p class="text-xs text-slate-500">' + getStatusBadge(m.status) + ' ' + formatDate(m.created_at) + '</p>' +
                         '</div>' +
                         '<a href="matches.html" class="text-amber-600 text-sm font-bold hover:text-amber-700">Ver →</a>' +
@@ -133,7 +136,6 @@
                     return '<div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">' +
                         '<div>' +
                             '<p class="font-medium text-slate-800">' + r.reason + '</p>' +
-                            <parameter name="chat-reports-content">../chat-reports.html</parameter>
                             '<p class="text-xs text-slate-500">Por: ' + r.reporter_name + ' • ' + formatDate(r.reported_at) + '</p>' +
                         '</div>' +
                         '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Pendiente</span>' +
