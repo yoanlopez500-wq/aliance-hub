@@ -20,7 +20,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">🎮 Partidas V2</h1>
-                <p class="text-slate-500">Crear, gestionar y eliminar partidas</p>
+                <p class="text-slate-500">Crear, gestionar y editar partidas</p>
             </div>
             <button onclick="openMatchModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
         </div>
@@ -55,11 +55,12 @@
         </div>
     </div>
 
-    <!-- Modal Match -->
+    <!-- Modal Match (Crear/Editar) -->
     <div id="match-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b">
+            <div class="p-6 border-b flex items-center justify-between">
                 <h2 class="text-xl font-bold" id="modal-title">Nueva Partida</h2>
+                <button onclick="closeMatchModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             <form id="match-form" class="p-6 space-y-4">
                 <input type="hidden" id="match-id">
@@ -79,8 +80,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">ID de Partida</label>
-                        <input type="text" id="m-game-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="ID del juego en Supremacy">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">ID de Partida (Supremacy)</label>
+                        <input type="text" id="m-game-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="ID del juego">
                     </div>
                 </div>
                 <div>
@@ -164,7 +165,7 @@
         async function loadData() {
             myAdmin = await getAdminRole();
 
-            var { data: alli } = await supabase.from('alliances').select('id, name, tag').order('name');
+            var { data: alli } = await supabase.schema('v2').from('alliances').select('id, name, tag').order('name');
             alliances = alli || [];
 
             var options = alliances.map(function(a) { return '<option value="' + a.id + '">' + a.name + ' [' + a.tag + ']</option>'; }).join('');
@@ -186,8 +187,7 @@
             var statusFilter = document.getElementById('filter-status').value;
             var allianceFilter = document.getElementById('filter-alliance').value;
 
-            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
-            var query = supabase.from('matches')
+            var query = supabase.schema('v2').from('matches')
                 .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
                 .order('created_at', { ascending: false });
 
@@ -211,7 +211,6 @@
 
             container.innerHTML = matches.map(function(m) {
                 var allianceLabel = '';
-                // FIX: usar 'alliance' (nombre de la relacion con FK explicita)
                 if (m.match_type === 'internal' && m.alliance) allianceLabel = '🏴 ' + m.alliance.name;
                 else if (m.match_type === 'duel' && m.alliance_a && m.alliance_b) allianceLabel = '⚔️ ' + m.alliance_a.name + ' vs ' + m.alliance_b.name;
 
@@ -219,16 +218,19 @@
                 var privateBadge = m.is_private ? '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">🔒</span>' : '';
                 var winnerBadge = m.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">🏆</span>' : '';
 
-                return '<div class="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between hover:shadow-md transition">' +
-                    '<div class="flex-1">' +
-                        '<div class="flex items-center gap-2 mb-1 flex-wrap">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + approvalBadge + privateBadge + winnerBadge + '</div>' +
-                        '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
-                        '<p class="text-sm text-slate-500">' + (m.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p>' +
-                        '<p class="text-xs text-slate-400 mt-1">👥 ' + m.max_players + ' max • ' + formatDate(m.created_at) + '</p>' +
-                    '</div>' +
-                    '<div class="flex gap-2">' +
-                        '<a href="match-detail.html?id=' + m.id + '" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400">Gestionar</a>' +
-                        '<button onclick="deleteMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">🗑️</button>' +
+                return '<div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition">' +
+                    '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
+                        '<div class="flex-1">' +
+                            '<div class="flex items-center gap-2 mb-1 flex-wrap">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + approvalBadge + privateBadge + winnerBadge + '</div>' +
+                            '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
+                            '<p class="text-sm text-slate-500">' + (m.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p>' +
+                            '<p class="text-xs text-slate-400 mt-1">👥 ' + m.max_players + ' max • ' + formatDate(m.created_at) + (m.game_id ? ' • 🎮 ID: ' + m.game_id : '') + '</p>' +
+                        '</div>' +
+                        '<div class="flex gap-2 flex-wrap">' +
+                            '<button onclick="editMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold hover:bg-blue-400">✏️ Editar</button>' +
+                            '<a href="match-detail.html?id=' + m.id + '" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400 inline-block">Gestionar</a>' +
+                            '<button onclick="deleteMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">🗑️</button>' +
+                        '</div>' +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -238,6 +240,33 @@
             document.getElementById('match-form').reset();
             document.getElementById('match-id').value = '';
             document.getElementById('modal-title').textContent = 'Nueva Partida';
+            document.getElementById('duel-fields').style.display = 'none';
+            document.getElementById('quick-fields').style.display = 'none';
+            document.getElementById('match-modal').classList.add('active');
+        }
+
+        function editMatch(id) {
+            var match = allMatches.find(function(m) { return m.id === id; });
+            if (!match) { showToast('Partida no encontrada', 'error'); return; }
+
+            document.getElementById('match-id').value = match.id;
+            document.getElementById('m-name').value = match.name || '';
+            document.getElementById('m-type').value = match.match_type || 'internal';
+            document.getElementById('m-game-id').value = match.game_id || '';
+            document.getElementById('m-desc').value = match.description || '';
+            document.getElementById('m-alliance').value = match.alliance_id || '';
+            document.getElementById('m-max').value = match.max_players || 10;
+            document.getElementById('m-password').value = match.password || '';
+            document.getElementById('m-rules').value = match.rules_url || '';
+            document.getElementById('m-private').checked = match.is_private || false;
+            document.getElementById('m-approval').checked = match.requires_approval || false;
+            document.getElementById('m-alliance-a').value = match.alliance_a_id || '';
+            document.getElementById('m-alliance-b').value = match.alliance_b_id || '';
+
+            document.getElementById('duel-fields').style.display = match.match_type === 'duel' ? 'grid' : 'none';
+            document.getElementById('quick-fields').style.display = match.match_type === 'public_quick' ? 'block' : 'none';
+
+            document.getElementById('modal-title').textContent = '✏️ Editar Partida';
             document.getElementById('match-modal').classList.add('active');
         }
 
@@ -246,6 +275,8 @@
         document.getElementById('match-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             var id = document.getElementById('match-id').value;
+            var oldData = id ? allMatches.find(function(m) { return m.id === id; }) : null;
+
             var data = {
                 name: document.getElementById('m-name').value,
                 match_type: document.getElementById('m-type').value,
@@ -258,8 +289,7 @@
                 password: document.getElementById('m-password').value || null,
                 rules_url: document.getElementById('m-rules').value || null,
                 is_private: document.getElementById('m-private').checked,
-                requires_approval: document.getElementById('m-approval').checked,
-                status: 'draft'
+                requires_approval: document.getElementById('m-approval').checked
             };
 
             if (data.match_type === 'public_quick') {
@@ -269,18 +299,61 @@
 
             var result;
             if (id) {
-                result = await supabase.from('matches').update(data).eq('id', id);
+                result = await supabase.schema('v2').from('matches').update(data).eq('id', id);
             } else {
-                result = await supabase.from('matches').insert([data]).select();
+                data.status = 'draft';
+                result = await supabase.schema('v2').from('matches').insert([data]).select();
             }
 
-            if (result.error) { showToast('Error: ' + result.error.message, 'error'); }
-            else { showToast('Partida guardada', 'success'); closeMatchModal(); loadMatches(); }
+            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
+
+            // Audit log
+            try {
+                var sessionData = await supabase.auth.getSession();
+                var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
+                await supabase.schema('v2').from('audit_log').insert({
+                    admin_id: adminId,
+                    action: id ? 'match_update' : 'match_create',
+                    table_name: 'matches',
+                    record_id: id || (result.data && result.data[0] ? result.data[0].id : null),
+                    old_data: oldData ? {
+                        name: oldData.name,
+                        match_type: oldData.match_type,
+                        game_id: oldData.game_id,
+                        description: oldData.description,
+                        alliance_id: oldData.alliance_id,
+                        max_players: oldData.max_players,
+                        is_private: oldData.is_private,
+                        requires_approval: oldData.requires_approval,
+                        status: oldData.status
+                    } : null,
+                    new_data: data
+                });
+            } catch (auditErr) {
+                console.log('Audit log error (non-critical):', auditErr);
+            }
+
+            showToast(id ? 'Partida actualizada' : 'Partida creada', 'success');
+            closeMatchModal();
+            loadMatches();
         });
 
         async function deleteMatch(id) {
             if (!confirmAction('Eliminar esta partida?')) return;
-            var { error } = await supabase.from('matches').delete().eq('id', id);
+
+            try {
+                var match = allMatches.find(function(m) { return m.id === id; });
+                var sessionData = await supabase.auth.getSession();
+                await supabase.schema('v2').from('audit_log').insert({
+                    admin_id: sessionData.data.session ? sessionData.data.session.user.id : null,
+                    action: 'match_delete',
+                    table_name: 'matches',
+                    record_id: id,
+                    old_data: match ? { name: match.name, match_type: match.match_type, status: match.status } : null
+                });
+            } catch (e) { console.log('Audit log error:', e); }
+
+            var { error } = await supabase.schema('v2').from('matches').delete().eq('id', id);
             if (error) showToast('Error: ' + error.message, 'error');
             else { showToast('Eliminada', 'success'); loadMatches(); }
         }
