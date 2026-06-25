@@ -21,50 +21,6 @@
             <p class="text-slate-500" id="welcome-text">Cargando...</p>
         </div>
 
-        <!-- NUEVO: Control de Cache Global -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-8">
-            <h2 class="font-bold text-slate-800 mb-4">Control de Cache Global</h2>
-            <p class="text-sm text-slate-500 mb-4">Fuerza a todos los usuarios a recargar la app sin perder sus datos de sesion ni registros.</p>
-            
-            <div class="grid md:grid-cols-3 gap-4">
-                <!-- Kill Switch -->
-                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-medium text-slate-700">Kill Switch</span>
-                        <span id="kill-switch-status" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">Cargando...</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mb-3">Limpia el cache del navegador de todos los usuarios.</p>
-                    <button onclick="toggleKillSwitch()" id="kill-switch-btn" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-400 transition text-sm">
-                        Activar Kill Switch
-                    </button>
-                </div>
-
-                <!-- Cambiar Version de Cache -->
-                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-medium text-slate-700">Version de Cache</span>
-                        <span id="cache-version-status" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">Cargando...</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mb-3">Incrementa la version para forzar recarga silenciosa.</p>
-                    <button onclick="bumpCacheVersion()" class="w-full px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition text-sm">
-                        Nueva Version
-                    </button>
-                </div>
-
-                <!-- Estado de la App -->
-                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-medium text-slate-700">Estado de la App</span>
-                        <span id="app-status" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Online</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mb-3">Schema v2 activo. Cache local controlado.</p>
-                    <button onclick="clearAppCache()" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition text-sm">
-                        Limpiar Mi Cache
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div class="bg-white rounded-xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between">
@@ -104,7 +60,7 @@
             </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-6">
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
             <div class="bg-white rounded-xl border border-slate-200 p-5">
                 <h2 class="font-bold text-slate-800 mb-4">Ultimas Partidas</h2>
                 <div id="recent-matches" class="space-y-3">
@@ -118,102 +74,82 @@
                 </div>
             </div>
         </div>
+
+        <!-- SECCION SUPERADMIN: Control de Cache (oculta por defecto) -->
+        <div id="cache-control-section" class="hidden">
+            <!-- Boton sutil para expandir -->
+            <button onclick="toggleCachePanel()" id="cache-toggle-btn" 
+                class="w-full py-3 border border-dashed border-slate-300 rounded-xl text-slate-400 hover:text-slate-600 hover:border-slate-400 transition flex items-center justify-center gap-2 text-sm">
+                <span>🔧</span> <span>Controles del sistema</span> <span id="cache-chevron">▼</span>
+            </button>
+
+            <!-- Panel colapsable -->
+            <div id="cache-panel" class="hidden mt-4 bg-white rounded-xl border border-slate-200 p-5">
+                <h2 class="font-bold text-slate-800 mb-1">Control de Cache Global</h2>
+                <p class="text-xs text-slate-500 mb-4">Fuerza a todos los usuarios a recargar la app sin perder datos de sesion ni registros. Solo para emergencias.</p>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-medium text-slate-700">Kill Switch</span>
+                            <span id="kill-switch-status" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">Cargando...</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-3">Limpia el cache del navegador de todos los usuarios.</p>
+                        <button onclick="toggleKillSwitch()" id="kill-switch-btn" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-400 transition text-sm">
+                            Activar Kill Switch
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-medium text-slate-700">Version de Cache</span>
+                            <span id="cache-version-status" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">Cargando...</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-3">Incrementa la version para forzar recarga silenciosa.</p>
+                        <button onclick="bumpCacheVersion()" class="w-full px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition text-sm">
+                            Nueva Version
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-medium text-slate-700">Estado de la App</span>
+                            <span id="app-status" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Online</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-3">Schema v2 activo. Cache local controlado.</p>
+                        <button onclick="clearAppCache()" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition text-sm">
+                            Limpiar Mi Cache
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         requireAdmin();
 
-        // Estado actual del kill switch y cache
         var killSwitchActive = false;
         var currentCacheVersion = '';
-
-        async function loadCacheControlStatus() {
-            try {
-                // Leer kill switch
-                var { data: killData } = await supabase
-                    .from('app_settings')
-                    .select('value')
-                    .eq('key', 'force_clear_cache')
-                    .single();
-                
-                killSwitchActive = killData && killData.value === 'true';
-                
-                var killStatus = document.getElementById('kill-switch-status');
-                var killBtn = document.getElementById('kill-switch-btn');
-                if (killSwitchActive) {
-                    killStatus.textContent = 'ACTIVO';
-                    killStatus.className = 'text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-bold';
-                    killBtn.textContent = 'Desactivar Kill Switch';
-                    killBtn.className = 'w-full px-4 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-400 transition text-sm';
-                } else {
-                    killStatus.textContent = 'Inactivo';
-                    killStatus.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-700';
-                    killBtn.textContent = 'Activar Kill Switch';
-                    killBtn.className = 'w-full px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-400 transition text-sm';
-                }
-
-                // Leer cache version
-                var { data: versionData } = await supabase
-                    .from('app_settings')
-                    .select('value')
-                    .eq('key', 'cache_version')
-                    .single();
-                
-                currentCacheVersion = versionData ? versionData.value : 'v2.0';
-                document.getElementById('cache-version-status').textContent = currentCacheVersion;
-
-            } catch (e) {
-                console.error('Error loading cache control status:', e);
-            }
-        }
-
-        async function toggleKillSwitch() {
-            var newValue = killSwitchActive ? 'false' : 'true';
-            var { error } = await supabase
-                .from('app_settings')
-                .update({ value: newValue })
-                .eq('key', 'force_clear_cache');
-
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                killSwitchActive = !killSwitchActive;
-                showToast(killSwitchActive ? 'Kill Switch ACTIVADO - Todos los usuarios recargaran' : 'Kill Switch desactivado', 'success');
-                loadCacheControlStatus();
-            }
-        }
-
-        async function bumpCacheVersion() {
-            // Generar nueva version: v2.X donde X es timestamp
-            var newVersion = 'v2.' + Date.now();
-            var { error } = await supabase
-                .from('app_settings')
-                .update({ value: newVersion })
-                .eq('key', 'cache_version');
-
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                currentCacheVersion = newVersion;
-                showToast('Version de cache actualizada a ' + newVersion, 'success');
-                loadCacheControlStatus();
-            }
-        }
 
         async function initDashboard() {
             var admin = await getAdminRole();
             if (admin) {
                 document.getElementById('welcome-text').textContent = 'Bienvenido, ' + (admin.display_name || 'Admin');
+
+                // Mostrar controles de cache SOLO para superadmin
+                if (admin.role === 'superadmin') {
+                    document.getElementById('cache-control-section').classList.remove('hidden');
+                    loadCacheControlStatus();
+                }
             }
 
-            // Cargar estado del control de cache
-            loadCacheControlStatus();
-
+            // Stats: usar schema v2 explicitamente
             var [{ count: mc }, { count: pc }, { count: ac }, { count: rc }] = await Promise.all([
-                supabase.from('matches').select('*', { count: 'exact', head: true }),
-                supabase.from('players').select('*', { count: 'exact', head: true }),
-                supabase.from('alliances').select('*', { count: 'exact', head: true }),
-                supabase.from('chat_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+                supabase.schema('v2').from('matches').select('*', { count: 'exact', head: true }),
+                supabase.schema('v2').from('players').select('*', { count: 'exact', head: true }),
+                supabase.schema('v2').from('alliances').select('*', { count: 'exact', head: true }),
+                supabase.schema('v2').from('chat_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
             ]);
 
             document.getElementById('d-matches').textContent = mc || 0;
@@ -222,6 +158,7 @@
             document.getElementById('d-reports').textContent = rc || 0;
 
             var { data: recentMatches } = await supabase
+                .schema('v2')
                 .from('matches')
                 .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
                 .order('created_at', { ascending: false })
@@ -244,6 +181,7 @@
             }
 
             var { data: reports } = await supabase
+                .schema('v2')
                 .from('chat_reports')
                 .select('*')
                 .eq('status', 'pending')
@@ -263,6 +201,93 @@
                         '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Pendiente</span>' +
                     '</div>';
                 }).join('');
+            }
+        }
+
+        // Toggle panel de cache
+        function toggleCachePanel() {
+            var panel = document.getElementById('cache-panel');
+            var chevron = document.getElementById('cache-chevron');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                chevron.textContent = '▲';
+            } else {
+                panel.classList.add('hidden');
+                chevron.textContent = '▼';
+            }
+        }
+
+        async function loadCacheControlStatus() {
+            try {
+                var { data: killData } = await supabase
+                    .schema('v2')
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'force_clear_cache')
+                    .maybeSingle();
+                
+                killSwitchActive = killData && killData.value === 'true';
+                
+                var killStatus = document.getElementById('kill-switch-status');
+                var killBtn = document.getElementById('kill-switch-btn');
+                if (killSwitchActive) {
+                    killStatus.textContent = 'ACTIVO';
+                    killStatus.className = 'text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-bold';
+                    killBtn.textContent = 'Desactivar Kill Switch';
+                    killBtn.className = 'w-full px-4 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-400 transition text-sm';
+                } else {
+                    killStatus.textContent = 'Inactivo';
+                    killStatus.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-700';
+                    killBtn.textContent = 'Activar Kill Switch';
+                    killBtn.className = 'w-full px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-400 transition text-sm';
+                }
+
+                var { data: versionData } = await supabase
+                    .schema('v2')
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'cache_version')
+                    .maybeSingle();
+                
+                currentCacheVersion = versionData ? versionData.value : 'v2.0';
+                document.getElementById('cache-version-status').textContent = currentCacheVersion;
+
+            } catch (e) {
+                console.error('Error loading cache control status:', e);
+            }
+        }
+
+        async function toggleKillSwitch() {
+            var newValue = killSwitchActive ? 'false' : 'true';
+            var { error } = await supabase
+                .schema('v2')
+                .from('app_settings')
+                .update({ value: newValue })
+                .eq('key', 'force_clear_cache');
+
+            if (error) {
+                showToast('Error: ' + error.message, 'error');
+            } else {
+                killSwitchActive = !killSwitchActive;
+                showToast(killSwitchActive ? 'Kill Switch ACTIVADO - Todos los usuarios recargaran' : 'Kill Switch desactivado', 'success');
+                loadCacheControlStatus();
+            }
+        }
+
+        async function bumpCacheVersion() {
+            var newVersion = 'v2.' + Date.now();
+            var { error } = await supabase
+                .schema('v2')
+                .from('app_settings')
+                .update({ value: newVersion })
+                .eq('key', 'cache_version');
+
+            if (error) {
+                showToast('Error: ' + error.message, 'error');
+            } else {
+                currentCacheVersion = newVersion;
+                showToast('Version de cache actualizada a ' + newVersion, 'success');
+                loadCacheControlStatus();
             }
         }
 
