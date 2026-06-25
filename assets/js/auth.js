@@ -26,14 +26,12 @@ async function isAdmin() {
     return !!sessionData.data.session;
 }
 
-// FIX: Usar .schema('v2') para leer desde el schema correcto
+// Usa public schema por defecto
 async function getAdminRole() {
     var sessionData = await supabase.auth.getSession();
     if (!sessionData.data.session) return null;
 
-    var { data: admin } = await supabase
-        .schema('v2')
-        .from('admin_users')
+    var { data: admin } = await supabase.from('admin_users')
         .select('role, alliance_id, status, display_name, supremacy_player_id')
         .eq('id', sessionData.data.session.user.id)
         .single();
@@ -74,9 +72,7 @@ async function updatePassword(newPassword) {
 async function signupWithInvite(email, password, inviteCode, supremacyId, displayName) {
     var normalizedCode = inviteCode.trim().toUpperCase();
 
-    var inviteResult = await supabase
-        .schema('v2')
-        .from('admin_invites')
+    var inviteResult = await supabase.from('admin_invites')
         .select('*')
         .eq('code', normalizedCode)
         .eq('used', false);
@@ -95,15 +91,13 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         return { success: false, message: 'Codigo de invitacion expirado' };
     }
 
-    var { data: player } = await supabase
-        .schema('v2')
-        .from('players')
+    var { data: player } = await supabase.from('players')
         .select('id, current_username')
         .eq('id', parseInt(supremacyId))
         .single();
 
     if (!player) {
-        var { error: insertPlayerError } = await supabase.schema('v2').from('players').insert({
+        var { error: insertPlayerError } = await supabase.from('players').insert({
             id: parseInt(supremacyId),
             current_username: displayName,
             status: 'active'
@@ -122,7 +116,7 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         return { success: false, message: authResult.error.message };
     }
 
-    await supabase.schema('v2').from('admin_users').insert({
+    await supabase.from('admin_users').insert({
         id: authResult.data.user.id,
         role: invite.role,
         display_name: displayName,
@@ -132,7 +126,7 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         status: 'active'
     });
 
-    await supabase.schema('v2').from('admin_invites').update({
+    await supabase.from('admin_invites').update({
         used: true,
         used_by: authResult.data.user.id,
         used_at: new Date().toISOString()
@@ -142,8 +136,6 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
 }
 
 async function logout() {
-    // Limpiar solo la sesion de admin (Supabase Auth), NO el lazy login de jugador
-    // Tambien limpiar polling de notificaciones
     if (window.__ahNotifInterval) {
         clearInterval(window.__ahNotifInterval);
         window.__ahNotifInterval = null;
@@ -192,7 +184,6 @@ function getRoleBadge(role) {
     return badges[role] || '<span class="text-[10px] bg-slate-500 text-white px-2 py-1 rounded">' + role + '</span>';
 }
 
-// NUEVO: Alternar entre modo admin y modo jugador
 function hasPlayerSession() {
     return !!localStorage.getItem('ah_v2_player_id');
 }
@@ -234,7 +225,6 @@ function toggleNotifDropdown() {
     if (dropdown.classList.contains('hidden')) {
         dropdown.classList.remove('hidden');
         renderNotifList();
-        // Marcar como leidos los mensajes mostrados
         markVisibleNotifsAsRead();
     } else {
         dropdown.classList.add('hidden');
@@ -249,12 +239,10 @@ function closeNotifDropdown() {
 async function renderNotifList() {
     var list = document.getElementById('ah-notif-list');
     if (!list) return;
-
     if (__ahNotifMessages.length === 0) {
         list.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">No tienes mensajes directos</div>';
         return;
     }
-
     list.innerHTML = __ahNotifMessages.slice(0, 5).map(function(m) {
         var isUnread = !m.read_at;
         return '<div class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ' + (isUnread ? 'bg-blue-50/50' : '') + '" onclick="window.location.href=\'' + ahPath('admin/inbox.html?id=' + m.id) + '\'">' +
@@ -271,23 +259,18 @@ async function renderNotifList() {
 async function markVisibleNotifsAsRead() {
     var unreadIds = __ahNotifMessages.filter(function(m) { return !m.read_at; }).map(function(m) { return m.id; });
     if (unreadIds.length === 0) return;
-    
-    // Marcar como leidos los primeros 5 (los visibles en el dropdown)
     var visibleIds = unreadIds.slice(0, 5);
     for (var i = 0; i < visibleIds.length; i++) {
         await markDirectMessageAsRead(visibleIds[i]);
     }
-    // Refrescar contador despues de un breve delay
     setTimeout(refreshNotifBadge, 500);
 }
 
 async function refreshNotifBadge() {
     var count = await countUnreadDirectMessages();
     __ahNotifCount = count;
-    
     var badge = document.getElementById('ah-notif-badge');
     var label = document.getElementById('ah-notif-count-label');
-    
     if (badge) {
         if (count > 0) {
             badge.textContent = count > 99 ? '99+' : count;
@@ -296,50 +279,35 @@ async function refreshNotifBadge() {
             badge.classList.add('hidden');
         }
     }
-    if (label) {
-        label.textContent = count + ' sin leer';
-    }
-    
-    // Tambien refrescar lista de mensajes
+    if (label) label.textContent = count + ' sin leer';
     var messages = await fetchRecentDirectMessages(10);
     __ahNotifMessages = messages || [];
 }
 
 function startNotifPolling() {
-    // Detener polling previo si existe
-    if (window.__ahNotifInterval) {
-        clearInterval(window.__ahNotifInterval);
-    }
-    // Refrescar inmediatamente
+    if (window.__ahNotifInterval) clearInterval(window.__ahNotifInterval);
     refreshNotifBadge();
-    // Y luego cada 60 segundos
     window.__ahNotifInterval = setInterval(refreshNotifBadge, 60000);
 }
 
-// Cerrar dropdown al hacer clic fuera
 document.addEventListener('click', function(e) {
     var wrapper = document.getElementById('ah-notif-wrapper');
-    if (wrapper && !wrapper.contains(e.target)) {
-        closeNotifDropdown();
-    }
+    if (wrapper && !wrapper.contains(e.target)) closeNotifDropdown();
 });
 
 // ===================== ADMIN NAV =====================
 async function initAdminNav() {
     var nav = document.getElementById('admin-nav');
     if (!nav) return;
-
     var sessionData = await supabase.auth.getSession();
     var session = sessionData.data.session;
     var playerData = getPlayerData();
     var isPlayer = !!playerData.playerId;
-
     if (session) {
         var admin = await getAdminRole();
         var role = admin ? admin.role : 'unknown';
         var displayName = admin && admin.display_name ? admin.display_name : session.user.email;
         var hasAlliance = admin && admin.alliance_id;
-
         var links = [
             { href: ahPath('admin/index.html'), label: '&#128202; Dashboard', minRole: 'moderator' },
             { href: ahPath('admin/matches.html'), label: '&#127918; Partidas', minRole: 'moderator' },
@@ -353,53 +321,27 @@ async function initAdminNav() {
             { href: ahPath('admin/strikes.html'), label: '&#9889; Strikes', minRole: 'moderator' },
             { href: ahPath('admin/alliance-members.html'), label: '&#127988; Miembros', minRole: 'alliance_leader', requiresAlliance: true },
         ];
-
         var allowedLinks = links.filter(function(l) {
             if (ROLE_HIERARCHY[role] < ROLE_HIERARCHY[l.minRole]) return false;
             if (l.requiresAlliance && !hasAlliance) return false;
             return true;
         });
-
-        // Boton para cambiar a modo jugador si tiene sesion de jugador
         var switchBtn = '';
-        if (isPlayer) {
-            switchBtn = '<a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold" title="Cambiar a vista de jugador">&#127918; Modo Jugador</a>';
-        }
-
-        // Componente de notificaciones
+        if (isPlayer) switchBtn = '<a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold">&#127918; Modo Jugador</a>';
         var notifBell = buildNotificationBell();
-
         nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub V2</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + notifBell + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
-
-        // Iniciar polling de notificaciones
         startNotifPolling();
     } else {
-        // No hay sesion de admin - mostrar nav publico o login
-        var adminBtn = '';
-        if (isPlayer) {
-            adminBtn = '<a href="' + ahPath('login.html') + '" class="text-sm bg-amber-500 text-slate-900 px-4 py-2 rounded font-bold hover:bg-amber-400 transition">Admin Login</a>';
-        } else {
-            adminBtn = '<a href="' + ahPath('login.html') + '" class="text-sm bg-amber-500 text-slate-900 px-4 py-2 rounded font-bold hover:bg-amber-400 transition">Admin Login</a>' +
-                       '<a href="' + ahPath('login-player.html') + '" class="text-sm bg-green-500 text-white px-4 py-2 rounded font-bold hover:bg-green-400 transition ml-2">Jugador Login</a>';
-        }
+        var adminBtn = '<a href="' + ahPath('login.html') + '" class="text-sm bg-amber-500 text-slate-900 px-4 py-2 rounded font-bold hover:bg-amber-400 transition">Admin Login</a>' +
+                       (isPlayer ? '' : '<a href="' + ahPath('login-player.html') + '" class="text-sm bg-green-500 text-white px-4 py-2 rounded font-bold hover:bg-green-400 transition ml-2">Jugador Login</a>');
         nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex items-center justify-between"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub V2</a><div>' + adminBtn + '</div></div></div>';
     }
 }
 
 supabase.auth.onAuthStateChange(function(event, session) {
-    if (event === 'SIGNED_OUT') {
-        // Solo redirigir si NO hay sesion de jugador activa
-        if (!hasPlayerSession()) {
-            window.location.href = ahPath('login.html');
-        }
-    }
+    if (event === 'SIGNED_OUT' && !hasPlayerSession()) window.location.href = ahPath('login.html');
     initAdminNav();
 });
-
 document.addEventListener('DOMContentLoaded', initAdminNav);
-
-// ============================================
-// ALIAS: Para compatibilidad con paginas nuevas
-// ============================================
 function renderAdminNav() { initAdminNav(); }
 function adminLogout() { logout(); }
