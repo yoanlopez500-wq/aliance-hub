@@ -109,7 +109,7 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         }
     }
 
-    var authResult = await supabase.auth.signUp({
+    var authResult = await supabase.auth.signInWithPassword({
         email: email,
         password: password
     });
@@ -172,6 +172,16 @@ async function requireMinRole(minRole) {
     }
 }
 
+function getRoleBadge(role) {
+    var badges = {
+        superadmin: '<span class="text-[10px] bg-red-500 text-white px-2 py-1 rounded font-bold">SUPERADMIN</span>',
+        event_admin: '<span class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold">ADMIN EVENTOS</span>',
+        alliance_leader: '<span class="text-[10px] bg-green-500 text-white px-2 py-1 rounded font-bold">LÍDER</span>',
+        moderator: '<span class="text-[10px] bg-purple-500 text-white px-2 py-1 rounded font-bold">MODERADOR</span>'
+    };
+    return badges[role] || '<span class="text-[10px] bg-slate-500 text-white px-2 py-1 rounded">' + role + '</span>';
+}
+
 async function initAdminNav() {
     var nav = document.getElementById('admin-nav');
     if (!nav) return;
@@ -186,15 +196,16 @@ async function initAdminNav() {
         var hasAlliance = admin && admin.alliance_id;
 
         var links = [
-            { href: ahPath('admin/index.html'), label: 'Dashboard', minRole: 'moderator' },
-            { href: ahPath('admin/matches.html'), label: 'Partidas', minRole: 'moderator' },
-            { href: ahPath('admin/alliances.html'), label: 'Alianzas', minRole: 'event_admin' },
-            { href: ahPath('admin/players.html'), label: 'Jugadores', minRole: 'moderator' },
-            { href: ahPath('admin/import.html'), label: 'Importar CSV', minRole: 'event_admin' },
-            { href: ahPath('admin/invites.html'), label: 'Invitar', minRole: 'event_admin' },
-            { href: ahPath('admin/leagues.html'), label: 'Ligas', minRole: 'event_admin' },
+            { href: ahPath('admin/index.html'), label: '📊 Dashboard', minRole: 'moderator' },
+            { href: ahPath('admin/matches.html'), label: '🎮 Partidas', minRole: 'moderator' },
+            { href: ahPath('chat.html'), label: '💬 Chat', minRole: 'alliance_leader' },
+            { href: ahPath('admin/alliances.html'), label: '🏴 Alianzas', minRole: 'event_admin' },
+            { href: ahPath('admin/players.html'), label: '👤 Jugadores', minRole: 'moderator' },
+            { href: ahPath('admin/import.html'), label: '📥 Importar CSV', minRole: 'event_admin' },
+            { href: ahPath('admin/invites.html'), label: '🔑 Invitar', minRole: 'event_admin' },
+            { href: ahPath('admin/leagues.html'), label: '🏆 Ligas', minRole: 'event_admin' },
             { href: ahPath('admin/admins.html'), label: '👥 Admins', minRole: 'event_admin' },
-            // NUEVO: Link de gestión de membresías para líderes de alianza
+            // Gestión de membresías para líderes de alianza
             { href: ahPath('admin/alliance-members.html'), label: '🏴 Miembros', minRole: 'alliance_leader', requiresAlliance: true },
         ];
 
