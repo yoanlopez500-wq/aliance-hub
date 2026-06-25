@@ -1,12 +1,17 @@
 // assets/js/pwa-utils.js
-// PWA utilities
+// PWA utilities + Push notifications
 // Depende de base.js (window.__AH_BASE_PATH)
 
 function registerSW() {
     if ('serviceWorker' in navigator) {
         var swPath = window.__AH_BASE_PATH + 'service-worker.js';
         navigator.serviceWorker.register(swPath, { scope: window.__AH_BASE_PATH })
-            .then(function(reg) { console.log('SW registrado:', reg.scope); })
+            .then(function(reg) { 
+                console.log('SW registrado:', reg.scope);
+                if (isLazyLoggedIn() && isPushSubscribed()) {
+                    subscribeToPush();
+                }
+            })
             .catch(function(err) { console.log('SW error:', err); });
     }
 }

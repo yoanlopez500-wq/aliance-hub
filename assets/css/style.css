@@ -1,292 +1,53 @@
-/* assets/css/style.css */
-/* ============================================
-   TEMA OSCURO + MOBILE-FIRST + PWA
-   ============================================ */
-
-/* Variables CSS para tema oscuro */
-:root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: #1e293b;
-  --bg-hover: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #f59e0b;
-  --accent-hover: #fbbf24;
-  --border: #334155;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-}
-
-/* Reset y base */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Alliance Hub V2 - Estilos base */
+/* Tailwind se carga vía CDN, esto es para overrides */
 
 /* Animaciones */
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-in;
-}
-
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.game-card {
-    transition: all 0.2s;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
 }
 
-.game-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
-}
-
-/* Scrollbar personalizada (tema oscuro) */
+/* Scrollbar custom */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  width: 8px;
 }
-
 ::-webkit-scrollbar-track {
-    background: var(--bg-primary);
+  background: #f1f5f9;
 }
-
 ::-webkit-scrollbar-thumb {
-    background: var(--bg-hover);
-    border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+/* Toast notifications */
+.toast-enter {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 /* Modal backdrop */
-.modal {
-    display: none;
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
 }
 
-.modal.active {
-    display: flex;
-}
-
-/* ============================================
-   MOBILE-FIRST RESPONSIVE
-   ============================================ */
-
-/* Touch targets mínimos 44px para dedos */
-button, a, input, select, .game-item {
-    min-height: 44px;
-}
-
-/* Tablas responsive en móvil */
-@media (max-width: 768px) {
-    .table-responsive {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* Cards en móvil: más padding, más grandes */
-    .game-card {
-        padding: 1rem;
-    }
-
-    /* Texto más grande en móvil para legibilidad */
-    body {
-        font-size: 16px; /* Previene zoom en iOS */
-    }
-
-    /* Inputs más grandes en móvil */
-    input, select, textarea {
-        font-size: 16px;
-        padding: 0.75rem;
-    }
-
-    /* Botones más grandes */
-    button {
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-    }
-}
-
-/* ============================================
-   PWA: Standalone mode (app instalada)
-   ============================================ */
-
-@media (display-mode: standalone) {
-    /* Ocultar elementos innecesarios cuando es app */
-    .pwa-hide-standalone {
-        display: none !important;
-    }
-
-    /* Más espacio para contenido */
-    body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-}
-
-/* Safe area para iPhone notch */
-@supports (padding-top: env(safe-area-inset-top)) {
-    .safe-area-top {
-        padding-top: env(safe-area-inset-top);
-    }
-    .safe-area-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-}
-
-/* ============================================
-   UTILIDADES PWA
-   ============================================ */
-
-/* Botón flotante de instalación */
+/* PWA install button */
 #pwa-install-btn {
-    animation: bounce 2s infinite;
+  animation: bounce 2s infinite;
 }
 
 @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-    40% { transform: translateX(-50%) translateY(-10px); }
-    60% { transform: translateX(-50%) translateY(-5px); }
-}
-
-/* Pull-to-refresh indicator (opcional) */
-.pull-refresh {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-}
-
-/* ============================================
-   DARK THEME OVERRIDES (para Tailwind)
-   ============================================ */
-
-/* Sobrescribir clases de Tailwind para tema oscuro */
-.bg-white {
-    background-color: var(--bg-card) !important;
-}
-
-.bg-slate-50 {
-    background-color: var(--bg-primary) !important;
-}
-
-.bg-slate-100 {
-    background-color: var(--bg-secondary) !important;
-}
-
-.bg-slate-200 {
-    background-color: var(--bg-hover) !important;
-}
-
-.bg-slate-900 {
-    background-color: var(--bg-primary) !important;
-}
-
-.text-slate-800 {
-    color: var(--text-primary) !important;
-}
-
-.text-slate-700 {
-    color: var(--text-secondary) !important;
-}
-
-.text-slate-500 {
-    color: var(--text-muted) !important;
-}
-
-.text-slate-400 {
-    color: var(--text-muted) !important;
-}
-
-.border-slate-200 {
-    border-color: var(--border) !important;
-}
-
-.border-slate-100 {
-    border-color: var(--border) !important;
-}
-
-/* Hover states para tema oscuro */
-.hover\:bg-slate-50:hover {
-    background-color: var(--bg-hover) !important;
-}
-
-.hover\:bg-slate-100:hover {
-    background-color: var(--bg-hover) !important;
-}
-
-/* Inputs en tema oscuro */
-input, select, textarea {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border-color: var(--border);
-}
-
-input:focus, select:focus, textarea:focus {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-}
-
-/* Tablas en tema oscuro */
-table {
-    color: var(--text-primary);
-}
-
-thead {
-    background-color: var(--bg-secondary) !important;
-}
-
-th {
-    color: var(--text-secondary) !important;
-}
-
-td {
-    border-color: var(--border) !important;
-}
-
-/* Badges en tema oscuro */
-.bg-green-100 {
-    background-color: rgba(34, 197, 94, 0.2) !important;
-    color: #4ade80 !important;
-}
-
-.bg-blue-100 {
-    background-color: rgba(59, 130, 246, 0.2) !important;
-    color: #60a5fa !important;
-}
-
-.bg-red-100 {
-    background-color: rgba(239, 68, 68, 0.2) !important;
-    color: #f87171 !important;
-}
-
-.bg-yellow-100, .bg-amber-100 {
-    background-color: rgba(245, 158, 11, 0.2) !important;
-    color: #fbbf24 !important;
-}
-
-.bg-purple-100 {
-    background-color: rgba(168, 85, 247, 0.2) !important;
-    color: #c084fc !important;
-}
-
-.bg-gray-100, .bg-slate-200 {
-    background-color: var(--bg-hover) !important;
-    color: var(--text-secondary) !important;
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-5px); }
 }

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admins V2 - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/base.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/pwa-utils.js"></script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">👥 Gestión de Admins</h1>
+        <p class="text-slate-500 mb-6">Jerarquía: Superadmin > Event Admin > Alliance Leader > Moderator</p>
+
+        <div id="admins-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="text-center py-8 text-slate-400">Cargando...</div>
+        </div>
+    </div>
+
+    <script>
+        requireAdmin();
+        requireMinRole('event_admin');
+
+        async function loadAdmins() {
+            var myAdmin = await getAdminRole();
+
+            var { data: admins } = await supabase
+                .from('admin_users')
+                .select('*, alliances(name, tag)')
+                .order('role');
+
+            var container = document.getElementById('admins-list');
+            if (!admins || admins.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>';
+                return;
+            }
+
+            container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">ID</th><th class="text-left p-3">Display Name</th><th class="text-left p-3">Rol</th><th class="text-left p-3">Alianza</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Creado</th><th class="p-3">Acciones</th></tr></thead><tbody>' +
+                admins.map(function(a) {
+                    var statusBadge = a.status === 'active'
+                        ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activo</span>'
+                        : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Suspendido</span>';
+
+                    var canEdit = canManage(myAdmin.role, a.role);
+                    var actions = canEdit
+                        ? '<button onclick="changeRole(\'' + a.id + '\')" class="text-amber-600 hover:text-amber-700 text-sm font-bold mr-2">Rol</button>' +
+                          '<button onclick="toggleStatus(\'' + a.id + '\', \'' + a.status + '\')" class="text-red-500 hover:text-red-700 text-sm">' + (a.status === 'active' ? 'Suspender' : 'Activar') + '</button>'
+                        : '<span class="text-slate-400 text-xs">Sin permiso</span>';
+
+                    return '<tr class="border-b hover:bg-slate-50">' +
+                        '<td class="p-3 text-slate-500 text-xs">' + a.id.substring(0, 8) + '...</td>' +
+                        '<td class="p-3 font-medium">' + (a.display_name || '-') + '</td>' +
+                        '<td class="p-3">' + getRoleBadge(a.role) + '</td>' +
+                        '<td class="p-3 text-slate-500">' + (a.alliances ? a.alliances.name + ' [' + a.alliances.tag + ']' : '-') + '</td>' +
+                        '<td class="p-3">' + statusBadge + '</td>' +
+                        '<td class="p-3 text-slate-500">' + formatDate(a.created_at) + '</td>' +
+                        '<td class="p-3">' + actions + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table>';
+        }
+
+        async function changeRole(adminId) {
+            var newRole = prompt('Nuevo rol (superadmin, event_admin, alliance_leader, moderator):');
+            if (!newRole) return;
+            if (['superadmin', 'event_admin', 'alliance_leader', 'moderator'].indexOf(newRole) === -1) {
+                showToast('Rol inválido', 'error'); return;
+            }
+
+            var { error } = await supabase.from('admin_users').update({ role: newRole }).eq('id', adminId);
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Rol actualizado', 'success'); loadAdmins(); }
+        }
+
+        async function toggleStatus(adminId, currentStatus) {
+            var newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+            if (!confirmAction((newStatus === 'suspended' ? 'Suspender' : 'Activar') + ' este admin?')) return;
+
+            var { error } = await supabase.from('admin_users').update({ status: newStatus }).eq('id', adminId);
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Estado actualizado', 'success'); loadAdmins(); }
+        }
+
+        loadAdmins();
+    </script>
+</body>
+</html>
