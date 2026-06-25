@@ -25,11 +25,12 @@
             #sidebar-overlay { display: none !important; }
         }
         .channel-btn.active, .dm-btn.active { background: #fef3c7; border: 1px solid #f59e0b; font-weight: 700; }
-        .chat-msg:hover { background: rgba(0,0,0,0.02); }
-        #chat-scroll { scroll-behavior: smooth; }
-        /* Fix: safe area para botones de navegacion del telefono */
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px); }
         body { height: 100dvh; }
+        .date-separator { position: sticky; top: 0; z-index: 10; }
+        .msg-bubble-mine { border-bottom-right-radius: 4px; }
+        .msg-bubble-other { border-bottom-left-radius: 4px; }
+        .unread-badge { min-width: 18px; height: 18px; }
     </style>
 </head>
 <body class="bg-slate-100 flex flex-col overflow-hidden" data-role="public">
@@ -37,16 +38,16 @@
 
     <div id="access-denied" class="hidden fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
         <div class="text-center text-white max-w-sm">
-            <div class="text-6xl mb-4">🔒</div>
+            <div class="text-6xl mb-4">&#128274;</div>
             <h2 class="text-2xl font-bold mb-2">Acceso Restringido</h2>
-            <p class="text-slate-400 mb-6">El chat es exclusivo para <strong>administradores</strong> y <strong>líderes de alianza</strong>.</p>
+            <p class="text-slate-400 mb-6">El chat es exclusivo para <strong>administradores</strong> y <strong>lideres de alianza</strong>.</p>
             <a href="index.html" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Volver al inicio</a>
         </div>
     </div>
 
     <div id="loading-screen" class="flex-1 flex items-center justify-center">
         <div class="text-center">
-            <div class="animate-spin text-4xl mb-4 inline-block">⏳</div>
+            <div class="animate-spin text-4xl mb-4 inline-block">&#9203;</div>
             <p class="text-slate-500">Verificando acceso...</p>
         </div>
     </div>
@@ -57,10 +58,10 @@
         <div id="chat-sidebar" class="sidebar-mobile fixed md:relative z-40 w-72 md:w-64 bg-slate-800 text-white flex flex-col border-r border-slate-700 h-full shrink-0">
             <div class="p-3 border-b border-slate-700 flex items-center justify-between">
                 <div>
-                    <h2 class="text-base font-bold text-amber-400">💬 Chat</h2>
+                    <h2 class="text-base font-bold text-amber-400">&#128172; Chat</h2>
                     <p class="text-[10px] text-slate-400" id="my-role-display">-</p>
                 </div>
-                <button onclick="closeSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">✕</button>
+                <button onclick="closeSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">&#10005;</button>
             </div>
 
             <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
@@ -71,45 +72,52 @@
 
                 <div class="flex items-center justify-between px-2 py-1">
                     <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Mensajes Directos</p>
-                    <button onclick="openDMSearch()" class="text-amber-400 hover:text-amber-300 text-xs px-1" title="Nuevo mensaje directo">➕</button>
+                    <button onclick="openDMSearch()" class="text-amber-400 hover:text-amber-300 text-xs px-1" title="Nuevo mensaje directo">&#10133;</button>
                 </div>
                 <div id="dm-list" class="space-y-0.5"></div>
 
                 <div class="border-t border-slate-700 my-2"></div>
 
                 <button onclick="openInviteAdminModal()" class="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-400 hover:bg-slate-700 hover:text-amber-400 transition flex items-center gap-2">
-                    <span>📨</span> Solicitar admin al chat
+                    <span>&#128231;</span> Solicitar admin al chat
                 </button>
+
+                <div class="px-2 py-2 mt-1">
+                    <div class="bg-slate-700/50 rounded-lg p-2 text-[10px] text-slate-400 flex items-start gap-1.5">
+                        <span>&#8505;&#65039;</span>
+                        <span>Los mensajes se guardan solo en este dispositivo. Max 200 por canal.</span>
+                    </div>
+                </div>
             </div>
 
             <div class="p-2 border-t border-slate-700">
-                <button onclick="logout()" class="w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-slate-700 transition text-center">🚪 Salir</button>
+                <button onclick="logout()" class="w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-slate-700 transition text-center">&#128682; Salir</button>
             </div>
         </div>
 
         <div class="flex-1 flex flex-col bg-white min-w-0">
             <div class="bg-white border-b border-slate-200 px-3 md:px-6 py-3 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button onclick="openSidebar()" class="md:hidden text-slate-600 p-1 shrink-0">☰</button>
+                    <button onclick="openSidebar()" class="md:hidden text-slate-600 p-1 shrink-0">&#9776;</button>
                     <div class="min-w-0">
                         <h3 class="text-base md:text-lg font-bold text-slate-800 truncate" id="channel-title">-</h3>
                         <p class="text-[11px] text-slate-500 truncate" id="channel-desc">-</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
+                    <span id="history-badge" class="hidden text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">&#128203; Historial local</span>
                     <span class="w-2 h-2 rounded-full bg-green-500" id="status-dot"></span>
                     <span class="text-[11px] text-slate-500 hidden md:inline" id="status-text">Conectado</span>
                 </div>
             </div>
 
-            <div id="chat-scroll" class="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-1">
+            <div id="chat-scroll" class="flex-1 overflow-y-auto px-3 md:px-6 py-4">
                 <div class="text-center py-12 text-slate-400">
-                    <div class="text-4xl mb-3">💬</div>
+                    <div class="text-4xl mb-3">&#128172;</div>
                     <p class="text-sm">Selecciona un canal para empezar</p>
                 </div>
             </div>
 
-            <!-- Barra de entrada con safe area para botones de navegacion del telefono -->
             <div class="border-t border-slate-200 px-3 md:px-6 pt-3 pb-3 safe-bottom bg-slate-50 shrink-0">
                 <div class="flex gap-2">
                     <input type="text" id="chat-input"
@@ -128,7 +136,7 @@
 
     <div id="dm-search-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-5">
-            <h3 class="font-bold text-slate-800 mb-3">💬 Nuevo Mensaje Directo</h3>
+            <h3 class="font-bold text-slate-800 mb-3">&#128172; Nuevo Mensaje Directo</h3>
             <input type="text" id="dm-search-input" placeholder="Buscar por nombre..."
                 class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3 text-sm"
                 onkeyup="searchDMUsers()">
@@ -139,7 +147,7 @@
 
     <div id="invite-admin-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-5">
-            <h3 class="font-bold text-slate-800 mb-2">📨 Solicitar Admin al Chat</h3>
+            <h3 class="font-bold text-slate-800 mb-2">&#128231; Solicitar Admin al Chat</h3>
             <p class="text-xs text-slate-500 mb-4">Envia una notificacion a un administrador para que se una al chat.</p>
             <div id="invite-admin-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
             <button onclick="closeInviteAdminModal()" class="w-full py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300">Cerrar</button>
@@ -148,7 +156,7 @@
 
     <div id="report-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5">
-            <h3 class="font-bold text-red-800 mb-2">🚩 Reportar Mensaje</h3>
+            <h3 class="font-bold text-red-800 mb-2">&#128681; Reportar Mensaje</h3>
             <div class="reported-msg rounded-lg p-3 mb-3">
                 <p class="text-[11px] text-slate-500 mb-1">Mensaje reportado:</p>
                 <p class="text-sm text-slate-800 font-medium" id="report-msg-text">-</p>
@@ -172,17 +180,24 @@
     </div>
 
     <script>
+        // ===================== CONFIG =====================
         var ROLE_HIERARCHY = { moderator: 1, alliance_leader: 2, event_admin: 3, superadmin: 4 };
         function hasMinRole(userRole, required) { return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[required] || 0); }
 
         var CHANNELS = {
-            admin_global: { name: '🌐 Global Admin', desc: 'Todos los administradores', topic: 'chat-admin-global', minRole: 'moderator' },
-            alliance_global: { name: '🏴 Global Lideres', desc: 'Lideres de todas las alianzas', topic: 'chat-alliance-global', minRole: 'alliance_leader' }
+            admin_global: { name: '&#127760; Global Admin', desc: 'Todos los administradores', topic: 'chat-admin-global', minRole: 'moderator' },
+            alliance_global: { name: '&#127988; Global Lideres', desc: 'Lideres de todas las alianzas', topic: 'chat-alliance-global', minRole: 'alliance_leader' }
         };
 
+        var MAX_LOCAL_MSGS = 200;
+        var MSG_EXPIRY_DAYS = 7;
+
+        // ===================== STATE =====================
         var myUser = null, currentChannel = null, realtimeChannel = null, presenceChannel = null;
         var allMessages = {}, allAdmins = [], dmConversations = [], reportTargetMsg = null, typingTimeout;
+        var lastReadTimestamps = {};
 
+        // ===================== ACCESS CONTROL =====================
         async function checkAccess() {
             try {
                 var sessionData = await supabase.auth.getSession();
@@ -213,22 +228,124 @@
             document.getElementById('loading-screen').classList.add('hidden');
             document.getElementById('access-denied').classList.remove('hidden');
         }
+
         function formatRoleName(role) {
             var names = { superadmin: 'Super Admin', event_admin: 'Admin Eventos', alliance_leader: 'Lider', moderator: 'Moderador' };
             return names[role] || role;
         }
 
+        // ===================== INIT =====================
         async function initChat() {
             var ok = await checkAccess(); if (!ok) return;
             document.getElementById('loading-screen').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
+
+            // Init channels in memory
             Object.keys(CHANNELS).forEach(function(k) { allMessages[k] = []; });
+
+            // Load DM conversations from localStorage
+            loadDMConversations();
+
+            // Load last-read timestamps
+            loadLastRead();
+
             await loadAdminList();
-            renderGlobalChannels(); renderDMList();
+            renderGlobalChannels();
+            renderDMList();
+
             var defaultCh = hasMinRole(myUser.role, 'moderator') ? 'admin_global' : 'alliance_global';
             switchChannel(defaultCh);
         }
 
+        // ===================== LOCALSTORAGE PERSISTENCE =====================
+        function getChannelStorageKey(channelKey) {
+            return 'ah_v2_chat_channel_' + channelKey;
+        }
+
+        function getLastReadKey() {
+            return 'ah_v2_chat_lastread';
+        }
+
+        function getDMConvKey() {
+            return 'ah_v2_chat_dm_conversations';
+        }
+
+        function saveMessagesToStorage(channelKey) {
+            var msgs = allMessages[channelKey] || [];
+            // Filter out expired messages
+            var cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - MSG_EXPIRY_DAYS);
+            var validMsgs = msgs.filter(function(m) { return new Date(m.timestamp) > cutoff; });
+            // Keep max
+            if (validMsgs.length > MAX_LOCAL_MSGS) validMsgs = validMsgs.slice(-MAX_LOCAL_MSGS);
+            allMessages[channelKey] = validMsgs;
+            try {
+                localStorage.setItem(getChannelStorageKey(channelKey), JSON.stringify(validMsgs));
+            } catch (e) { console.warn('Failed to save chat to localStorage', e); }
+        }
+
+        function loadMessagesFromStorage(channelKey) {
+            try {
+                var raw = localStorage.getItem(getChannelStorageKey(channelKey));
+                if (raw) {
+                    var msgs = JSON.parse(raw);
+                    // Filter expired
+                    var cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - MSG_EXPIRY_DAYS);
+                    return (msgs || []).filter(function(m) { return new Date(m.timestamp) > cutoff; });
+                }
+            } catch (e) { console.warn('Failed to load chat from localStorage', e); }
+            return [];
+        }
+
+        function saveLastRead() {
+            try { localStorage.setItem(getLastReadKey(), JSON.stringify(lastReadTimestamps)); } catch (e) {}
+        }
+
+        function loadLastRead() {
+            try {
+                var raw = localStorage.getItem(getLastReadKey());
+                if (raw) lastReadTimestamps = JSON.parse(raw);
+            } catch (e) { lastReadTimestamps = {}; }
+        }
+
+        function saveDMConversations() {
+            try { localStorage.setItem(getDMConvKey(), JSON.stringify(dmConversations)); } catch (e) {}
+        }
+
+        function loadDMConversations() {
+            try {
+                var raw = localStorage.getItem(getDMConvKey());
+                if (raw) {
+                    dmConversations = JSON.parse(raw) || [];
+                    // Init message arrays for each DM
+                    dmConversations.forEach(function(dm) {
+                        var chId = 'dm-' + dm.adminId;
+                        allMessages[chId] = loadMessagesFromStorage(chId);
+                    });
+                }
+            } catch (e) { dmConversations = []; }
+        }
+
+        function markChannelAsRead(channelKey) {
+            lastReadTimestamps[channelKey] = new Date().toISOString();
+            saveLastRead();
+            // Refresh badge
+            setTimeout(function() { renderGlobalChannels(); renderDMList(); }, 50);
+        }
+
+        function getUnreadCount(channelKey) {
+            var msgs = allMessages[channelKey] || [];
+            var lastRead = lastReadTimestamps[channelKey];
+            if (!lastRead) {
+                // First time - show count of messages from last 1 hour only (not all history)
+                var oneHourAgo = new Date(Date.now() - 3600000);
+                return msgs.filter(function(m) { return new Date(m.timestamp) > oneHourAgo && m.sender_id !== myUser.id && m.sender_id !== 'system'; }).length;
+            }
+            return msgs.filter(function(m) { return new Date(m.timestamp) > new Date(lastRead) && m.sender_id !== myUser.id && m.sender_id !== 'system'; }).length;
+        }
+
+        // ===================== SIDEBAR =====================
         function openSidebar() { document.getElementById('chat-sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
         function closeSidebar() { document.getElementById('chat-sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
 
@@ -238,7 +355,9 @@
             Object.keys(CHANNELS).forEach(function(key) {
                 var ch = CHANNELS[key];
                 if (!hasMinRole(myUser.role, ch.minRole)) return;
-                html += '<button id="ch-' + key + '" onclick="switchChannel(\'' + key + '\'); closeSidebar();" class="channel-btn w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ' + (currentChannel === key ? 'active' : '') + '"><span class="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0">' + ch.name.charAt(0) + '</span><div class="min-w-0"><div class="font-medium truncate">' + ch.name + '</div><div class="text-[10px] text-slate-400 truncate">' + ch.desc + '</div></div></button>';
+                var unread = getUnreadCount(key);
+                var badge = unread > 0 ? '<span class="unread-badge ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">' + unread + '</span>' : '';
+                html += '<button id="ch-' + key + '" onclick="switchChannel(\'' + key + '\'); closeSidebar();" class="channel-btn w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ' + (currentChannel === key ? 'active' : '') + '"><span class="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0">' + ch.name.charAt(0) + '</span><div class="min-w-0 flex-1"><div class="font-medium truncate">' + ch.name + '</div><div class="text-[10px] text-slate-400 truncate">' + ch.desc + '</div></div>' + badge + '</button>';
             });
             container.innerHTML = html || '<p class="text-xs text-slate-500 px-3">Sin canales disponibles</p>';
         }
@@ -260,10 +379,13 @@
                 var role = admin ? formatRoleName(admin.role) : '';
                 var alliance = admin && admin.alliances ? ' [' + admin.alliances.tag + ']' : '';
                 var chId = 'dm-' + dm.adminId;
-                return '<button id="ch-' + chId + '" onclick="switchChannel(\'' + chId + '\'); closeSidebar();" class="dm-btn w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ' + (currentChannel === chId ? 'active' : '') + '"><span class="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-xs shrink-0">💬</span><div class="min-w-0"><div class="font-medium truncate">' + name + alliance + '</div><div class="text-[10px] text-slate-400">' + role + '</div></div></button>';
+                var unread = getUnreadCount(chId);
+                var badge = unread > 0 ? '<span class="unread-badge ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">' + unread + '</span>' : '';
+                return '<button id="ch-' + chId + '" onclick="switchChannel(\'' + chId + '\'); closeSidebar();" class="dm-btn w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ' + (currentChannel === chId ? 'active' : '') + '"><span class="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-xs shrink-0">&#128172;</span><div class="min-w-0 flex-1"><div class="font-medium truncate">' + name + alliance + '</div><div class="text-[10px] text-slate-400">' + role + '</div></div>' + badge + '</button>';
             }).join('');
         }
 
+        // ===================== DM SEARCH =====================
         function openDMSearch() {
             document.getElementById('dm-search-modal').classList.remove('hidden');
             document.getElementById('dm-search-modal').classList.add('flex');
@@ -284,17 +406,24 @@
             container.innerHTML = filtered.map(function(a) {
                 var name = a.display_name || 'Admin';
                 var alliance = a.alliances ? ' [' + a.alliances.tag + ']' : '';
-                return '<button onclick="startDM(\'' + a.id + '\')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 transition flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm">👤</span><div><div class="font-medium text-sm">' + name + alliance + '</div><div class="text-[11px] text-slate-500">' + formatRoleName(a.role) + '</div></div></button>';
+                return '<button onclick="startDM(\'' + a.id + '\')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 transition flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm">&#128100;</span><div><div class="font-medium text-sm">' + name + alliance + '</div><div class="text-[11px] text-slate-500">' + formatRoleName(a.role) + '</div></div></button>';
             }).join('');
         }
 
         function startDM(adminId) {
             var exists = dmConversations.some(function(d) { return d.adminId === adminId; });
-            if (!exists) { dmConversations.push({ adminId: adminId }); allMessages['dm-' + adminId] = []; renderDMList(); }
+            if (!exists) {
+                dmConversations.push({ adminId: adminId });
+                var chId = 'dm-' + adminId;
+                allMessages[chId] = loadMessagesFromStorage(chId);
+                saveDMConversations();
+                renderDMList();
+            }
             closeDMSearch();
             switchChannel('dm-' + adminId);
         }
 
+        // ===================== INVITE ADMIN =====================
         function openInviteAdminModal() {
             document.getElementById('invite-admin-modal').classList.remove('hidden');
             document.getElementById('invite-admin-modal').classList.add('flex');
@@ -309,24 +438,48 @@
         function closeInviteAdminModal() { document.getElementById('invite-admin-modal').classList.add('hidden'); document.getElementById('invite-admin-modal').classList.remove('flex'); }
 
         async function inviteAdmin(adminId, adminName) {
-            var inviteMsg = { id: 'invite_' + Date.now(), type: 'system', text: '📨 ' + myUser.display_name + ' invito a ' + adminName + ' a unirse al chat', sender_id: 'system', sender_name: 'Sistema', timestamp: new Date().toISOString() };
+            var inviteMsg = { id: 'invite_' + Date.now(), type: 'system', text: '&#128231; ' + myUser.display_name + ' invito a ' + adminName + ' a unirse al chat', sender_id: 'system', sender_name: 'Sistema', timestamp: new Date().toISOString() };
             if (realtimeChannel) { await realtimeChannel.send({ type: 'broadcast', event: 'message', payload: inviteMsg }); }
             showToast('Invitacion enviada a ' + adminName, 'success');
             closeInviteAdminModal();
         }
 
+        // ===================== CHANNEL SWITCHING =====================
         async function switchChannel(channelKey) {
             if (currentChannel === channelKey) return;
+
+            // Save current channel messages before switching
+            if (currentChannel) {
+                saveMessagesToStorage(currentChannel);
+            }
+
+            // Unsubscribe from current
             if (realtimeChannel) { await realtimeChannel.unsubscribe(); realtimeChannel = null; }
             if (presenceChannel) { await presenceChannel.unsubscribe(); presenceChannel = null; }
+
             currentChannel = channelKey;
+
+            // Load messages from storage for this channel
+            if (!allMessages[channelKey] || allMessages[channelKey].length === 0) {
+                allMessages[channelKey] = loadMessagesFromStorage(channelKey);
+            }
+
             updateChannelHeader();
             document.querySelectorAll('.channel-btn, .dm-btn').forEach(function(btn) { btn.classList.remove('active'); });
             var activeBtn = document.getElementById('ch-' + channelKey);
             if (activeBtn) activeBtn.classList.add('active');
-            if (!allMessages[channelKey]) allMessages[channelKey] = [];
+
             renderMessages();
             connectRealtime(getTopic(channelKey));
+
+            // Mark as read
+            markChannelAsRead(channelKey);
+
+            // Show/hide history badge
+            var hasHistory = (allMessages[channelKey] || []).length > 0;
+            var badge = document.getElementById('history-badge');
+            if (hasHistory) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
         }
 
         function getTopic(channelKey) {
@@ -340,7 +493,7 @@
             if (currentChannel.startsWith('dm-')) {
                 var otherId = currentChannel.replace('dm-', '');
                 var admin = allAdmins.find(function(a) { return a.id === otherId; });
-                title.textContent = admin ? '💬 ' + admin.display_name : '💬 Mensaje Directo';
+                title.textContent = admin ? '&#128172; ' + admin.display_name : '&#128172; Mensaje Directo';
                 desc.textContent = admin ? formatRoleName(admin.role) + (admin.alliances ? ' - ' + admin.alliances.name : '') : 'Conversacion privada';
             } else {
                 var ch = CHANNELS[currentChannel];
@@ -348,6 +501,7 @@
             }
         }
 
+        // ===================== REALTIME =====================
         function connectRealtime(topic) {
             realtimeChannel = supabase.channel(topic, { config: { broadcast: { self: true } } });
             realtimeChannel
@@ -374,27 +528,78 @@
                 });
         }
 
+        // ===================== MESSAGES =====================
         function handleIncomingMessage(msg) {
             if (!msg || !msg.id || !currentChannel) return;
             if (!allMessages[currentChannel]) allMessages[currentChannel] = [];
             if (allMessages[currentChannel].some(function(m) { return m.id === msg.id; })) return;
+
             allMessages[currentChannel].push(msg);
+            saveMessagesToStorage(currentChannel);
+
+            // Update unread badge if not currently viewing
+            if (currentChannel) {
+                renderGlobalChannels();
+                renderDMList();
+            }
+
             var container = document.getElementById('chat-scroll');
             var empty = container.querySelector('.text-center.py-12');
             if (empty) empty.remove();
+
+            // Check if we need a date separator
+            var prevMsg = allMessages[currentChannel][allMessages[currentChannel].length - 2];
+            var needsSeparator = false;
+            if (prevMsg) {
+                var prevDate = new Date(prevMsg.timestamp).toDateString();
+                var currDate = new Date(msg.timestamp).toDateString();
+                needsSeparator = prevDate !== currDate;
+            }
+
+            if (needsSeparator) {
+                var sepDiv = document.createElement('div');
+                sepDiv.className = 'date-separator flex justify-center my-3';
+                sepDiv.innerHTML = '<span class="text-[10px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + formatDateSeparator(msg.timestamp) + '</span>';
+                container.appendChild(sepDiv);
+            }
+
             var div = document.createElement('div');
             div.innerHTML = renderMessageHTML(msg);
             container.appendChild(div.firstElementChild);
             container.scrollTop = container.scrollHeight;
         }
 
+        function formatDateSeparator(timestamp) {
+            var d = new Date(timestamp);
+            var now = new Date();
+            if (d.toDateString() === now.toDateString()) return 'Hoy';
+            var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
+            return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        }
+
         function renderMessageHTML(msg) {
-            if (msg.type === 'system') return '<div class="text-center my-2"><span class="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + escapeHtml(msg.text) + '</span></div>';
-            if (msg.type === 'action') return '<div class="text-center my-2"><span class="text-[11px] text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">⚡ ' + escapeHtml(msg.text) + '</span></div>';
+            if (msg.type === 'system') return '<div class="flex justify-center my-2"><span class="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + escapeHtml(msg.text) + '</span></div>';
+            if (msg.type === 'action') return '<div class="flex justify-center my-2"><span class="text-[11px] text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">&#9889; ' + escapeHtml(msg.text) + '</span></div>';
+
             var isMine = msg.sender_id === myUser.id;
             var time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
-            var reportBtn = (!isMine && msg.sender_id !== 'system') ? '<button onclick="openReportForMessage(\'' + msg.id + '\')" class="ml-2 text-[10px] text-red-400 hover:text-red-600 underline opacity-0 group-hover:opacity-100 transition">🚩</button>' : '';
-            return '<div class="chat-message group flex ' + (isMine ? 'justify-end' : 'justify-start') + ' mb-1 px-1" data-msg-id="' + msg.id + '"><div class="max-w-[85%] md:max-w-[70%] ' + (isMine ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700') + ' rounded-2xl px-4 py-2.5"><div class="flex items-center gap-2 mb-0.5 flex-wrap"><span class="text-[11px] font-bold ' + (isMine ? 'text-amber-700' : 'text-slate-600') + '">' + escapeHtml(msg.sender_name) + '</span>' + (msg.sender_role ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/60">' + formatRoleName(msg.sender_role) + '</span>' : '') + '<span class="text-[10px] text-slate-400">' + time + '</span>' + reportBtn + '</div><div class="text-sm whitespace-pre-wrap break-words">' + escapeHtml(msg.text) + '</div></div></div>';
+            var reportBtn = (!isMine && msg.sender_id !== 'system') ? '<button onclick="openReportForMessage(\'' + msg.id + '\')" class="ml-1 text-[10px] text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">&#128681;</button>' : '';
+
+            var bubbleClass = isMine ? 'bg-amber-400 text-slate-900 msg-bubble-mine' : 'bg-slate-100 text-slate-700 msg-bubble-other';
+            var nameColor = isMine ? 'text-amber-800' : 'text-slate-600';
+
+            return '<div class="chat-message group flex ' + (isMine ? 'justify-end' : 'justify-start') + ' mb-1 px-1" data-msg-id="' + msg.id + '">' +
+                '<div class="max-w-[85%] md:max-w-[65%] ' + bubbleClass + ' rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">' +
+                    '<div class="flex items-center gap-1.5 mb-0.5 flex-wrap">' +
+                        '<span class="text-[11px] font-bold ' + nameColor + '">' + escapeHtml(msg.sender_name) + '</span>' +
+                        (msg.sender_role ? '<span class="text-[10px] px-1 py-0.5 rounded bg-white/40">' + formatRoleName(msg.sender_role) + '</span>' : '') +
+                        '<span class="text-[10px] opacity-60">' + time + '</span>' +
+                        reportBtn +
+                    '</div>' +
+                    '<div class="text-sm whitespace-pre-wrap break-words leading-relaxed">' + escapeHtml(msg.text) + '</div>' +
+                '</div>' +
+            '</div>';
         }
 
         function escapeHtml(text) { if (!text) return ''; var div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
@@ -402,23 +607,84 @@
         function renderMessages() {
             var container = document.getElementById('chat-scroll');
             var messages = allMessages[currentChannel] || [];
-            if (messages.length === 0) { container.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">No hay mensajes aun. Se el primero!</p></div>'; return; }
-            container.innerHTML = messages.map(function(m) { return renderMessageHTML(m); }).join('');
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">&#128172;</div><p class="text-sm">No hay mensajes aun. Se el primero!</p></div>';
+                return;
+            }
+
+            var html = '';
+            var lastDate = null;
+            messages.forEach(function(m) {
+                var currDate = new Date(m.timestamp).toDateString();
+                if (lastDate !== currDate) {
+                    html += '<div class="date-separator flex justify-center my-3"><span class="text-[10px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + formatDateSeparator(m.timestamp) + '</span></div>';
+                    lastDate = currDate;
+                }
+                html += renderMessageHTML(m);
+            });
+
+            container.innerHTML = html;
             container.scrollTop = container.scrollHeight;
         }
 
+        // ===================== SEND MESSAGE =====================
         async function sendMessage() {
             var input = document.getElementById('chat-input');
             var text = input.value.trim();
             if (!text || !currentChannel) return;
             input.value = '';
-            var msg = { id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5), sender_id: myUser.id, sender_name: myUser.display_name, sender_role: myUser.role, text: text, type: 'text', timestamp: new Date().toISOString() };
-            if (realtimeChannel) { await realtimeChannel.send({ type: 'broadcast', event: 'message', payload: msg }); }
-            try { if (myUser.player_id) { var markers = { admin_global: '00000000-0000-0000-0001-000000000000', alliance_global: '00000000-0000-0000-0002-000000000000' }; await supabase.schema('v2').from('alliance_chat').insert({ match_id: markers[currentChannel] || null, alliance_id: myUser.alliance_id, sender_id: myUser.player_id, message: msg.text }); } } catch (e) { }
+
+            var msg = {
+                id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                sender_id: myUser.id,
+                sender_name: myUser.display_name,
+                sender_role: myUser.role,
+                text: text,
+                type: 'text',
+                timestamp: new Date().toISOString()
+            };
+
+            // Save locally
+            if (!allMessages[currentChannel]) allMessages[currentChannel] = [];
+            allMessages[currentChannel].push(msg);
+            saveMessagesToStorage(currentChannel);
+
+            // Render
+            var container = document.getElementById('chat-scroll');
+            var empty = container.querySelector('.text-center.py-12');
+            if (empty) empty.remove();
+
+            // Check date separator
+            var prevMsg = allMessages[currentChannel][allMessages[currentChannel].length - 2];
+            if (prevMsg) {
+                var prevDate = new Date(prevMsg.timestamp).toDateString();
+                var currDate = new Date(msg.timestamp).toDateString();
+                if (prevDate !== currDate) {
+                    var sepDiv = document.createElement('div');
+                    sepDiv.className = 'date-separator flex justify-center my-3';
+                    sepDiv.innerHTML = '<span class="text-[10px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">' + formatDateSeparator(msg.timestamp) + '</span>';
+                    container.appendChild(sepDiv);
+                }
+            }
+
+            var div = document.createElement('div');
+            div.innerHTML = renderMessageHTML(msg);
+            container.appendChild(div.firstElementChild);
+            container.scrollTop = container.scrollHeight;
+
+            // Broadcast
+            if (realtimeChannel) {
+                await realtimeChannel.send({ type: 'broadcast', event: 'message', payload: msg });
+            }
         }
 
-        document.getElementById('chat-input').addEventListener('input', function() { if (!realtimeChannel || !myUser) return; realtimeChannel.send({ type: 'broadcast', event: 'typing', payload: { user_id: myUser.id, user_name: myUser.display_name } }); });
+        document.getElementById('chat-input').addEventListener('input', function() {
+            if (!realtimeChannel || !myUser) return;
+            realtimeChannel.send({ type: 'broadcast', event: 'typing', payload: { user_id: myUser.id, user_name: myUser.display_name } });
+        });
 
+        // ===================== REPORT =====================
         function openReportForMessage(messageId) {
             var messages = allMessages[currentChannel] || [];
             var msg = messages.find(function(m) { return m.id === messageId; });
@@ -443,10 +709,12 @@
             } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
 
+        // ===================== MODAL CLICK-OUTSIDE =====================
         document.getElementById('dm-search-modal').addEventListener('click', function(e) { if (e.target === this) closeDMSearch(); });
         document.getElementById('invite-admin-modal').addEventListener('click', function(e) { if (e.target === this) closeInviteAdminModal(); });
         document.getElementById('report-modal').addEventListener('click', function(e) { if (e.target === this) closeReportModal(); });
 
+        // ===================== START =====================
         initChat();
     </script>
 </body>
