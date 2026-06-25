@@ -84,7 +84,7 @@
 
         async function loadMatches() {
             try {
-                var { data, error } = await supabase.schema('v2')
+                var { data, error } = await supabase
                     .from('matches')
                     .select('id, name, game_id, status, csv_imported, created_at')
                     .neq('status', 'archived')
@@ -95,7 +95,6 @@
                 allMatches = data || [];
                 renderMatches(allMatches);
 
-                // Pre-select from URL param
                 var urlParams = new URLSearchParams(window.location.search);
                 var preselected = urlParams.get('match');
                 if (preselected) selectMatch(preselected);
@@ -156,28 +155,18 @@
                 selectedMatchName = match.name;
                 document.getElementById('selected-name').textContent = match.name + (match.game_id ? ' (' + match.game_id + ')' : '');
                 document.getElementById('selected-match-info').classList.remove('hidden');
-                renderMatches(allMatches); // Re-render to show selection
+                renderMatches(allMatches);
             }
         }
 
-        // File upload handler
         document.getElementById('csv-file').addEventListener('change', function(e) {
             var file = e.target.files[0];
-
-            if (!selectedMatchId) {
-                showToast('Selecciona una partida primero', 'warning');
-                this.value = '';
-                return;
-            }
-
+            if (!selectedMatchId) { showToast('Selecciona una partida primero', 'warning'); this.value = ''; return; }
             if (!file) return;
-
             var reader = new FileReader();
             reader.onload = function(event) {
                 try {
                     parsedData = parseSupremacyCSV(event.target.result);
-
-                    // Enrichment: check which players are registered
                     enrichWithPlayerCheck();
                 } catch (err) {
                     showToast('Error parseando CSV: ' + err.message, 'error');
@@ -188,39 +177,19 @@
         });
 
         async function enrichWithPlayerCheck() {
-            if (!parsedData || !parsedData.players.length) {
-                showPreview();
-                return;
-            }
-
-            // Get all player IDs from CSV
+            if (!parsedData || !parsedData.players.length) { showPreview(); return; }
             var playerIds = parsedData.players.map(function(p) { return p.player_id; }).filter(Boolean);
-
             try {
-                // Check which players exist in DB
-                var { data: existingPlayers } = await supabase.schema('v2')
-                    .from('players')
-                    .select('id, current_username')
-                    .in('id', playerIds);
-
+                var { data: existingPlayers } = await supabase.from('players').select('id, current_username').in('id', playerIds);
                 var existingMap = {};
-                (existingPlayers || []).forEach(function(p) {
-                    existingMap[p.id] = p.current_username;
-                });
-
-                // Enrich each player
+                (existingPlayers || []).forEach(function(p) { existingMap[p.id] = p.current_username; });
                 parsedData.players.forEach(function(p) {
                     p.isRegistered = !!existingMap[p.player_id];
                     p.dbUsername = existingMap[p.player_id] || null;
                     p.nameMismatch = p.isRegistered && p.dbUsername !== p.username;
                 });
-
                 showPreview();
-            } catch(e) {
-                // If enrichment fails, still show preview without enrichment
-                console.error('Error enriching:', e);
-                showPreview();
-            }
+            } catch(e) { console.error('Error enriching:', e); showPreview(); }
         }
 
         function showPreview() {
@@ -229,77 +198,26 @@
         }
 
         function generateEnhancedPreview(parsedData) {
-            if (!parsedData.players.length) {
-                return '<p class="text-red-500 text-center py-4">No se encontraron jugadores válidos en el CSV</p>';
-            }
-
+            if (!parsedData.players.length) return '<p class="text-red-500 text-center py-4">No se encontraron jugadores válidos en el CSV</p>';
             var needsAttention = parsedData.players.filter(function(p) { return !p.isRegistered || p.nameMismatch; });
-
-            var html = '<div class="mb-4 text-sm text-slate-600">' +
-                '<span class="font-bold">' + parsedData.importedCount + '</span> jugadores encontrados ' +
-                '<span class="text-slate-400">(' + (parsedData.totalRows - parsedData.importedCount) + ' bots/filas inválidas ignoradas)</span>' +
-                '</div>';
-
-            // Attention banner
+            var html = '<div class="mb-4 text-sm text-slate-600"><span class="font-bold">' + parsedData.importedCount + '</span> jugadores encontrados <span class="text-slate-400">(' + (parsedData.totalRows - parsedData.importedCount) + ' bots/filas inválidas ignoradas)</span></div>';
             if (needsAttention.length > 0) {
                 var unregistered = needsAttention.filter(function(p) { return !p.isRegistered; });
                 var mismatched = needsAttention.filter(function(p) { return p.nameMismatch; });
-
-                html += '<div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">' +
-                    '<p class="font-bold text-yellow-700 text-sm">⚠️ Requiere corrección: ' + needsAttention.length + ' jugador(es)</p>';
-
-                if (unregistered.length > 0) {
-                    html += '<p class="text-xs text-yellow-600 mt-1">❌ No registrados (' + unregistered.length + '): ' +
-                        unregistered.map(function(p) { return p.username + ' (ID:' + p.player_id + ')'; }).join(', ') +
-                        ' — Se crearán como nuevos jugadores</p>';
-                }
-                if (mismatched.length > 0) {
-                    html += '<p class="text-xs text-yellow-600 mt-1">⚠️ Nombre distinto (' + mismatched.length + '): ' +
-                        mismatched.map(function(p) { return p.username + ' → ' + p.dbUsername; }).join(', ') +
-                        ' — Se actualizará el username</p>';
-                }
+                html += '<div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"><p class="font-bold text-yellow-700 text-sm">⚠️ Requiere corrección: ' + needsAttention.length + ' jugador(es)</p>';
+                if (unregistered.length > 0) html += '<p class="text-xs text-yellow-600 mt-1">❌ No registrados (' + unregistered.length + '): ' + unregistered.map(function(p) { return p.username + ' (ID:' + p.player_id + ')'; }).join(', ') + ' — Se crearán como nuevos</p>';
+                if (mismatched.length > 0) html += '<p class="text-xs text-yellow-600 mt-1">⚠️ Nombre distinto (' + mismatched.length + '): ' + mismatched.map(function(p) { return p.username + ' → ' + p.dbUsername; }).join(', ') + ' — Se actualizará el username</p>';
                 html += '</div>';
             }
-
-            // Table
-            html += '<div class="overflow-x-auto"><table class="w-full text-sm">' +
-                '<thead class="bg-slate-100"><tr>' +
-                '<th class="text-left p-2">Nación</th>' +
-                '<th class="text-left p-2">Username</th>' +
-                '<th class="text-left p-2">ID</th>' +
-                '<th class="text-right p-2">Bajas</th>' +
-                '<th class="text-right p-2">Muertes</th>' +
-                '<th class="text-right p-2">KD</th>' +
-                '<th class="text-left p-2">Estado</th>' +
-                '</tr></thead><tbody>';
-
+            html += '<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="text-left p-2">Nación</th><th class="text-left p-2">Username</th><th class="text-left p-2">ID</th><th class="text-right p-2">Bajas</th><th class="text-right p-2">Muertes</th><th class="text-right p-2">KD</th><th class="text-left p-2">Estado</th></tr></thead><tbody>';
             parsedData.players.forEach(function(p) {
                 var statusIcon = p.isRegistered ? (p.nameMismatch ? '⚠️' : '✅') : '❌';
                 var statusText = p.isRegistered ? (p.nameMismatch ? 'Nombre distinto' : 'OK') : 'No registrado';
                 var statusClass = p.isRegistered ? (p.nameMismatch ? 'text-yellow-600' : 'text-green-600') : 'text-red-500';
-
-                html += '<tr class="border-b hover:bg-slate-50">' +
-                    '<td class="p-2">' + p.nation + '</td>' +
-                    '<td class="p-2 font-medium">' + escHtml(p.username) + '</td>' +
-                    '<td class="p-2 text-slate-500">' + p.player_id + '</td>' +
-                    '<td class="p-2 text-right text-green-600 font-bold">' + p.kills.toLocaleString() + '</td>' +
-                    '<td class="p-2 text-right text-red-500">' + p.deaths.toLocaleString() + '</td>' +
-                    '<td class="p-2 text-right font-bold ' + (p.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + p.kd_ratio + '</td>' +
-                    '<td class="p-2 ' + statusClass + ' text-xs">' + statusIcon + ' ' + statusText + '</td>' +
-                '</tr>';
+                html += '<tr class="border-b hover:bg-slate-50"><td class="p-2">' + p.nation + '</td><td class="p-2 font-medium">' + escHtml(p.username) + '</td><td class="p-2 text-slate-500">' + p.player_id + '</td><td class="p-2 text-right text-green-600 font-bold">' + p.kills.toLocaleString() + '</td><td class="p-2 text-right text-red-500">' + p.deaths.toLocaleString() + '</td><td class="p-2 text-right font-bold ' + (p.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + p.kd_ratio + '</td><td class="p-2 ' + statusClass + ' text-xs">' + statusIcon + ' ' + statusText + '</td></tr>';
             });
-
             html += '</tbody></table></div>';
-
-            if (parsedData.errors.length > 0) {
-                html += '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">' +
-                    '<p class="font-bold text-yellow-700">⚠️ ' + parsedData.errors.length + ' filas con error:</p>' +
-                    '<ul class="mt-1 text-yellow-600 text-xs">' +
-                    parsedData.errors.slice(0, 5).map(function(e) { return '<li>Línea ' + e.line + ': ' + e.reason + '</li>'; }).join('') +
-                    (parsedData.errors.length > 5 ? '<li>... y ' + (parsedData.errors.length - 5) + ' más</li>' : '') +
-                    '</ul></div>';
-            }
-
+            if (parsedData.errors.length > 0) html += '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm"><p class="font-bold text-yellow-700">⚠️ ' + parsedData.errors.length + ' filas con error:</p><ul class="mt-1 text-yellow-600 text-xs">' + parsedData.errors.slice(0, 5).map(function(e) { return '<li>Línea ' + e.line + ': ' + e.reason + '</li>'; }).join('') + (parsedData.errors.length > 5 ? '<li>... y ' + (parsedData.errors.length - 5) + ' más</li>' : '') + '</ul></div>';
             return html;
         }
 
@@ -310,7 +228,6 @@
             document.getElementById('csv-file').value = '';
             parsedData = null;
         }
-
         function resetAll() {
             resetImport();
             selectedMatchId = null;
@@ -321,100 +238,52 @@
 
         async function confirmImport() {
             if (!parsedData || !selectedMatchId) return;
-
             var btn = document.querySelector('#preview-section button:last-child');
             var originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = '⏳ Importando...';
-
+            btn.disabled = true; btn.textContent = '⏳ Importando...';
             try {
                 var players = parsedData.players;
                 var created = 0, updated = 0, resultsInserted = 0, errors = [];
-
                 for (var i = 0; i < players.length; i++) {
                     var p = players[i];
-
-                    // 1. Upsert player (crear si no existe, actualizar username si cambió)
-                    var { error: upsertErr } = await supabase.schema('v2').from('players').upsert({
-                        id: p.player_id,
-                        current_username: p.username,
-                        last_seen: new Date().toISOString()
+                    var { error: upsertErr } = await supabase.from('players').upsert({
+                        id: p.player_id, current_username: p.username, last_seen: new Date().toISOString()
                     }, { onConflict: 'id' });
-
-                    if (upsertErr) {
-                        errors.push('Player ' + p.player_id + ': ' + upsertErr.message);
-                        continue;
-                    }
-                    if (p.isRegistered && !p.nameMismatch) updated++;
-                    else created++;
-
-                    // 2. Insert match result
-                    var { error: resultErr } = await supabase.schema('v2').from('match_results').insert({
-                        match_id: selectedMatchId,
-                        player_id: p.player_id,
-                        nation: p.nation,
-                        kills: p.kills,
-                        deaths: p.deaths,
-                        kd_ratio: p.kd_ratio,
-                        raw_csv_data: p.raw_csv
+                    if (upsertErr) { errors.push('Player ' + p.player_id + ': ' + upsertErr.message); continue; }
+                    if (p.isRegistered && !p.nameMismatch) updated++; else created++;
+                    var { error: resultErr } = await supabase.from('match_results').insert({
+                        match_id: selectedMatchId, player_id: p.player_id, nation: p.nation,
+                        kills: p.kills, deaths: p.deaths, kd_ratio: p.kd_ratio, raw_csv_data: p.raw_csv
                     });
-
-                    if (resultErr) {
-                        errors.push('Result ' + p.player_id + ': ' + resultErr.message);
-                    } else {
-                        resultsInserted++;
-                    }
+                    if (resultErr) errors.push('Result ' + p.player_id + ': ' + resultErr.message);
+                    else resultsInserted++;
                 }
-
-                // 3. Recalculate player totals
                 for (var j = 0; j < players.length; j++) {
                     var pj = players[j];
-                    var { data: allResults } = await supabase.schema('v2')
-                        .from('match_results')
-                        .select('kills, deaths')
-                        .eq('player_id', pj.player_id);
-
+                    var { data: allResults } = await supabase.from('match_results').select('kills, deaths').eq('player_id', pj.player_id);
                     var totalKills = 0, totalDeaths = 0;
-                    (allResults || []).forEach(function(r) {
-                        totalKills += (r.kills || 0);
-                        totalDeaths += (r.deaths || 0);
-                    });
-
-                    await supabase.schema('v2').from('players').update({
-                        total_kills: totalKills,
-                        total_deaths: totalDeaths,
-                        games_played: (allResults || []).length,
-                        current_username: pj.username,
-                        last_seen: new Date().toISOString()
+                    (allResults || []).forEach(function(r) { totalKills += (r.kills || 0); totalDeaths += (r.deaths || 0); });
+                    await supabase.from('players').update({
+                        total_kills: totalKills, total_deaths: totalDeaths,
+                        games_played: (allResults || []).length, current_username: pj.username, last_seen: new Date().toISOString()
                     }).eq('id', pj.player_id);
                 }
-
-                // 4. Mark match as csv_imported
-                await supabase.schema('v2').from('matches').update({ csv_imported: true }).eq('id', selectedMatchId);
-
-                // Show results
+                await supabase.from('matches').update({ csv_imported: true }).eq('id', selectedMatchId);
                 document.getElementById('preview-section').classList.add('hidden');
                 document.getElementById('result-section').classList.remove('hidden');
-
                 var resultMsg = resultsInserted + ' resultados importados';
                 if (created > 0) resultMsg += ' • ' + created + ' jugadores creados';
                 if (updated > 0) resultMsg += ' • ' + updated + ' jugadores actualizados';
                 if (errors.length > 0) resultMsg += ' • ' + errors.length + ' errores (ver consola)';
                 document.getElementById('result-text').textContent = resultMsg;
-
                 showToast('Importación completada', 'success');
                 loadMatches();
-
             } catch (err) {
-                console.error('Import error:', err);
                 document.getElementById('preview-section').classList.add('hidden');
                 document.getElementById('error-section').classList.remove('hidden');
                 document.getElementById('error-text').textContent = err.message;
                 showToast('Error en importación: ' + err.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = originalText;
-            }
+            } finally { btn.disabled = false; btn.textContent = originalText; }
         }
 
         loadMatches();
