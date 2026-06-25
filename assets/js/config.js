@@ -1,12 +1,13 @@
 // assets/js/config.js
-// Configuración de Supabase para V2
-// ⚠️ REEMPLAZA ESTOS VALORES con los de tu proyecto Supabase
+// Configuracion de Supabase para V2
 
 var SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
 
-// VAPID Public Key para notificaciones push (generar con deno run https://raw.githubusercontent.com/negrel/webpush/master/cmd/generate-vapid-keys.ts)
-var VAPID_PUBLIC_KEY = 'BAUIElSXP0_GdhRu7IIRZ85y_XpW398yQPUIq5QNJ7tqKMvRBHD9nnFldlUEGbxMaFUAFz02qepp5vfoWWz2nD0';
+// VAPID Public Key para notificaciones push
+// Generado para el proyecto Supremacy_proyect (qkccyjegkgjzwoxytnqp)
+// Edge Function: push-notify
+var VAPID_PUBLIC_KEY = 'gNjAYfjWRKVE6JoNuj_CxK_JrDE07NssWfwfSHNnWklv7Hn7A23tbm6xXUZXCnFxB87Lrivhgy_yHJqakiI01Q';
 
 // Exponer para que base.js pueda usarlos
 window.SUPABASE_URL = SUPABASE_URL;
