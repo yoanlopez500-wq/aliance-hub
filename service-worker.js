@@ -2,10 +2,13 @@
 const CACHE_NAME = 'alliance-hub-v2';
 
 // Usar el anon key de config.js (se inyecta al cargar)
-// Fallback: leer de window si está disponible, sino hardcodear
+// Fallback: leer de window si esta disponible, sino hardcodear
 const SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
 const SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
+
+// FIX: Usar schema v2 para app_settings (Accept-Profile header)
 const KILL_SWITCH_URL = SUPABASE_URL + '/rest/v1/app_settings?select=value&key=eq.force_clear_cache';
+const CACHE_VERSION_URL = SUPABASE_URL + '/rest/v1/app_settings?select=value&key=eq.cache_version';
 
 var BASE_PATH = (function() {
     var path = self.location.pathname;
@@ -36,20 +39,57 @@ var urlsToCache = [
     BASE_PATH + 'assets/icons/icon-512x512.svg'
 ];
 
+// Headers para acceder al schema v2 desde el SW
+function getV2Headers() {
+    return {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Accept-Profile': 'v2'
+    };
+}
+
 async function checkKillSwitch() {
     try {
         var response = await fetch(KILL_SWITCH_URL, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+            headers: getV2Headers()
         });
         var data = await response.json();
         if (data && data.length > 0 && data[0].value === 'true') {
-            console.log('SW: Kill switch activado - limpiando caché');
+            console.log('SW: Kill switch activado - limpiando cache');
             var keys = await caches.keys();
             await Promise.all(keys.map(function(key) { return caches.delete(key); }));
             return true;
         }
     } catch (e) {
         console.log('SW: Kill switch check failed', e);
+    }
+    return false;
+}
+
+// FIX: Nueva funcion para verificar version de cache
+async function checkCacheVersion() {
+    try {
+        var response = await fetch(CACHE_VERSION_URL, {
+            headers: getV2Headers()
+        });
+        var data = await response.json();
+        if (data && data.length > 0) {
+            var serverVersion = data[0].value;
+            var cacheVersion = await caches.match('__cache_version__');
+            var localVersion = cacheVersion ? await cacheVersion.text() : null;
+            
+            if (localVersion !== serverVersion) {
+                console.log('SW: Cache version cambiada', localVersion, '->', serverVersion);
+                // Guardar nueva version
+                var versionResponse = new Response(serverVersion);
+                await caches.open(CACHE_NAME).then(function(cache) {
+                    cache.put('__cache_version__', versionResponse);
+                });
+                return true; // Indica que se detecto cambio
+            }
+        }
+    } catch (e) {
+        console.log('SW: Cache version check failed', e);
     }
     return false;
 }
@@ -118,7 +158,7 @@ self.addEventListener('fetch', function(event) {
 });
 
 // ============================================
-// WEB PUSH - Mostrar notificación
+// WEB PUSH - Mostrar notificacion
 // ============================================
 self.addEventListener('push', function(event) {
     if (!event.data) return;
