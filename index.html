@@ -51,6 +51,7 @@
 
     <div id="admin-nav"></div>
 
+    <!-- Hero -->
     <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
         <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
             <div class="text-center">
@@ -72,7 +73,7 @@
     <div id="global-rules-section" class="hidden bg-blue-50 border-b border-blue-200">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex items-center gap-3">
-                <span class="text-xl">📜</span>
+                <span class="text-xl">&#128220;</span>
                 <div class="flex-1">
                     <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
                     <p class="text-xs text-blue-600">Reglas estandar que aplican a todas las partidas. Las reglas adicionales de cada partida estan en su descripcion.</p>
@@ -87,21 +88,22 @@
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl">⚔️</div>
+                    <div class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl">&#9876;&#65039;</div>
                     <div class="min-w-0">
                         <p class="text-white font-bold text-sm truncate">Instala Alliance Hub</p>
                         <p class="text-slate-400 text-xs truncate">Acceso rapido sin navegador. Funciona offline.</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <button id="pwa-notify-btn" onclick="requestNotificationPermission()" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition" title="Recibe alertas de nuevas partidas">🔕 Activar notificaciones</button>
+                    <button id="pwa-notify-btn" onclick="requestNotificationPermission()" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition" title="Recibe alertas de nuevas partidas">&#128263; Activar notificaciones</button>
                     <button onclick="installPWA()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-400 transition whitespace-nowrap">Instalar</button>
-                    <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">✕</button>
+                    <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">&#10005;</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Stats -->
     <div class="max-w-7xl mx-auto px-4 -mt-6">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
@@ -140,7 +142,7 @@
             </div>
         </div>
         <div id="matches-list" class="grid gap-4">
-            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p>Cargando partidas...</p></div>
+            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">&#9203;</div><p>Cargando partidas...</p></div>
         </div>
     </div>
 
@@ -158,9 +160,18 @@
         async function checkAlliance() {
             if (!playerData.playerId) return;
             try {
-                var { data: membership } = await supabase.schema('v2').from('alliance_memberships').select('status').eq('player_id', playerData.playerId).eq('status', 'approved').single();
-                if (membership) document.getElementById('btn-alliance-panel').classList.remove('hidden');
-            } catch (e) {}
+                var { data: membership } = await supabase
+                    .schema('v2')
+                    .from('alliance_memberships')
+                    .select('status')
+                    .eq('player_id', playerData.playerId)
+                    .eq('status', 'approved')
+                    .single();
+
+                if (membership) {
+                    document.getElementById('btn-alliance-panel').classList.remove('hidden');
+                }
+            } catch (e) { /* no membership */ }
         }
 
         async function loadStats() {
@@ -171,6 +182,7 @@
                 var { count: lc } = await supabase.schema('v2').from('leagues').select('*', { count: 'exact', head: true });
                 var { data: kd } = await supabase.schema('v2').from('players').select('total_kills');
                 var tk = kd ? kd.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) : 0;
+
                 document.getElementById('stat-matches').textContent = mc || 0;
                 document.getElementById('stat-players').textContent = pc || 0;
                 document.getElementById('stat-alliances').textContent = ac || 0;
@@ -192,13 +204,15 @@
                 if (error) throw error;
                 allMatches = data || [];
                 renderMatches(allMatches);
-            } catch (e) { document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>'; }
+            } catch (e) {
+                document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>';
+            }
         }
 
         function renderMatches(matches) {
             var c = document.getElementById('matches-list');
             if (matches.length === 0) {
-                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
+                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">&#127918;</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
                 return;
             }
 
@@ -217,15 +231,15 @@
                         '<div class="flex-1">' +
                             '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
                                 getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
-                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') +
+                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">&#128274;</span>' : '') +
                                 approvalBadge + winnerBadge +
                             '</div>' +
                             '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
                             '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p>' +
                             '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
-                                '<span>📅 ' + formatDate(match.created_at) + '</span>' +
+                                '<span>&#128197; ' + formatDate(match.created_at) + '</span>' +
                                 '<span>' + allianceLabel + '</span>' +
-                                '<span>👥 ' + match.max_players + ' jugadores max</span>' +
+                                '<span>&#128101; ' + match.max_players + ' jugadores max</span>' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex flex-col gap-2">' +

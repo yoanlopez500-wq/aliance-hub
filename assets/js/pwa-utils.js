@@ -75,13 +75,14 @@ function updateNotificationButton() {
     var btn = document.getElementById('pwa-notify-btn');
     if (!btn) return;
 
+    // Si ya esta suscrito, mostrar como activado
     if (isPushSubscribed()) {
-        btn.innerHTML = '🔔 Notificaciones activas';
+        btn.innerHTML = '&#128276; Notificaciones activas';
         btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-green-500 text-white hover:bg-green-400 transition';
         btn.onclick = unsubscribeFromPush;
         btn.title = 'Click para desactivar notificaciones';
     } else {
-        btn.innerHTML = '🔕 Activar notificaciones';
+        btn.innerHTML = '&#128263; Activar notificaciones';
         btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition';
         btn.onclick = requestNotificationPermission;
         btn.title = 'Recibe alertas de nuevas partidas';
