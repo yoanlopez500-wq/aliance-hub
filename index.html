@@ -38,7 +38,7 @@
                         (q.q ? ('?' + q.q) : '') + l.hash
                     );
                 } else if (l.search[1] === '/') {
-                    var decoded = l.search.slice(1).split('&').map(function(s) { 
+                    var decoded = l.search.slice(1).split('&').map(function(s) {
                         return s.replace(/~and~/g, '&');
                     }).join('?');
                     window.history.replaceState(null, null,
@@ -51,7 +51,6 @@
 
     <div id="admin-nav"></div>
 
-    <!-- Hero -->
     <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
         <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
             <div class="text-center">
@@ -63,46 +62,30 @@
                     <a href="#matches" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
                     <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">Rankings</a>
                     <a href="login-player.html" class="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition">Entrar</a>
-                    <a href="chat.html" class="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-400 transition">Chat</a>
                     <a href="alliance-panel.html" id="btn-alliance-panel" class="hidden bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-400 transition">Mi Alianza</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- PWA Install Banner -->
     <div id="pwa-install-banner" class="hidden bg-slate-800 border-b border-amber-500/30">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-900">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                    </div>
+                    <div class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl">⚔️</div>
                     <div class="min-w-0">
                         <p class="text-white font-bold text-sm truncate">Instala Alliance Hub</p>
                         <p class="text-slate-400 text-xs truncate">Acceso rapido sin navegador. Funciona offline.</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <button onclick="installPWA()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-400 transition whitespace-nowrap">
-                        Instalar
-                    </button>
-                    <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
+                    <button onclick="installPWA()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-400 transition whitespace-nowrap">Instalar</button>
+                    <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">✕</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Stats -->
     <div class="max-w-7xl mx-auto px-4 -mt-6">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
@@ -128,9 +111,8 @@
         </div>
     </div>
 
-    <!-- Matches -->
     <div id="matches" class="max-w-7xl mx-auto px-4 py-10">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
             <h2 class="text-2xl font-bold text-slate-800">Partidas</h2>
             <div class="flex gap-2 flex-wrap">
                 <button onclick="filterMatches('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
@@ -138,11 +120,10 @@
                 <button onclick="filterMatches('duel')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
                 <button onclick="filterMatches('public_31')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Publicas 31</button>
                 <button onclick="filterMatches('public_500')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
-                <button onclick="filterMatches('public_quick')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_quick">Rapidas</button>
             </div>
         </div>
         <div id="matches-list" class="grid gap-4">
-            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2"></div><p>Cargando partidas...</p></div>
+            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p>Cargando partidas...</p></div>
         </div>
     </div>
 
@@ -159,106 +140,56 @@
 
         async function checkAlliance() {
             if (!playerData.playerId) return;
-            var { data: membership } = await supabase
-                .from('alliance_memberships')
-                .select('status')
-                .eq('player_id', playerData.playerId)
-                .eq('status', 'approved')
-                .single();
-
-            if (membership) {
-                document.getElementById('btn-alliance-panel').classList.remove('hidden');
-            }
+            try {
+                var { data: membership } = await supabase.schema('v2').from('alliance_memberships').select('status').eq('player_id', playerData.playerId).eq('status', 'approved').single();
+                if (membership) document.getElementById('btn-alliance-panel').classList.remove('hidden');
+            } catch (e) {}
         }
 
         async function loadStats() {
             try {
-                var { count: mc } = await supabase.from('matches').select('*', { count: 'exact', head: true });
-                var { count: pc } = await supabase.from('players').select('*', { count: 'exact', head: true });
-                var { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
-                var { count: lc } = await supabase.from('leagues').select('*', { count: 'exact', head: true });
-                var { data: kd } = await supabase.from('players').select('total_kills');
+                var { count: mc } = await supabase.schema('v2').from('matches').select('*', { count: 'exact', head: true });
+                var { count: pc } = await supabase.schema('v2').from('players').select('*', { count: 'exact', head: true });
+                var { count: ac } = await supabase.schema('v2').from('alliances').select('*', { count: 'exact', head: true });
+                var { count: lc } = await supabase.schema('v2').from('leagues').select('*', { count: 'exact', head: true });
+                var { data: kd } = await supabase.schema('v2').from('players').select('total_kills');
                 var tk = kd ? kd.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) : 0;
-
                 document.getElementById('stat-matches').textContent = mc || 0;
                 document.getElementById('stat-players').textContent = pc || 0;
                 document.getElementById('stat-alliances').textContent = ac || 0;
                 document.getElementById('stat-leagues').textContent = lc || 0;
                 document.getElementById('stat-kills').textContent = tk.toLocaleString();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('loadStats error:', e); }
         }
 
         async function loadMatches() {
             showLoading('matches-list');
             try {
-                var query = supabase.from('matches')
-                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
-                    .eq('is_private', false)
-                    .order('created_at', { ascending: false });
-
-                var { data, error } = await query;
+                var { data, error } = await supabase.schema('v2').from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)').eq('is_private', false).order('created_at', { ascending: false });
                 if (error) throw error;
                 allMatches = data || [];
                 renderMatches(allMatches);
-            } catch (e) {
-                document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>';
-            }
+            } catch (e) { document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>'; }
         }
 
         function renderMatches(matches) {
             var c = document.getElementById('matches-list');
-            if (matches.length === 0) {
-                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3"></div><p class="text-slate-500">No hay partidas disponibles</p></div>';
-                return;
-            }
-
+            if (matches.length === 0) { c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>'; return; }
             c.innerHTML = matches.map(function(match) {
-                var allianceLabel = '';
-                if (match.match_type === 'internal' && match.alliance) allianceLabel = match.alliance.name;
-                else if (match.match_type === 'duel') allianceLabel = 'Duelo';
-                else allianceLabel = 'Global';
-
+                var allianceLabel = match.match_type === 'internal' && match.alliance ? match.alliance.name : match.match_type === 'duel' ? 'Duelo' : 'Global';
                 var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">Aprobacion</span>' : '';
                 var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">Ganadores</span>' : '';
                 var canRegister = match.status === 'open' && match.match_type !== 'public_quick';
-
-                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">' +
-                    '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
-                        '<div class="flex-1">' +
-                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
-                                getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
-                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700"></span>' : '') +
-                                approvalBadge + winnerBadge +
-                            '</div>' +
-                            '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
-                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p>' +
-                            '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
-                                '<span>' + formatDate(match.created_at) + '</span>' +
-                                '<span>' + allianceLabel + '</span>' +
-                                '<span>' + match.max_players + ' jugadores max</span>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="flex flex-col gap-2">' +
-                            '<a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' +
-                            (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
+                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') + approvalBadge + winnerBadge + '</div><h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3><p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p><div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400"><span>📅 ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>👥 ' + match.max_players + ' jugadores max</span></div></div><div class="flex flex-col gap-2"><a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' + (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') + '</div></div></div>';
             }).join('');
         }
 
         function filterMatches(type) {
-            document.querySelectorAll('.filter-btn').forEach(function(btn) {
-                btn.className = btn.dataset.filter === type 
-                    ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
-                    : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
-            });
+            document.querySelectorAll('.filter-btn').forEach(function(btn) { btn.className = btn.dataset.filter === type ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium' : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200'; });
             renderMatches(type === 'all' ? allMatches : allMatches.filter(function(m) { return m.match_type === type; }));
         }
 
-        checkAlliance();
-        loadStats();
-        loadMatches();
+        checkAlliance(); loadStats(); loadMatches();
     </script>
 </body>
 </html>
