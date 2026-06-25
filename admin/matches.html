@@ -25,6 +25,18 @@
             <button onclick="openMatchModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
         </div>
 
+        <!-- Reglas Base Global -->
+        <div id="global-rules-section" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">📜</span>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
+                    <p class="text-xs text-blue-600">Estas reglas aplican a TODAS las partidas. Los admins pueden anadir reglas adicionales en la descripcion de cada partida.</p>
+                </div>
+                <a id="global-rules-link" href="#" target="_blank" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400 whitespace-nowrap">Ver Reglas</a>
+            </div>
+        </div>
+
         <!-- Filtros -->
         <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
             <div class="flex gap-3 flex-wrap">
@@ -85,8 +97,8 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
-                    <textarea id="m-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></textarea>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Descripcion <span class="text-slate-400 font-normal">(anade reglas adicionales aqui)</span></label>
+                    <textarea id="m-desc" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Descripcion de la partida y reglas adicionales especificas..."></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -115,20 +127,14 @@
                         </select>
                     </div>
                 </div>
-                <!-- Rápida: auto-delete -->
+                <!-- Rapida: auto-delete -->
                 <div id="quick-fields" style="display:none;">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Auto-eliminar después de (horas)</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Auto-eliminar despues de (horas)</label>
                     <input type="number" id="m-auto-delete" value="24" min="1" max="168" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-                        <input type="text" id="m-password" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Reglas (URL)</label>
-                        <input type="url" id="m-rules" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="https://docs.google.com/...">
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contrasena</label>
+                    <input type="text" id="m-password" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Dejar vacio para publica">
                 </div>
                 <div class="flex gap-4">
                     <label class="flex items-center gap-2">
@@ -137,7 +143,7 @@
                     </label>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" id="m-approval" class="rounded">
-                        <span class="text-sm text-slate-700">Requiere aprobación</span>
+                        <span class="text-sm text-slate-700">Requiere aprobacion</span>
                     </label>
                 </div>
                 <div class="flex gap-3 pt-4">
@@ -165,6 +171,9 @@
         async function loadData() {
             myAdmin = await getAdminRole();
 
+            // Cargar reglas base
+            loadGlobalRules();
+
             var { data: alli } = await supabase.schema('v2').from('alliances').select('id, name, tag').order('name');
             alliances = alli || [];
 
@@ -179,6 +188,15 @@
             document.getElementById('filter-alliance').innerHTML = '<option value="">Todas las alianzas</option>' + options;
 
             loadMatches();
+        }
+
+        // Cargar reglas base global
+        async function loadGlobalRules() {
+            var { data } = await supabase.schema('v2').from('app_settings').select('value').eq('key', 'rules_url').single();
+            if (data && data.value) {
+                document.getElementById('global-rules-section').classList.remove('hidden');
+                document.getElementById('global-rules-link').href = data.value;
+            }
         }
 
         async function loadMatches() {
@@ -257,7 +275,6 @@
             document.getElementById('m-alliance').value = match.alliance_id || '';
             document.getElementById('m-max').value = match.max_players || 10;
             document.getElementById('m-password').value = match.password || '';
-            document.getElementById('m-rules').value = match.rules_url || '';
             document.getElementById('m-private').checked = match.is_private || false;
             document.getElementById('m-approval').checked = match.requires_approval || false;
             document.getElementById('m-alliance-a').value = match.alliance_a_id || '';
@@ -287,7 +304,6 @@
                 alliance_b_id: document.getElementById('m-alliance-b').value || null,
                 max_players: parseInt(document.getElementById('m-max').value) || 10,
                 password: document.getElementById('m-password').value || null,
-                rules_url: document.getElementById('m-rules').value || null,
                 is_private: document.getElementById('m-private').checked,
                 requires_approval: document.getElementById('m-approval').checked
             };
