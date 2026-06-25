@@ -68,40 +68,33 @@ var allPlayers=[],allStrikes=[],alliances=[],strikeTypes=[],allianceMap={};
 
 async function loadData(){
 try{
-// Cargar alliances primero (para el mapa de lookup)
-var {data:alli,error:aErr} = await supabase.schema('v2').from('alliances').select('id,name,tag').order('name');
+var {data:alli,error:aErr} = await supabase.from('alliances').select('id,name,tag').order('name');
 if(aErr) throw aErr;
 alliances = alli || [];
-// Construir mapa id -> alianza para lookup rapido
 allianceMap = {};
 alliances.forEach(function(a){ allianceMap[a.id] = a; });
 
-// Cargar players SIN foreign table (evita FK ambiguo)
-var {data:players,error:pErr} = await supabase.schema('v2').from('players').select('*').order('current_username');
+var {data:players,error:pErr} = await supabase.from('players').select('*').order('current_username');
 if(pErr) throw pErr;
 
-// Enriquecer players con datos de alianza desde el mapa
 allPlayers = (players || []).map(function(p){
     var al = p.current_alliance_id ? allianceMap[p.current_alliance_id] : null;
     return Object.assign({}, p, { alliance: al || null });
 });
 
-// Cargar strike types y strikes activos
 var [{data:types,error:tErr},{data:strikes,error:sErr}] = await Promise.all([
-    supabase.schema('v2').from('strike_types').select('id, code, name, severity, description, legend').order('severity'),
-    supabase.schema('v2').from('player_strikes').select('player_id, strike_type_id, reason, applied_at, is_active, removed_at').eq('is_active', true)
+    supabase.from('strike_types').select('id, code, name, severity, description, legend').order('severity'),
+    supabase.from('player_strikes').select('player_id, strike_type_id, reason, applied_at, is_active, removed_at').eq('is_active', true)
 ]);
 if(tErr) throw tErr;
 strikeTypes = types || [];
 
-// Enriquecer strikes con info del tipo
 var typeMap = {};
 strikeTypes.forEach(function(t){ typeMap[t.id] = t; });
 allStrikes = (strikes || []).map(function(s){
     return Object.assign({}, s, { type: typeMap[s.strike_type_id] || null });
 });
 
-// Llenar selects
 document.getElementById('edit-alliance').innerHTML='<option value="">-- Sin alianza --</option>'+alliances.map(function(a){return'<option value="'+a.id+'">'+a.name+' ['+a.tag+']</option>';}).join('');
 document.getElementById('filter-alliance').innerHTML='<option value="">Todas las alianzas</option>'+alliances.map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>';}).join('');
 
@@ -159,41 +152,40 @@ function closeModal(){document.getElementById('player-modal').classList.remove('
 document.getElementById('player-form').addEventListener('submit',async function(e){
 e.preventDefault();var id=document.getElementById('player-id').value;
 var data={id:parseInt(document.getElementById('edit-id').value),current_username:document.getElementById('edit-username').value.trim(),current_alliance_id:document.getElementById('edit-alliance').value||null,total_kills:parseInt(document.getElementById('edit-kills').value)||0,total_deaths:parseInt(document.getElementById('edit-deaths').value)||0,games_played:parseInt(document.getElementById('edit-games').value)||0,status:document.getElementById('edit-status').value,last_seen:new Date().toISOString()};
-var result;if(id){result=await supabase.schema('v2').from('players').update(data).eq('id',id);}else{result=await supabase.schema('v2').from('players').insert([data]);}
+var result;if(id){result=await supabase.from('players').update(data).eq('id',id);}else{result=await supabase.from('players').insert([data]);}
 if(result.error)showToast('Error: '+result.error.message,'error');else{showToast(id?'Jugador actualizado':'Jugador creado','success');closeModal();loadData();}});
 
 async function openProfile(playerId){
 document.getElementById('profile-modal').classList.add('active');
 document.getElementById('prof-content').innerHTML='<div class="text-center py-4 text-slate-400">Cargando perfil...</div>';
 try{
-// Traer player SIN foreign table (evita FK ambiguo)
-var {data:playerRow,error:pErr} = await supabase.schema('v2').from('players').select('*').eq('id', playerId).single();
+var {data:playerRow,error:pErr} = await supabase.from('players').select('*').eq('id', playerId).single();
 if(pErr) throw pErr;
 var player = Object.assign({}, playerRow, { alliance: playerRow.current_alliance_id ? allianceMap[playerRow.current_alliance_id] : null });
 
-// Traer strikes con type info manual
-var {data:strikesRaw,error:sErr} = await supabase.schema('v2').from('player_strikes')
+var {data:strikesRaw,error:sErr} = await supabase.from('player_strikes')
     .select('*, strike_types(name,severity,code,legend)')
     .eq('player_id', playerId)
     .order('applied_at', { ascending: false });
+
+var typeMap = {};
+strikeTypes.forEach(function(t){ typeMap[t.id] = t; });
+
 if(sErr && sErr.message && sErr.message.includes('ambigu')){
-    // Fallback: traer sin foreign table
-    var {data:strikesFallback} = await supabase.schema('v2').from('player_strikes').select('*').eq('player_id', playerId).order('applied_at', { ascending: false });
+    var {data:strikesFallback} = await supabase.from('player_strikes').select('*').eq('player_id', playerId).order('applied_at', { ascending: false });
     strikesRaw = (strikesFallback || []).map(function(s){ return Object.assign({}, s, { type: typeMap[s.strike_type_id] || null }); });
 }
 var strikes = (strikesRaw || []).map(function(s){
     return Object.assign({}, s, { type: s.strike_types || typeMap[s.strike_type_id] || null, match: null });
 });
 
-// Traer resultados recientes
-var {data:results,error:rErr} = await supabase.schema('v2').from('match_results').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(5);
+var {data:results,error:rErr} = await supabase.from('match_results').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(5);
 if(rErr) { results = []; }
 
-// Traer match names si hay resultados
 var matchIds = (results || []).map(function(r){ return r.match_id; }).filter(Boolean);
 var matchMap = {};
 if(matchIds.length > 0){
-    var {data:matchesData} = await supabase.schema('v2').from('matches').select('id,name').in('id', matchIds);
+    var {data:matchesData} = await supabase.from('matches').select('id,name').in('id', matchIds);
     (matchesData || []).forEach(function(m){ matchMap[m.id] = m.name; });
 }
 
