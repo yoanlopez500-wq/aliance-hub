@@ -79,6 +79,105 @@ function getTypeBadge(type) {
     return badges[type] || '<span class="px-2 py-0.5 rounded text-xs bg-slate-100">' + (type || '?') + '</span>';
 }
 
+// ===================== PLAYER SESSION (Lazy Login) =====================
+function getPlayerData() {
+    return {
+        playerId: localStorage.getItem('ah_v2_player_id'),
+        displayName: localStorage.getItem('ah_v2_display_name')
+    };
+}
+
+function setPlayerData(playerId, displayName) {
+    if (playerId) localStorage.setItem('ah_v2_player_id', playerId);
+    if (displayName) localStorage.setItem('ah_v2_display_name', displayName);
+}
+
+function clearPlayerData() {
+    localStorage.removeItem('ah_v2_player_id');
+    localStorage.removeItem('ah_v2_display_name');
+}
+
+function isLazyLoggedIn() {
+    return !!localStorage.getItem('ah_v2_player_id');
+}
+
+// ===================== APP CACHE CONTROL =====================
+function clearAppCache() {
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            names.forEach(function(name) { caches.delete(name); });
+        });
+    }
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(reg) { reg.unregister(); });
+        });
+    }
+    localStorage.removeItem('ah_v2_cache_version');
+    showToast('Cache limpiado. Recargando...', 'success');
+    setTimeout(function() { window.location.reload(true); }, 1500);
+}
+
+// ===================== PUSH NOTIFICATIONS =====================
+function isPushSubscribed() {
+    return localStorage.getItem('ah_v2_push_subscribed') === 'true';
+}
+
+async function subscribeToPush() {
+    try {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            showToast('Tu navegador no soporta notificaciones push', 'warning');
+            return false;
+        }
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY)
+        });
+        var subJson = JSON.stringify(sub.toJSON());
+        var playerData = getPlayerData();
+        var { error } = await supabase.from('push_subscriptions').upsert({
+            subscription: sub.toJSON(),
+            player_id: playerData.playerId || null,
+            admin_id: null
+        }, { onConflict: 'player_id,admin_id' });
+        if (error) console.error('Error guardando sub:', error);
+        localStorage.setItem('ah_v2_push_subscribed', 'true');
+        showToast('Notificaciones activadas', 'success');
+        return true;
+    } catch (e) {
+        console.error('Push subscription error:', e);
+        showToast('Error activando notificaciones: ' + e.message, 'error');
+        return false;
+    }
+}
+
+async function unsubscribeFromPush() {
+    try {
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.getSubscription();
+        if (sub) await sub.unsubscribe();
+        localStorage.removeItem('ah_v2_push_subscribed');
+        showToast('Notificaciones desactivadas', 'info');
+        return true;
+    } catch (e) {
+        console.error('Unsubscribe error:', e);
+        return false;
+    }
+}
+
+// Helper para convertir VAPID key
+function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 // ===================== DIRECT MESSAGES =====================
 async function countUnreadDirectMessages() {
     try {
@@ -127,14 +226,11 @@ async function sendDirectMessage(recipientId, subject, message) {
         var sessionData = await supabase.auth.getSession();
         if (!sessionData.data.session) return { success: false, message: 'No hay sesion' };
         var senderId = sessionData.data.session.user.id;
-        
-        // Get sender display name
         var { data: sender } = await supabase
             .from('admin_users')
             .select('display_name')
             .eq('id', senderId)
             .single();
-        
         var { error } = await supabase
             .from('direct_messages')
             .insert({
@@ -144,7 +240,6 @@ async function sendDirectMessage(recipientId, subject, message) {
                 subject: subject || null,
                 message: message
             });
-        
         if (error) return { success: false, message: error.message };
         return { success: true };
     } catch (e) {
