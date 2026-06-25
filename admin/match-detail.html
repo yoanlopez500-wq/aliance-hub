@@ -128,17 +128,19 @@
         var currentMatch = null;
 
         async function loadMatch() {
+            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
             var { data: match } = await supabase
                 .from('matches')
-                .select('*, alliances(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
+                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
                 .eq('id', matchId)
                 .single();
 
             if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-red-500">No encontrada</div>'; return; }
             currentMatch = match;
 
+            // FIX: usar 'alliance' en lugar de 'alliances'
             var allianceLabel = '';
-            if (match.match_type === 'internal' && match.alliances) allianceLabel = '🏴 ' + match.alliances.name;
+            if (match.match_type === 'internal' && match.alliance) allianceLabel = '🏴 ' + match.alliance.name;
             else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
 
             document.getElementById('match-header').innerHTML =
