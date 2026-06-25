@@ -3,104 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Alliance Hub</title>
+    <title>Dashboard V2 - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-<style>
-        .stat-card { transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); }
-    </style>
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
 
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">📊 Dashboard</h1>
-            <p class="text-slate-500">Resumen de la plataforma</p>
+            <h1 class="text-3xl font-bold text-slate-800">📊 Dashboard V2</h1>
+            <p class="text-slate-500" id="welcome-text">Cargando...</p>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="stat-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                <div class="text-3xl font-bold text-amber-600" id="dash-games">-</div>
-                <div class="text-sm text-slate-500 mt-1">Partidas totales</div>
-            </div>
-            <div class="stat-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                <div class="text-3xl font-bold text-blue-600" id="dash-players">-</div>
-                <div class="text-sm text-slate-500 mt-1">Jugadores únicos</div>
-            </div>
-            <div class="stat-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                <div class="text-3xl font-bold text-green-600" id="dash-alliances">-</div>
-                <div class="text-sm text-slate-500 mt-1">Alianzas</div>
-            </div>
-            <div class="stat-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                <div class="text-3xl font-bold text-purple-600" id="dash-results">-</div>
-                <div class="text-sm text-slate-500 mt-1">Resultados importados</div>
-            </div>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white rounded-xl border border-slate-200 p-6">
-                <h3 class="font-bold text-slate-800 mb-4">⚡ Acciones Rápidas</h3>
-                <div class="space-y-3">
-                    <a href="./games.html?action=new" class="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition">
-                        <span class="text-2xl">➕</span>
-                        <div>
-                            <div class="font-bold text-slate-800">Crear Partida</div>
-                            <div class="text-xs text-slate-500">Nueva partida o torneo</div>
-                        </div>
-                    </a>
-                    <a href="./import.html" class="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition">
-                        <span class="text-2xl">📥</span>
-                        <div>
-                            <div class="font-bold text-slate-800">Importar CSV</div>
-                            <div class="text-xs text-slate-500">Subir resultados de partida</div>
-                        </div>
-                    </a>
-                    <a href="./invites.html" class="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition">
-                        <span class="text-2xl">🔑</span>
-                        <div>
-                            <div class="font-bold text-slate-800">Invitar Admin</div>
-                            <div class="text-xs text-slate-500">Generar código de invitación</div>
-                        </div>
-                    </a>
-                    <a href="./alliances.html?action=new" class="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition">
-                        <span class="text-2xl">🏴</span>
-                        <div>
-                            <div class="font-bold text-slate-800">Nueva Alianza</div>
-                            <div class="text-xs text-slate-500">Registrar alianza</div>
-                        </div>
-                    </a>
+            <div class="bg-white rounded-xl p-5 border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase">Partidas</p>
+                        <p class="text-3xl font-bold text-amber-600" id="d-matches">-</p>
+                    </div>
+                    <div class="text-3xl">🎮</div>
                 </div>
             </div>
-
-            <div class="bg-white rounded-xl border border-slate-200 p-6">
-                <h3 class="font-bold text-slate-800 mb-4">🎮 Últimas Partidas</h3>
-                <div id="recent-games" class="space-y-3">
-                    <div class="text-center text-slate-400 py-4">Cargando...</div>
+            <div class="bg-white rounded-xl p-5 border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase">Jugadores</p>
+                        <p class="text-3xl font-bold text-blue-600" id="d-players">-</p>
+                    </div>
+                    <div class="text-3xl">👤</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase">Alianzas</p>
+                        <p class="text-3xl font-bold text-green-600" id="d-alliances">-</p>
+                    </div>
+                    <div class="text-3xl">🏴</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase">Reportes</p>
+                        <p class="text-3xl font-bold text-red-500" id="d-reports">-</p>
+                    </div>
+                    <div class="text-3xl">🚩</div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-slate-800">🏆 Top Jugadores (KD Global)</h3>
-                <a href="../rankings.html" class="text-sm text-amber-600 hover:text-amber-700 font-medium">Ver todos →</a>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 class="font-bold text-slate-800 mb-4">🎮 Últimas Partidas</h2>
+                <div id="recent-matches" class="space-y-3">
+                    <div class="text-center py-4 text-slate-400 text-sm">Cargando...</div>
+                </div>
             </div>
-            <div id="top-players" class="overflow-x-auto">
-                <div class="text-center text-slate-400 py-4">Cargando...</div>
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 class="font-bold text-slate-800 mb-4">🚩 Reportes Pendientes</h2>
+                <div id="pending-reports" class="space-y-3">
+                    <div class="text-center py-4 text-slate-400 text-sm">Cargando...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -108,90 +79,70 @@
     <script>
         requireAdmin();
 
-        async function loadDashboard() {
-            try {
-                const { count: gamesCount } = await supabase.from('games').select('*', { count: 'exact', head: true });
-                const { count: playersCount } = await supabase.from('players').select('*', { count: 'exact', head: true });
-                const { count: alliancesCount } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
-                const { count: resultsCount } = await supabase.from('game_results').select('*', { count: 'exact', head: true });
+        async function initDashboard() {
+            var admin = await getAdminRole();
+            if (admin) {
+                document.getElementById('welcome-text').textContent = 'Bienvenido, ' + (admin.display_name || 'Admin');
+            }
 
-                document.getElementById('dash-games').textContent = gamesCount || 0;
-                document.getElementById('dash-players').textContent = playersCount || 0;
-                document.getElementById('dash-alliances').textContent = alliancesCount || 0;
-                document.getElementById('dash-results').textContent = resultsCount || 0;
+            var [{ count: mc }, { count: pc }, { count: ac }, { count: rc }] = await Promise.all([
+                supabase.from('matches').select('*', { count: 'exact', head: true }),
+                supabase.from('players').select('*', { count: 'exact', head: true }),
+                supabase.from('alliances').select('*', { count: 'exact', head: true }),
+                supabase.from('chat_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+            ]);
 
-                const { data: recentGames } = await supabase
-                    .from('games')
-                    .select('*, alliances(name, tag)')
-                    .order('created_at', { ascending: false })
-                    .limit(5);
+            document.getElementById('d-matches').textContent = mc || 0;
+            document.getElementById('d-players').textContent = pc || 0;
+            document.getElementById('d-alliances').textContent = ac || 0;
+            document.getElementById('d-reports').textContent = rc || 0;
 
-                const recentContainer = document.getElementById('recent-games');
-                if (recentGames && recentGames.length > 0) {
-                    recentContainer.innerHTML = recentGames.map(g => `
-                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition cursor-pointer" onclick="location.href='./game-detail.html?id=${g.id}'">
-                            <div>
-                                <div class="font-medium text-slate-800">${g.name}</div>
-                                <div class="text-xs text-slate-500">${g.alliances ? g.alliances.name : 'Global'} • ${formatDate(g.created_at)}</div>
-                            </div>
-                            ${getStatusBadge(g.status)}
-                        </div>
-                    `).join('');
-                } else {
-                    recentContainer.innerHTML = '<div class="text-center text-slate-400 py-4">Sin partidas aún</div>';
-                }
+            var { data: recentMatches } = await supabase
+                .from('matches')
+                .select('*, alliances(name, tag)')
+                .order('created_at', { ascending: false })
+                .limit(5);
 
-                const { data: topPlayers } = await supabase
-                    .from('players')
-                    .select('*, alliances(tag)')
-                    .gt('total_deaths', 0)
-                    .order('total_kills', { ascending: false })
-                    .limit(10);
+            var container = document.getElementById('recent-matches');
+            if (!recentMatches || recentMatches.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin partidas</div>';
+            } else {
+                container.innerHTML = recentMatches.map(function(m) {
+                    return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">' +
+                        '<div>' +
+                            '<p class="font-medium text-slate-800">' + m.name + '</p>' +
+                            '<p class="text-xs text-slate-500">' + getStatusBadge(m.status) + ' ' + formatDate(m.created_at) + '</p>' +
+                        '</div>' +
+                        '<a href="matches.html" class="text-amber-600 text-sm font-bold hover:text-amber-700">Ver →</a>' +
+                    '</div>';
+                }).join('');
+            }
 
-                const topContainer = document.getElementById('top-players');
-                if (topPlayers && topPlayers.length > 0) {
-                    topContainer.innerHTML = `
-                        <table class="w-full text-sm">
-                            <thead class="bg-slate-50">
-                                <tr>
-                                    <th class="text-left p-2">#</th>
-                                    <th class="text-left p-2">Jugador</th>
-                                    <th class="text-left p-2">Alianza</th>
-                                    <th class="text-right p-2">Partidas</th>
-                                    <th class="text-right p-2">Bajas</th>
-                                    <th class="text-right p-2">Muertes</th>
-                                    <th class="text-right p-2">KD</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${topPlayers.map((p, i) => {
-                                    const kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills;
-                                    return `
-                                        <tr class="border-b hover:bg-slate-50">
-                                            <td class="p-2 font-bold ${i < 3 ? 'text-amber-600' : 'text-slate-400'}">${i + 1}</td>
-                                            <td class="p-2 font-medium">${p.current_username}</td>
-                                            <td class="p-2 text-slate-500">${p.alliances?.tag || '-'}</td>
-                                            <td class="p-2 text-right">${p.games_played}</td>
-                                            <td class="p-2 text-right text-green-600 font-bold">${p.total_kills?.toLocaleString()}</td>
-                                            <td class="p-2 text-right text-red-500">${p.total_deaths?.toLocaleString()}</td>
-                                            <td class="p-2 text-right font-bold ${kd >= 1 ? 'text-green-600' : 'text-orange-500'}">${kd}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                } else {
-                    topContainer.innerHTML = '<div class="text-center text-slate-400 py-4">Sin datos de jugadores aún</div>';
-                }
+            var { data: reports } = await supabase
+                .from('chat_reports')
+                .select('*')
+                .eq('status', 'pending')
+                .order('reported_at', { ascending: false })
+                .limit(5);
 
-            } catch (e) {
-                console.error('Error dashboard:', e);
-                showToast('Error cargando dashboard', 'error');
+            var rContainer = document.getElementById('pending-reports');
+            if (!reports || reports.length === 0) {
+                rContainer.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin reportes pendientes</div>';
+            } else {
+                rContainer.innerHTML = reports.map(function(r) {
+                    return '<div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">' +
+                        '<div>' +
+                            '<p class="font-medium text-slate-800">' + r.reason + '</p>' +
+                            <parameter name="chat-reports-content">../chat-reports.html</parameter>
+                            '<p class="text-xs text-slate-500">Por: ' + r.reporter_name + ' • ' + formatDate(r.reported_at) + '</p>' +
+                        '</div>' +
+                        '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Pendiente</span>' +
+                    '</div>';
+                }).join('');
             }
         }
 
-        loadDashboard();
+        initDashboard();
     </script>
 </body>
 </html>
