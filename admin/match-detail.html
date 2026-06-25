@@ -24,6 +24,18 @@
     <div class="max-w-6xl mx-auto px-4 py-6">
         <div id="match-header" class="mb-4"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
 
+        <!-- Reglas Base Global -->
+        <div id="global-rules-section" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">📜</span>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
+                    <p class="text-xs text-blue-600">Reglas estandar que aplican a todas las partidas.</p>
+                </div>
+                <a id="global-rules-link" href="#" target="_blank" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg font-bold text-xs hover:bg-blue-400 whitespace-nowrap">Ver Reglas</a>
+            </div>
+        </div>
+
         <!-- Acciones -->
         <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
             <h2 class="font-bold text-slate-800 mb-3 text-sm">⚡ Acciones</h2>
@@ -176,7 +188,15 @@
             else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
             document.getElementById('match-header').innerHTML = '<div class="bg-white rounded-xl border border-slate-200 p-5"><div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="px-2 py-0.5 rounded text-[10px] bg-orange-100 text-orange-700">🔒</span>' : '') + (match.winners_declared ? '<span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-700">🏆</span>' : '') + (match.csv_imported ? '<span class="px-2 py-0.5 rounded text-[10px] bg-green-100 text-green-700">✓ CSV</span>' : '') + '</div><h1 class="text-xl md:text-2xl font-bold text-slate-800">' + match.name + '</h1><p class="text-sm text-slate-500">' + (match.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p><div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400"><span>👥 Max ' + match.max_players + '</span><span>📅 ' + formatDate(match.created_at) + '</span>' + (match.game_id ? '<span>🎮 ID: ' + match.game_id + '</span>' : '') + '</div></div>';
             if (match.is_private) { document.getElementById('share-section').classList.remove('hidden'); document.getElementById('share-link').value = window.location.origin + window.__AH_BASE_PATH + 'game.html?id=' + match.id + '&token=' + match.share_token; }
-            loadRegistrations(); loadResults();
+            loadRegistrations(); loadResults(); loadGlobalRules();
+        }
+
+        async function loadGlobalRules() {
+            var { data } = await supabase.schema('v2').from('app_settings').select('value').eq('key', 'rules_url').single();
+            if (data && data.value) {
+                document.getElementById('global-rules-section').classList.remove('hidden');
+                document.getElementById('global-rules-link').href = data.value;
+            }
         }
 
         // ===================== REGISTRATIONS =====================
