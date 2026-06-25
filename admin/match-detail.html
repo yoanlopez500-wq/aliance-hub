@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Detalle Partida V2 - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,94 +10,133 @@
     <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-    <style>.modal { display: none; } .modal.active { display: flex; }</style>
+    <style>
+        .modal { display: none; } .modal.active { display: flex; }
+        .reg-card { transition: background 0.15s; }
+        .reg-card:hover { background: #f8fafc; }
+        .result-card.sanctioned { opacity: 0.6; background: #fef2f2; }
+    </style>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
 
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <div id="match-header" class="mb-6">
-            <div class="text-center py-12 text-slate-400">Cargando...</div>
-        </div>
+    <div class="max-w-6xl mx-auto px-4 py-6">
+        <div id="match-header" class="mb-4"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
 
-        <!-- Acciones del Admin -->
-        <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">⚡ Acciones</h2>
+        <!-- Acciones -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
+            <h2 class="font-bold text-slate-800 mb-3 text-sm">⚡ Acciones</h2>
             <div class="flex flex-wrap gap-2" id="admin-actions">
-                <button onclick="updateStatus('open')" class="px-3 py-1.5 bg-green-500 text-white rounded text-sm font-bold hover:bg-green-400">Abrir Registro</button>
-                <button onclick="updateStatus('in_progress')" class="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold hover:bg-blue-400">Iniciar</button>
-                <button onclick="updateStatus('finished')" class="px-3 py-1.5 bg-purple-500 text-white rounded text-sm font-bold hover:bg-purple-400">Finalizar</button>
-                <button onclick="updateStatus('archived')" class="px-3 py-1.5 bg-slate-600 text-white rounded text-sm font-bold hover:bg-slate-500">Archivar</button>
-                <button onclick="openWinnersModal()" class="px-3 py-1.5 bg-yellow-500 text-slate-900 rounded text-sm font-bold hover:bg-yellow-400">🏆 Declarar Ganadores</button>
-                <button onclick="openCSVModal()" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400">📊 Importar CSV</button>
-                <button onclick="openEditModal()" class="px-3 py-1.5 bg-slate-500 text-white rounded text-sm font-bold hover:bg-slate-400">✏️ Editar</button>
-                <button onclick="deleteMatch()" class="px-3 py-1.5 bg-red-500 text-white rounded text-sm font-bold hover:bg-red-400">🗑️ Eliminar</button>
+                <button onclick="updateStatus('open')" class="px-3 py-1.5 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-400">Abrir Registro</button>
+                <button onclick="updateStatus('in_progress')" class="px-3 py-1.5 bg-blue-500 text-white rounded text-xs font-bold hover:bg-blue-400">Iniciar</button>
+                <button onclick="updateStatus('finished')" class="px-3 py-1.5 bg-purple-500 text-white rounded text-xs font-bold hover:bg-purple-400">Finalizar</button>
+                <button onclick="updateStatus('archived')" class="px-3 py-1.5 bg-slate-600 text-white rounded text-xs font-bold hover:bg-slate-500">Archivar</button>
+                <button onclick="openWinnersModal()" class="px-3 py-1.5 bg-yellow-500 text-slate-900 rounded text-xs font-bold hover:bg-yellow-400">🏆 Ganadores</button>
+                <button onclick="openManualModal()" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-xs font-bold hover:bg-amber-400">✏️ Modo Manual</button>
+                <button onclick="openCSVModal()" class="px-3 py-1.5 bg-teal-500 text-white rounded text-xs font-bold hover:bg-teal-400">📊 Importar CSV</button>
+                <button onclick="openEditModal()" class="px-3 py-1.5 bg-slate-500 text-white rounded text-xs font-bold hover:bg-slate-400">🔧 Editar Partida</button>
+                <button onclick="deleteMatch()" class="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-bold hover:bg-red-400">🗑️ Eliminar</button>
             </div>
         </div>
 
         <!-- Enlace compartido -->
-        <div id="share-section" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <h2 class="font-bold text-blue-800 mb-2">🔗 Enlace Compartido</h2>
+        <div id="share-section" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <h2 class="font-bold text-blue-800 mb-2 text-sm">🔗 Enlace Compartido</h2>
             <div class="flex gap-2">
-                <input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border border-blue-300 bg-white text-sm">
-                <button onclick="copyShareLink()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400">Copiar</button>
+                <input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border border-blue-300 bg-white text-xs">
+                <button onclick="copyShareLink()" class="px-3 py-2 bg-blue-500 text-white rounded-lg font-bold text-xs hover:bg-blue-400">Copiar</button>
             </div>
         </div>
 
         <!-- Solicitudes pendientes -->
-        <div id="pending-section" class="hidden mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">⏳ Solicitudes Pendientes</h2>
-            <div id="pending-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden"></div>
+        <div id="pending-section" class="hidden mb-4">
+            <h2 class="font-bold text-slate-800 mb-2 text-sm">⏳ Solicitudes Pendientes</h2>
+            <div id="pending-list" class="space-y-2"></div>
         </div>
 
         <!-- Registrados -->
-        <div id="registrations-section" class="mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">👥 Registrados</h2>
-            <div id="registrations-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden"></div>
+        <div id="registrations-section" class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="font-bold text-slate-800 text-sm">👥 Registrados (<span id="reg-count">0</span>)</h2>
+            </div>
+            <!-- Desktop -->
+            <div id="reg-desktop" class="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="text-center py-4 text-slate-400 text-sm">Cargando...</div>
+            </div>
+            <!-- Mobile -->
+            <div id="reg-mobile" class="md:hidden space-y-2"></div>
         </div>
 
         <!-- Resultados -->
-        <div id="results-section" class="mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">📊 Resultados</h2>
-            <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50"><tr><th class="text-left p-3">Nación</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead>
-                    <tbody id="results-tbody"></tbody>
-                </table>
+        <div id="results-section" class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="font-bold text-slate-800 text-sm">📊 Resultados</h2>
+                <button onclick="openManualModal()" class="text-xs text-amber-600 font-bold hover:text-amber-700">➕ Añadir resultado</button>
             </div>
-        </div>
-
-        <!-- Chat entre alianzas -->
-        <div id="chat-section" class="hidden mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">💬 Chat entre Alianzas</h2>
-            <div class="bg-white rounded-xl border border-slate-200 p-4">
-                <div id="chat-messages" class="h-64 overflow-y-auto mb-3 bg-slate-50 rounded-lg p-3"></div>
-                <div class="flex gap-2">
-                    <input type="text" id="chat-input" placeholder="Mensaje como admin..." class="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                    <button onclick="sendChat()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400">Enviar</button>
-                </div>
+            <!-- Desktop -->
+            <div id="results-desktop" class="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="text-center py-4 text-slate-400 text-sm">Cargando...</div>
             </div>
+            <!-- Mobile -->
+            <div id="results-mobile" class="md:hidden space-y-2"></div>
         </div>
     </div>
 
-    <!-- Modal Ganadores -->
+    <!-- Modal: Modo Manual (añadir/editar resultado) -->
+    <div id="manual-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-5 border-b flex items-center justify-between">
+                <h2 class="text-lg font-bold" id="manual-title">✏️ Añadir Resultado Manual</h2>
+                <button onclick="closeManualModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            </div>
+            <form id="manual-form" class="p-5 space-y-4">
+                <input type="hidden" id="manual-edit-id">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">ID Jugador *</label>
+                        <input type="number" id="manual-player-id" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Ej: 99702975">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Username *</label>
+                        <input type="text" id="manual-username" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nacion *</label>
+                    <input type="text" id="manual-nation" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Ej: Indias Britanicas">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Bajas *</label>
+                        <input type="number" id="manual-kills" required min="0" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm font-bold text-green-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Muertes *</label>
+                        <input type="number" id="manual-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm font-bold text-red-500">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="manual-sanctioned" class="w-4 h-4 accent-red-500 rounded">
+                    <span class="text-sm text-red-600 font-medium">🚫 Sancionar (stats = 0)</span>
+                </label>
+                <p class="text-xs text-slate-400">Si se sanciona, las bajas/muertes se guardaran como 0 para este jugador.</p>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400 text-sm">Guardar</button>
+                    <button type="button" onclick="closeManualModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300 text-sm">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Ganadores -->
     <div id="winners-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4">🏆 Declarar Ganadores</h2>
             <div class="space-y-3">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">🥇 1° Lugar (ID Jugador)</label>
-                    <input type="number" id="w-1" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">🥈 2° Lugar (ID Jugador)</label>
-                    <input type="number" id="w-2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">🥉 3° Lugar (ID Jugador)</label>
-                    <input type="number" id="w-3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                </div>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1">🥇 1° Lugar (ID Jugador)</label><input type="number" id="w-1" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1">🥈 2° Lugar (ID Jugador)</label><input type="number" id="w-2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1">🥉 3° Lugar (ID Jugador)</label><input type="number" id="w-3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
                 <div class="flex gap-3 pt-3">
                     <button onclick="saveWinners()" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button>
                     <button onclick="closeWinnersModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
@@ -106,14 +145,14 @@
         </div>
     </div>
 
-    <!-- Modal CSV -->
+    <!-- Modal: CSV Rapido -->
     <div id="csv-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
-            <h2 class="text-xl font-bold mb-4">📊 Importar Resultados CSV</h2>
-            <p class="text-sm text-slate-500 mb-3">Pega el resultado del reporte del juego:</p>
-            <textarea id="csv-input" rows="10" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none font-mono text-xs" placeholder="Nacion&#9;Jugador&#9;Bajas&#9;Muertes&#10;Indias Britanicas&#9;Tlaloc27&#9;15497&#9;8020&#10;..."></textarea>
+        <div class="bg-white rounded-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-2">📊 Importar CSV Rapido</h2>
+            <p class="text-xs text-slate-500 mb-3">Pega el resultado del reporte (tab-separated): Nation[TAB]Username[TAB]Bajas[TAB]Muertes</p>
+            <textarea id="csv-input" rows="8" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none font-mono text-xs" placeholder="Indias Britanicas&#9;Tlaloc27&#9;15497&#9;8020&#10;..."></textarea>
             <div class="flex gap-3 mt-4">
-                <button onclick="importCSV()" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Importar</button>
+                <button onclick="importCSV()" class="flex-1 bg-teal-500 text-white font-bold py-2.5 rounded-lg hover:bg-teal-400">Importar</button>
                 <button onclick="closeCSVModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
             </div>
         </div>
@@ -121,268 +160,250 @@
 
     <script>
         requireAdmin();
-
         var matchId = new URLSearchParams(window.location.search).get('id');
         if (!matchId) location.href = 'matches.html';
-
         var currentMatch = null;
+        var currentResults = [];
+        var currentRegistrations = [];
 
+        // ===================== LOAD MATCH =====================
         async function loadMatch() {
-            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
-            var { data: match } = await supabase
-                .from('matches')
-                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
-                .eq('id', matchId)
-                .single();
-
-            if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-red-500">No encontrada</div>'; return; }
+            var { data: match, error } = await supabase.schema('v2').from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').eq('id', matchId).single();
+            if (error || !match) { document.getElementById('match-header').innerHTML = '<div class="text-red-500 text-center py-8">Partida no encontrada</div>'; return; }
             currentMatch = match;
-
-            // FIX: usar 'alliance' en lugar de 'alliances'
             var allianceLabel = '';
             if (match.match_type === 'internal' && match.alliance) allianceLabel = '🏴 ' + match.alliance.name;
             else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
-
-            document.getElementById('match-header').innerHTML =
-                '<div class="bg-white rounded-xl border border-slate-200 p-6">' +
-                    '<div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') + (match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">🏆</span>' : '') + '</div>' +
-                    '<h1 class="text-2xl font-bold text-slate-800">' + match.name + '</h1>' +
-                    '<p class="text-slate-500">' + (match.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p>' +
-                    '<div class="flex flex-wrap gap-4 mt-3 text-sm text-slate-400">' +
-                        '<span>👥 Max ' + match.max_players + '</span>' +
-                        '<span>📅 ' + formatDate(match.created_at) + '</span>' +
-                        (match.game_id ? '<span>🎮 ID: ' + match.game_id + '</span>' : '') +
-                    '</div>' +
-                '</div>';
-
-            if (match.is_private) {
-                document.getElementById('share-section').classList.remove('hidden');
-                var baseUrl = window.location.origin + window.__AH_BASE_PATH;
-                document.getElementById('share-link').value = baseUrl + 'game.html?id=' + match.id + '&token=' + match.share_token;
-            }
-
-            if (match.match_type === 'duel') {
-                document.getElementById('chat-section').classList.remove('hidden');
-                loadChat();
-            }
-
-            loadRegistrations();
-            loadResults();
+            document.getElementById('match-header').innerHTML = '<div class="bg-white rounded-xl border border-slate-200 p-5"><div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="px-2 py-0.5 rounded text-[10px] bg-orange-100 text-orange-700">🔒</span>' : '') + (match.winners_declared ? '<span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-700">🏆</span>' : '') + (match.csv_imported ? '<span class="px-2 py-0.5 rounded text-[10px] bg-green-100 text-green-700">✓ CSV</span>' : '') + '</div><h1 class="text-xl md:text-2xl font-bold text-slate-800">' + match.name + '</h1><p class="text-sm text-slate-500">' + (match.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p><div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400"><span>👥 Max ' + match.max_players + '</span><span>📅 ' + formatDate(match.created_at) + '</span>' + (match.game_id ? '<span>🎮 ID: ' + match.game_id + '</span>' : '') + '</div></div>';
+            if (match.is_private) { document.getElementById('share-section').classList.remove('hidden'); document.getElementById('share-link').value = window.location.origin + window.__AH_BASE_PATH + 'game.html?id=' + match.id + '&token=' + match.share_token; }
+            loadRegistrations(); loadResults();
         }
 
+        // ===================== REGISTRATIONS =====================
         async function loadRegistrations() {
-            var { data: regs } = await supabase
-                .from('match_registrations')
-                .select('*, players(current_username)')
-                .eq('match_id', matchId)
-                .order('registered_at', { ascending: false });
-
+            var { data: regs } = await supabase.schema('v2').from('match_registrations').select('*, player:players!match_registrations_player_id_fkey(current_username)').eq('match_id', matchId).order('registered_at', { ascending: false });
             var pending = (regs || []).filter(function(r) { return r.status === 'pending_approval'; });
             var confirmed = (regs || []).filter(function(r) { return r.status === 'confirmed' || r.status === 'approved' || r.status === 'pending'; });
+            currentRegistrations = confirmed;
+            document.getElementById('reg-count').textContent = confirmed.length;
 
-            // Solicitudes pendientes
+            // Pending
             if (pending.length > 0 && currentMatch && currentMatch.requires_approval) {
                 document.getElementById('pending-section').classList.remove('hidden');
                 document.getElementById('pending-list').innerHTML = pending.map(function(r) {
-                    return '<div class="flex items-center justify-between p-4 border-b">' +
-                        '<div>' +
-                            '<p class="font-medium">' + (r.players?.current_username || r.username) + ' (ID: ' + r.player_id + ')</p>' +
-                            '<p class="text-xs text-slate-500">Registrado: ' + formatDateTime(r.registered_at) + '</p>' +
-                        '</div>' +
-                        '<div class="flex gap-2">' +
-                            '<button onclick="approveRegistration(' + r.player_id + ')" class="px-3 py-1 bg-green-500 text-white rounded text-sm font-bold hover:bg-green-400">✓ Aprobar</button>' +
-                            '<button onclick="rejectRegistration(' + r.player_id + ')" class="px-3 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">✕ Rechazar</button>' +
-                        '</div>' +
-                    '</div>';
+                    return '<div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between"><div><p class="font-medium text-sm">' + (r.player?.current_username || r.username || '?') + ' (ID: ' + r.player_id + ')</p><p class="text-xs text-slate-500">' + formatDateTime(r.registered_at) + ' • ' + (r.nation || 'Sin nacion') + '</p></div><div class="flex gap-2"><button onclick="approveRegistration(' + r.player_id + ')" class="px-3 py-1.5 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-400">✓</button><button onclick="rejectRegistration(' + r.player_id + ')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">✕</button></div></div>';
                 }).join('');
-            } else {
-                document.getElementById('pending-section').classList.add('hidden');
+            } else document.getElementById('pending-section').classList.add('hidden');
+
+            // Confirmed - Desktop
+            var containerD = document.getElementById('reg-desktop');
+            if (confirmed.length === 0) { containerD.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Sin registrados</div>'; }
+            else {
+                containerD.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Jugador</th><th class="text-left p-3">ID</th><th class="text-left p-3">Nacion</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>' + confirmed.map(function(r, i) {
+                    return '<tr class="border-b reg-card"><td class="p-3 font-medium">' + (r.player?.current_username || r.username || '?') + '</td><td class="p-3 text-slate-500">' + r.player_id + '</td><td class="p-3">' + (r.nation || '-') + '</td><td class="p-3">' + getStatusBadge(r.status) + '</td><td class="p-3"><button onclick="editRegistration(' + i + ')" class="text-amber-600 hover:text-amber-700 text-xs font-bold mr-2">✏️</button><button onclick="removeRegistration(' + r.player_id + ')" class="text-red-500 hover:text-red-700 text-xs">🗑️</button></td></tr>';
+                }).join('') + '</tbody></table>';
             }
 
-            // Registrados
-            var container = document.getElementById('registrations-list');
-            if (confirmed.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin registrados</div>';
-            } else {
-                container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Jugador</th><th class="text-left p-3">Nación</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Registro</th><th class="p-3">Acciones</th></tr></thead><tbody>' +
-                    confirmed.map(function(r) {
-                        return '<tr class="border-b">' +
-                            '<td class="p-3 font-medium">' + (r.players?.current_username || r.username) + '</td>' +
-                            '<td class="p-3">' + (r.nation || '-') + '</td>' +
-                            '<td class="p-3">' + getStatusBadge(r.status) + '</td>' +
-                            '<td class="p-3 text-slate-500">' + formatDateTime(r.registered_at) + '</td>' +
-                            '<td class="p-3"><button onclick="removeRegistration(' + r.player_id + ')" class="text-red-500 hover:text-red-700 text-sm">🗑️</button></td>' +
-                        '</tr>';
-                    }).join('') + '</tbody></table>';
+            // Confirmed - Mobile
+            var containerM = document.getElementById('reg-mobile');
+            if (confirmed.length === 0) { containerM.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm bg-white rounded-xl border">Sin registrados</div>'; }
+            else {
+                containerM.innerHTML = confirmed.map(function(r, i) {
+                    return '<div class="bg-white rounded-xl border border-slate-200 p-4 reg-card"><div class="flex items-center justify-between mb-2"><div><p class="font-bold text-slate-800 text-sm">' + (r.player?.current_username || r.username || '?') + '</p><p class="text-xs text-slate-500">ID: ' + r.player_id + ' • ' + (r.nation || 'Sin nacion') + '</p></div>' + getStatusBadge(r.status) + '</div><div class="flex gap-2"><button onclick="editRegistration(' + i + ')" class="flex-1 py-2 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">✏️ Editar</button><button onclick="removeRegistration(' + r.player_id + ')" class="flex-1 py-2 bg-red-100 text-red-600 rounded-lg text-xs font-bold">🗑️ Eliminar</button></div></div>';
+                }).join('');
             }
         }
 
         async function approveRegistration(playerId) {
-            var { error } = await supabase.from('match_registrations')
-                .update({ status: 'approved', confirmed_at: new Date().toISOString() })
-                .eq('match_id', matchId).eq('player_id', playerId);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Aprobado', 'success'); loadRegistrations(); }
+            var { error } = await supabase.schema('v2').from('match_registrations').update({ status: 'approved', confirmed_at: new Date().toISOString() }).eq('match_id', matchId).eq('player_id', playerId);
+            if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Aprobado', 'success'); loadRegistrations(); }
         }
-
         async function rejectRegistration(playerId) {
-            var { error } = await supabase.from('match_registrations')
-                .update({ status: 'rejected' })
-                .eq('match_id', matchId).eq('player_id', playerId);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Rechazado', 'success'); loadRegistrations(); }
+            var { error } = await supabase.schema('v2').from('match_registrations').update({ status: 'rejected' }).eq('match_id', matchId).eq('player_id', playerId);
+            if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Rechazado', 'success'); loadRegistrations(); }
         }
-
         async function removeRegistration(playerId) {
             if (!confirmAction('Eliminar este registro?')) return;
-            var { error } = await supabase.from('match_registrations').delete().eq('match_id', matchId).eq('player_id', playerId);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Eliminado', 'success'); loadRegistrations(); }
+            var { error } = await supabase.schema('v2').from('match_registrations').delete().eq('match_id', matchId).eq('player_id', playerId);
+            if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Eliminado', 'success'); loadRegistrations(); }
         }
 
-        async function loadResults() {
-            var { data: results } = await supabase
-                .from('match_results')
-                .select('*, players(current_username)')
-                .eq('match_id', matchId)
-                .order('kd_ratio', { ascending: false });
+        // Edit registration inline
+        function editRegistration(index) {
+            var r = currentRegistrations[index];
+            if (!r) return;
+            var newUsername = prompt('Nuevo username:', r.username || r.player?.current_username || '');
+            if (newUsername === null) return;
+            var newNation = prompt('Nueva nacion:', r.nation || '');
+            if (newNation === null) return;
+            var newId = prompt('Nuevo Player ID:', r.player_id);
+            if (newId === null || !newId.trim()) return;
+            supabase.schema('v2').from('match_registrations').update({ username: newUsername.trim(), nation: newNation.trim(), player_id: parseInt(newId) }).eq('match_id', matchId).eq('id', r.id).then(function(r) {
+                if (r.error) showToast('Error: ' + r.error.message, 'error'); else { showToast('Registro actualizado', 'success'); loadRegistrations(); }
+            });
+        }
 
-            var tbody = document.getElementById('results-tbody');
-            if (!results || results.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Sin resultados</td></tr>';
-            } else {
-                tbody.innerHTML = results.map(function(r, i) {
-                    return '<tr class="border-b hover:bg-slate-50"><td class="p-3">' + r.nation + '</td><td class="p-3 font-medium">' + (r.players?.current_username || '?') + '</td><td class="p-3 text-right text-green-600 font-bold">' + r.kills.toLocaleString() + '</td><td class="p-3 text-right text-red-500">' + r.deaths.toLocaleString() + '</td><td class="p-3 text-right font-bold ' + (r.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + r.kd_ratio + '</td></tr>';
+        // ===================== RESULTS =====================
+        async function loadResults() {
+            var { data: results } = await supabase.schema('v2').from('match_results').select('*, player:players!match_results_player_id_fkey(current_username)').eq('match_id', matchId).order('kd_ratio', { ascending: false });
+            currentResults = results || [];
+            // Desktop
+            var containerD = document.getElementById('results-desktop');
+            if (!results || results.length === 0) { containerD.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Sin resultados. Usa "Modo Manual" o "Importar CSV".</div>'; }
+            else {
+                containerD.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nacion</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="p-3">Acciones</th></tr></thead><tbody>' + results.map(function(r, i) {
+                    var sancClass = r.sanctioned ? 'sanctioned' : '';
+                    return '<tr class="border-b hover:bg-slate-50 ' + sancClass + '"><td class="p-3">' + r.nation + '</td><td class="p-3 font-medium">' + (r.player?.current_username || '?') + ' <span class="text-xs text-slate-400">(' + r.player_id + ')</span></td><td class="p-3 text-right text-green-600 font-bold">' + (r.kills || 0) + '</td><td class="p-3 text-right text-red-500">' + (r.deaths || 0) + '</td><td class="p-3 text-right font-bold ' + ((r.kd_ratio || 0) >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + (r.kd_ratio || 0) + '</td><td class="p-3"><button onclick="editResult(' + i + ')" class="text-amber-600 hover:text-amber-700 text-xs font-bold mr-2">✏️</button><button onclick="deleteResult(' + i + ')" class="text-red-500 hover:text-red-700 text-xs">🗑️</button></td></tr>';
+                }).join('') + '</tbody></table>';
+            }
+            // Mobile
+            var containerM = document.getElementById('results-mobile');
+            if (!results || results.length === 0) { containerM.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm bg-white rounded-xl border">Sin resultados</div>'; }
+            else {
+                containerM.innerHTML = results.map(function(r, i) {
+                    var sancClass = r.sanctioned ? 'sanctioned' : '';
+                    return '<div class="bg-white rounded-xl border border-slate-200 p-4 result-card ' + sancClass + '"><div class="flex items-center justify-between mb-2"><div><p class="font-bold text-slate-800 text-sm">' + (r.player?.current_username || '?') + '</p><p class="text-xs text-slate-500">' + r.nation + ' • ID: ' + r.player_id + (r.sanctioned ? ' <span class="text-red-600 font-bold">[SANCIONADO]</span>' : '') + '</p></div><div class="text-right"><p class="text-lg font-bold ' + ((r.kd_ratio || 0) >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + (r.kd_ratio || 0) + '</p><p class="text-[10px] text-slate-400">KD</p></div></div><div class="grid grid-cols-2 gap-2 text-sm mb-3"><div class="text-center bg-green-50 rounded p-2"><p class="text-green-600 font-bold">' + (r.kills || 0) + '</p><p class="text-[10px] text-green-400">Bajas</p></div><div class="text-center bg-red-50 rounded p-2"><p class="text-red-500 font-bold">' + (r.deaths || 0) + '</p><p class="text-[10px] text-red-400">Muertes</p></div></div><div class="flex gap-2"><button onclick="editResult(' + i + ')" class="flex-1 py-2 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">✏️ Editar</button><button onclick="deleteResult(' + i + ')" class="flex-1 py-2 bg-red-100 text-red-600 rounded-lg text-xs font-bold">🗑️ Eliminar</button></div></div>';
                 }).join('');
             }
         }
 
-        async function loadChat() {
-            var { data: messages } = await supabase
-                .from('alliance_chat')
-                .select('*, players(current_username), alliances(name)')
-                .eq('match_id', matchId)
-                .order('sent_at', { ascending: true })
-                .limit(50);
+        function editResult(index) {
+            var r = currentResults[index];
+            if (!r) return;
+            document.getElementById('manual-edit-id').value = r.id;
+            document.getElementById('manual-player-id').value = r.player_id;
+            document.getElementById('manual-username').value = r.player?.current_username || '';
+            document.getElementById('manual-nation').value = r.nation;
+            document.getElementById('manual-kills').value = r.kills;
+            document.getElementById('manual-deaths').value = r.deaths;
+            document.getElementById('manual-sanctioned').checked = r.sanctioned || false;
+            document.getElementById('manual-title').textContent = '✏️ Editar Resultado';
+            document.getElementById('manual-modal').classList.add('active');
+        }
 
-            var container = document.getElementById('chat-messages');
-            if (!messages || messages.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 text-sm">Sin mensajes</div>';
-                return;
+        async function deleteResult(index) {
+            var r = currentResults[index];
+            if (!r) return;
+            if (!confirmAction('Eliminar resultado de ' + (r.player?.current_username || '?') + '?')) return;
+            var { error } = await supabase.schema('v2').from('match_results').delete().eq('id', r.id);
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Resultado eliminado', 'success'); if (r.player_id) recalcPlayer(r.player_id); loadResults(); }
+        }
+
+        // ===================== MANUAL MODE =====================
+        function openManualModal() {
+            document.getElementById('manual-form').reset();
+            document.getElementById('manual-edit-id').value = '';
+            document.getElementById('manual-title').textContent = '➕ Añadir Resultado Manual';
+            document.getElementById('manual-modal').classList.add('active');
+        }
+        function closeManualModal() { document.getElementById('manual-modal').classList.remove('active'); }
+
+        document.getElementById('manual-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var editId = document.getElementById('manual-edit-id').value;
+            var playerId = parseInt(document.getElementById('manual-player-id').value);
+            var username = document.getElementById('manual-username').value.trim();
+            var nation = document.getElementById('manual-nation').value.trim();
+            var kills = parseInt(document.getElementById('manual-kills').value) || 0;
+            var deaths = parseInt(document.getElementById('manual-deaths').value) || 0;
+            var sanctioned = document.getElementById('manual-sanctioned').checked;
+
+            if (!playerId || !username || !nation) { showToast('Completa todos los campos', 'warning'); return; }
+
+            // Ensure player exists
+            await supabase.schema('v2').from('players').upsert({ id: playerId, current_username: username, last_seen: new Date().toISOString() }, { onConflict: 'id' });
+
+            var data = {
+                match_id: matchId,
+                player_id: playerId,
+                nation: nation,
+                kills: sanctioned ? 0 : kills,
+                deaths: sanctioned ? 0 : deaths,
+                kd_ratio: sanctioned ? 0 : (deaths === 0 ? kills : parseFloat((kills / deaths).toFixed(2))),
+                sanctioned: sanctioned
+            };
+
+            var result;
+            if (editId) {
+                result = await supabase.schema('v2').from('match_results').update(data).eq('id', editId);
+            } else {
+                // Check if result already exists for this player in this match
+                var { data: existing } = await supabase.schema('v2').from('match_results').select('id').eq('match_id', matchId).eq('player_id', playerId).maybeSingle();
+                if (existing) {
+                    if (!confirm('Ya existe un resultado para este jugador. Sobreescribir?')) return;
+                    result = await supabase.schema('v2').from('match_results').update(data).eq('id', existing.id);
+                } else {
+                    result = await supabase.schema('v2').from('match_results').insert(data);
+                }
             }
 
-            container.innerHTML = messages.map(function(m) {
-                return '<div class="mb-2"><span class="text-xs font-bold text-amber-700">' + (m.alliances?.name || '?') + ' - ' + (m.players?.current_username || '?') + '</span><div class="text-sm bg-white rounded-lg p-2 mt-0.5 border">' + m.message + '</div></div>';
-            }).join('');
-            container.scrollTop = container.scrollHeight;
+            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
+
+            // Recalc player stats
+            await recalcPlayer(playerId);
+
+            showToast(editId ? 'Resultado actualizado' : 'Resultado añadido', 'success');
+            closeManualModal();
+            loadResults();
+
+            // Mark match as having results
+            await supabase.schema('v2').from('matches').update({ csv_imported: true }).eq('id', matchId);
+        });
+
+        async function recalcPlayer(playerId) {
+            var { data: allResults } = await supabase.schema('v2').from('match_results').select('kills, deaths').eq('player_id', playerId).eq('sanctioned', false);
+            var tk = (allResults || []).reduce(function(s, r) { return s + (r.kills || 0); }, 0);
+            var td = (allResults || []).reduce(function(s, r) { return s + (r.deaths || 0); }, 0);
+            await supabase.schema('v2').from('players').update({ total_kills: tk, total_deaths: td, games_played: (allResults || []).length }).eq('id', playerId);
         }
 
-        async function sendChat() {
-            var input = document.getElementById('chat-input');
-            var message = input.value.trim();
-            if (!message) return;
-
-            var admin = await getAdminRole();
-            var { error } = await supabase.from('alliance_chat').insert({
-                match_id: matchId,
-                sender_id: admin.supremacy_player_id,
-                message: message
-            });
-
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { input.value = ''; loadChat(); }
-        }
-
-        async function updateStatus(status) {
-            var { error } = await supabase.from('matches').update({ status: status }).eq('id', matchId);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Estado actualizado a ' + status, 'success'); loadMatch(); }
-        }
-
-        function openWinnersModal() { document.getElementById('winners-modal').classList.add('active'); }
-        function closeWinnersModal() { document.getElementById('winners-modal').classList.remove('active'); }
-
-        async function saveWinners() {
-            var w1 = document.getElementById('w-1').value;
-            var w2 = document.getElementById('w-2').value;
-            var w3 = document.getElementById('w-3').value;
-
-            if (!w1 || !w2 || !w3) { showToast('Completa los 3 ganadores', 'warning'); return; }
-
-            var winners = [
-                { match_id: matchId, player_id: parseInt(w1), position: 1 },
-                { match_id: matchId, player_id: parseInt(w2), position: 2 },
-                { match_id: matchId, player_id: parseInt(w3), position: 3 }
-            ];
-
-            var { error } = await supabase.from('match_winners').insert(winners);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Ganadores declarados', 'success'); closeWinnersModal(); loadMatch(); }
-        }
-
+        // ===================== CSV RAPIDO =====================
         function openCSVModal() { document.getElementById('csv-modal').classList.add('active'); }
         function closeCSVModal() { document.getElementById('csv-modal').classList.remove('active'); }
 
         async function importCSV() {
             var raw = document.getElementById('csv-input').value.trim();
             if (!raw) { showToast('Pega el CSV', 'warning'); return; }
-
             var lines = raw.split('\n').filter(function(l) { return l.trim(); });
-            var results = [];
-
+            var imported = 0;
             for (var i = 0; i < lines.length; i++) {
                 var parts = lines[i].split('\t');
                 if (parts.length >= 4) {
                     var kills = parseInt(parts[2].replace(/,/g, '')) || 0;
                     var deaths = parseInt(parts[3].replace(/,/g, '')) || 0;
-                    var kd = deaths > 0 ? (kills / deaths).toFixed(2) : kills;
-                    results.push({ match_id: matchId, nation: parts[0].trim(), kills: kills, deaths: deaths, kd_ratio: kd, raw_csv_data: parts });
+                    var nation = parts[0].trim();
+                    await supabase.schema('v2').from('match_results').upsert({ match_id: matchId, nation: nation, kills: kills, deaths: deaths, kd_ratio: deaths === 0 ? kills : parseFloat((kills / deaths).toFixed(2)), raw_csv_data: parts }, { onConflict: 'match_id,nation' });
+                    imported++;
                 }
             }
-
-            if (results.length === 0) { showToast('No se pudo parsear el CSV', 'error'); return; }
-
-            // Upsert
-            for (var i = 0; i < results.length; i++) {
-                await supabase.from('match_results').upsert(results[i], { onConflict: 'match_id,nation' });
-            }
-
-            await supabase.from('matches').update({ csv_imported: true, status: 'finished' }).eq('id', matchId);
-
-            // Recalcular stats de jugadores
-            var { data: players } = await supabase.from('match_results').select('match_id, player_id').eq('match_id', matchId);
-            if (players) {
-                for (var i = 0; i < players.length; i++) {
-                    if (players[i].player_id) {
-                        await supabase.rpc('recalc_player_stats', { p_player_id: players[i].player_id });
-                    }
-                }
-            }
-
-            showToast(results.length + ' resultados importados', 'success');
-            closeCSVModal();
-            loadResults();
-            loadMatch();
+            if (imported > 0) {
+                await supabase.schema('v2').from('matches').update({ csv_imported: true }).eq('id', matchId);
+                showToast(imported + ' resultados importados', 'success');
+                closeCSVModal(); loadResults();
+            } else showToast('No se pudo importar nada', 'error');
         }
 
-        function copyShareLink() {
-            var el = document.getElementById('share-link');
-            el.select();
-            document.execCommand('copy');
-            showToast('Enlace copiado', 'success');
-        }
-
-        async function deleteMatch() {
-            if (!confirmAction('Eliminar permanentemente esta partida y todos sus datos?')) return;
-            var { error } = await supabase.from('matches').delete().eq('id', matchId);
+        // ===================== WINNERS =====================
+        function openWinnersModal() { document.getElementById('winners-modal').classList.add('active'); }
+        function closeWinnersModal() { document.getElementById('winners-modal').classList.remove('active'); }
+        async function saveWinners() {
+            var w1 = document.getElementById('w-1').value, w2 = document.getElementById('w-2').value, w3 = document.getElementById('w-3').value;
+            if (!w1 || !w2 || !w3) { showToast('Completa los 3 ganadores', 'warning'); return; }
+            var winners = [{ match_id: matchId, player_id: parseInt(w1), position: 1 }, { match_id: matchId, player_id: parseInt(w2), position: 2 }, { match_id: matchId, player_id: parseInt(w3), position: 3 }];
+            var { error } = await supabase.schema('v2').from('match_winners').insert(winners);
             if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Eliminada', 'success'); setTimeout(function() { location.href = 'matches.html'; }, 1000); }
+            else { showToast('Ganadores declarados', 'success'); closeWinnersModal(); loadMatch(); }
         }
 
-        function openEditModal() {
-            if (!currentMatch) return;
-            location.href = 'matches.html?edit=' + matchId;
+        // ===================== UTILS =====================
+        async function updateStatus(status) {
+            var { error } = await supabase.schema('v2').from('matches').update({ status: status }).eq('id', matchId);
+            if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Estado: ' + status, 'success'); loadMatch(); }
         }
+        function openEditModal() { if (currentMatch) location.href = 'matches.html?edit=' + matchId; }
+        async function deleteMatch() { if (!confirmAction('Eliminar permanentemente?')) return; var { error } = await supabase.schema('v2').from('matches').delete().eq('id', matchId); if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Eliminada', 'success'); setTimeout(function() { location.href = 'matches.html'; }, 1000); } }
+        function copyShareLink() { var el = document.getElementById('share-link'); el.select(); document.execCommand('copy'); showToast('Copiado', 'success'); }
 
         loadMatch();
     </script>
