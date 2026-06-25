@@ -143,6 +143,11 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
 
 async function logout() {
     // Limpiar solo la sesion de admin (Supabase Auth), NO el lazy login de jugador
+    // Tambien limpiar polling de notificaciones
+    if (window.__ahNotifInterval) {
+        clearInterval(window.__ahNotifInterval);
+        window.__ahNotifInterval = null;
+    }
     await supabase.auth.signOut();
     window.location.href = ahPath('login.html');
 }
@@ -198,6 +203,128 @@ function hasAdminSession() {
     });
 }
 
+// ===================== NOTIFICACIONES INTERNAS =====================
+var __ahNotifCount = 0;
+var __ahNotifMessages = [];
+
+function buildNotificationBell() {
+    return '<div class="relative" id="ah-notif-wrapper">' +
+        '<button onclick="toggleNotifDropdown()" class="relative px-2 py-1.5 rounded hover:bg-slate-700 transition" title="Mensajes directos">' +
+            '&#128276;' +
+            '<span id="ah-notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center hidden">0</span>' +
+        '</button>' +
+        '<div id="ah-notif-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">' +
+            '<div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">' +
+                '<span class="text-sm font-bold text-slate-700">&#128276; Mensajes Directos</span>' +
+                '<span id="ah-notif-count-label" class="text-xs text-slate-400">0 sin leer</span>' +
+            '</div>' +
+            '<div id="ah-notif-list" class="max-h-64 overflow-y-auto">' +
+                '<div class="p-4 text-center text-xs text-slate-400">Cargando...</div>' +
+            '</div>' +
+            '<div class="p-2 border-t border-slate-100 bg-slate-50 text-center">' +
+                '<a href="' + ahPath('admin/inbox.html') + '" class="text-xs text-blue-600 font-bold hover:text-blue-700">Ver todos los mensajes</a>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function toggleNotifDropdown() {
+    var dropdown = document.getElementById('ah-notif-dropdown');
+    if (!dropdown) return;
+    if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        renderNotifList();
+        // Marcar como leidos los mensajes mostrados
+        markVisibleNotifsAsRead();
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function closeNotifDropdown() {
+    var dropdown = document.getElementById('ah-notif-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+async function renderNotifList() {
+    var list = document.getElementById('ah-notif-list');
+    if (!list) return;
+
+    if (__ahNotifMessages.length === 0) {
+        list.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">No tienes mensajes directos</div>';
+        return;
+    }
+
+    list.innerHTML = __ahNotifMessages.slice(0, 5).map(function(m) {
+        var isUnread = !m.read_at;
+        return '<div class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ' + (isUnread ? 'bg-blue-50/50' : '') + '" onclick="window.location.href=\'' + ahPath('admin/inbox.html?id=' + m.id) + '\'">' +
+            '<div class="flex items-center justify-between mb-1">' +
+                '<span class="text-xs font-bold text-slate-700 truncate max-w-[180px]">' + (m.subject || 'Sin asunto') + '</span>' +
+                '<span class="text-[10px] text-slate-400">' + formatDateTime(m.created_at) + '</span>' +
+            '</div>' +
+            '<p class="text-xs text-slate-500 truncate">' + m.message + '</p>' +
+            '<p class="text-[10px] text-slate-400 mt-1">De: ' + (m.sender_name || 'Admin') + '</p>' +
+        '</div>';
+    }).join('');
+}
+
+async function markVisibleNotifsAsRead() {
+    var unreadIds = __ahNotifMessages.filter(function(m) { return !m.read_at; }).map(function(m) { return m.id; });
+    if (unreadIds.length === 0) return;
+    
+    // Marcar como leidos los primeros 5 (los visibles en el dropdown)
+    var visibleIds = unreadIds.slice(0, 5);
+    for (var i = 0; i < visibleIds.length; i++) {
+        await markDirectMessageAsRead(visibleIds[i]);
+    }
+    // Refrescar contador despues de un breve delay
+    setTimeout(refreshNotifBadge, 500);
+}
+
+async function refreshNotifBadge() {
+    var count = await countUnreadDirectMessages();
+    __ahNotifCount = count;
+    
+    var badge = document.getElementById('ah-notif-badge');
+    var label = document.getElementById('ah-notif-count-label');
+    
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    if (label) {
+        label.textContent = count + ' sin leer';
+    }
+    
+    // Tambien refrescar lista de mensajes
+    var messages = await fetchRecentDirectMessages(10);
+    __ahNotifMessages = messages || [];
+}
+
+function startNotifPolling() {
+    // Detener polling previo si existe
+    if (window.__ahNotifInterval) {
+        clearInterval(window.__ahNotifInterval);
+    }
+    // Refrescar inmediatamente
+    refreshNotifBadge();
+    // Y luego cada 60 segundos
+    window.__ahNotifInterval = setInterval(refreshNotifBadge, 60000);
+}
+
+// Cerrar dropdown al hacer clic fuera
+document.addEventListener('click', function(e) {
+    var wrapper = document.getElementById('ah-notif-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        closeNotifDropdown();
+    }
+});
+
+// ===================== ADMIN NAV =====================
 async function initAdminNav() {
     var nav = document.getElementById('admin-nav');
     if (!nav) return;
@@ -239,7 +366,13 @@ async function initAdminNav() {
             switchBtn = '<a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold" title="Cambiar a vista de jugador">&#127918; Modo Jugador</a>';
         }
 
-        nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub V2</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
+        // Componente de notificaciones
+        var notifBell = buildNotificationBell();
+
+        nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub V2</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + notifBell + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
+
+        // Iniciar polling de notificaciones
+        startNotifPolling();
     } else {
         // No hay sesion de admin - mostrar nav publico o login
         var adminBtn = '';
