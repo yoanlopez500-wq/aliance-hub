@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rankings - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/base.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/pwa-utils.js"></script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-slate-800 mb-6">&#127942; Rankings</h1>
+        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+            <h2 class="font-bold text-slate-800 mb-3">Top Jugadores - Bajas</h2>
+            <div id="rankings-kills" class="text-center py-4 text-slate-400">Cargando...</div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+            <h2 class="font-bold text-slate-800 mb-3">Top Jugadores - KD Ratio</h2>
+            <div id="rankings-kd" class="text-center py-4 text-slate-400">Cargando...</div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+            <h2 class="font-bold text-slate-800 mb-3">Top Alianzas - Bajas Totales</h2>
+            <div id="rankings-alliances" class="text-center py-4 text-slate-400">Cargando...</div>
+        </div>
+    </div>
+    <script>
+        requireAdmin();
+        async function loadRankings() {
+            var { data: players } = await supabase.schema('v2').from('players')
+                .select('id, current_username, total_kills, total_deaths, games_played, alliances(name, tag)')
+                .order('total_kills', { ascending: false })
+                .limit(20);
+
+            var containerKills = document.getElementById('rankings-kills');
+            var containerKD = document.getElementById('rankings-kd');
+
+            if (!players || players.length === 0) {
+                containerKills.innerHTML = '<div class="text-slate-400">Sin datos</div>';
+                containerKD.innerHTML = '<div class="text-slate-400">Sin datos</div>';
+                return;
+            }
+
+            // Top kills
+            containerKills.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">#</th><th class="text-left p-2">Jugador</th><th class="text-left p-2">Alianza</th><th class="text-right p-2">Bajas</th><th class="text-right p-2">Muertes</th><th class="text-right p-2">Partidas</th></tr></thead><tbody>' +
+                players.map(function(p, i) {
+                    return '<tr class="border-b"><td class="p-2 font-bold">' + (i + 1) + '</td><td class="p-2 font-medium">' + p.current_username + '</td><td class="p-2 text-xs text-slate-500">' + (p.alliances ? p.alliances.tag : '-') + '</td><td class="p-2 text-right text-green-600 font-bold">' + (p.total_kills || 0) + '</td><td class="p-2 text-right text-red-500">' + (p.total_deaths || 0) + '</td><td class="p-2 text-right">' + (p.games_played || 0) + '</td></tr>';
+                }).join('') + '</tbody></table>';
+
+            // Top KD (filter players with at least 10 kills)
+            var kdPlayers = players.filter(function(p) { return (p.total_kills || 0) >= 10; })
+                .map(function(p) { return { ...p, kd: p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills }; })
+                .sort(function(a, b) { return b.kd - a.kd; });
+
+            containerKD.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">#</th><th class="text-left p-2">Jugador</th><th class="text-left p-2">Alianza</th><th class="text-right p-2">KD</th><th class="text-right p-2">Bajas</th><th class="text-right p-2">Muertes</th></tr></thead><tbody>' +
+                kdPlayers.slice(0, 20).map(function(p, i) {
+                    return '<tr class="border-b"><td class="p-2 font-bold">' + (i + 1) + '</td><td class="p-2 font-medium">' + p.current_username + '</td><td class="p-2 text-xs text-slate-500">' + (p.alliances ? p.alliances.tag : '-') + '</td><td class="p-2 text-right font-bold ' + (p.kd >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + p.kd + '</td><td class="p-2 text-right text-green-600">' + (p.total_kills || 0) + '</td><td class="p-2 text-right text-red-500">' + (p.total_deaths || 0) + '</td></tr>';
+                }).join('') + '</tbody></table>';
+
+            // Alliance rankings
+            var { data: alliances } = await supabase.schema('v2').from('alliances')
+                .select('id, name, tag, players(total_kills)')
+                .order('name');
+
+            var containerAlliances = document.getElementById('rankings-alliances');
+            if (!alliances || alliances.length === 0) {
+                containerAlliances.innerHTML = '<div class="text-slate-400">Sin datos</div>';
+                return;
+            }
+
+            var allianceStats = alliances.map(function(a) {
+                var totalKills = 0;
+                if (a.players) {
+                    a.players.forEach(function(p) { totalKills += p.total_kills || 0; });
+                }
+                return { name: a.name, tag: a.tag, total_kills: totalKills };
+            }).sort(function(a, b) { return b.total_kills - a.total_kills; });
+
+            containerAlliances.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">#</th><th class="text-left p-2">Alianza</th><th class="text-right p-2">Bajas Totales</th></tr></thead><tbody>' +
+                allianceStats.map(function(a, i) {
+                    return '<tr class="border-b"><td class="p-2 font-bold">' + (i + 1) + '</td><td class="p-2 font-medium">' + a.name + ' [' + a.tag + ']</td><td class="p-2 text-right text-green-600 font-bold">' + a.total_kills.toLocaleString() + '</td></tr>';
+                }).join('') + '</tbody></table>';
+        }
+        loadRankings();
+    </script>
+</body>
+</html>

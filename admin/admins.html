@@ -3,41 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admins V2 - Alliance Hub</title>
+    <title>Admins - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
-    <script src="../assets/js/pwa-utils.js"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">👥 Gestion de Admins</h1>
-        <p class="text-slate-500 mb-6">Jerarquia: Superadmin > Event Admin > Alliance Leader > Moderator</p>
-        <div id="admins-desktop" class="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
-        <div id="admins-mobile" class="md:hidden space-y-3"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-slate-800 mb-6">&#128737;&#65039; Administradores</h1>
+        <div id="admins-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="text-center py-8 text-slate-400">Cargando...</div>
+        </div>
     </div>
     <script>
-        requireAdmin(); requireMinRole('event_admin');
+        requireAdmin();
         async function loadAdmins() {
-            var myAdmin = await getAdminRole();
-            var { data: admins, error } = await supabase.schema('v2').from('admin_users').select('*, alliances(name, tag)').order('role');
-            if (error) { document.getElementById('admins-desktop').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; document.getElementById('admins-mobile').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; return; }
-            if (!admins || admins.length === 0) { document.getElementById('admins-desktop').innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>'; document.getElementById('admins-mobile').innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>'; return; }
-            renderDesktop(admins, myAdmin); renderMobile(admins, myAdmin);
+            var { data, error } = await supabase.schema('v2').from('admins').select('*, player:players(id, current_username)').order('created_at', { ascending: false });
+            var container = document.getElementById('admins-list');
+            if (error) { container.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; return; }
+            var admins = data || [];
+            if (admins.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>'; return; }
+            container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Username</th><th class="text-left p-3">Rol</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Creado</th></tr></thead><tbody>' +
+                admins.map(function(a) {
+                    var roleBadge = a.role === 'superadmin' ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold">SUPERADMIN</span>' : a.role === 'admin' ? '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-bold">ADMIN</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600">' + a.role + '</span>';
+                    return '<tr class="border-b"><td class="p-3 font-medium">' + (a.player?.current_username || a.email || '?') + '</td><td class="p-3">' + roleBadge + '</td><td class="p-3">' + (a.is_active !== false ? '<span class="text-green-600 font-bold">Activo</span>' : '<span class="text-slate-400">Inactivo</span>') + '</td><td class="p-3 text-slate-400 text-xs">' + formatDate(a.created_at) + '</td></tr>';
+                }).join('') + '</tbody></table>';
         }
-        function renderDesktop(admins, myAdmin) {
-            document.getElementById('admins-desktop').innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nombre</th><th class="text-left p-3">Rol</th><th class="text-left p-3">Alianza</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>' + admins.map(function(a) { var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activo</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Suspendido</span>'; var canEdit = canManage(myAdmin.role, a.role); var actions = canEdit ? '<button onclick="changeRole(\'' + a.id + '\')" class="text-amber-600 hover:text-amber-700 text-sm font-bold mr-3">Cambiar Rol</button><button onclick="toggleStatus(\'' + a.id + '\', \'' + a.status + '\')" class="px-3 py-1.5 rounded text-sm font-bold ' + (a.status === 'active' ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200') + '">' + (a.status === 'active' ? 'Suspender' : 'Activar') + '</button>' : '<span class="text-slate-400 text-xs">Sin permiso</span>'; return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">' + (a.display_name || '-') + '</td><td class="p-3">' + formatRoleName(a.role) + '</td><td class="p-3 text-slate-500">' + (a.alliances ? a.alliances.name + ' [' + a.alliances.tag + ']' : '-') + '</td><td class="p-3">' + statusBadge + '</td><td class="p-3">' + actions + '</td></tr>'; }).join('') + '</tbody></table>';
-        }
-        function renderMobile(admins, myAdmin) {
-            document.getElementById('admins-mobile').innerHTML = admins.map(function(a) { var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activo</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Suspendido</span>'; var canEdit = canManage(myAdmin.role, a.role); var actions = canEdit ? '<div class="flex gap-2 mt-3"><button onclick="changeRole(\'' + a.id + '\')" class="flex-1 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold">Cambiar Rol</button><button onclick="toggleStatus(\'' + a.id + '\', \'' + a.status + '\')" class="flex-1 py-2 ' + (a.status === 'active' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600') + ' rounded-lg text-sm font-bold">' + (a.status === 'active' ? 'Suspender' : 'Activar') + '</button></div>' : ''; return '<div class="bg-white rounded-xl border border-slate-200 p-4"><div class="flex items-center justify-between mb-2"><span class="font-bold text-slate-800">' + (a.display_name || 'Sin nombre') + '</span>' + statusBadge + '</div><div class="text-sm text-slate-500 space-y-1"><p><span class="text-slate-400">Rol:</span> ' + formatRoleName(a.role) + '</p><p><span class="text-slate-400">Alianza:</span> ' + (a.alliances ? a.alliances.name + ' [' + a.alliances.tag + ']' : '-') + '</p></div>' + actions + '</div>'; }).join('');
-        }
-        function formatRoleName(role) { var names = { superadmin: '<span class="text-red-600 font-bold">Superadmin</span>', event_admin: '<span class="text-blue-600 font-bold">Admin Eventos</span>', alliance_leader: '<span class="text-green-600 font-bold">Lider Alianza</span>', moderator: '<span class="text-purple-600 font-bold">Moderador</span>' }; return names[role] || role; }
-        async function changeRole(adminId) { var newRole = prompt('Nuevo rol (superadmin, event_admin, alliance_leader, moderator):'); if (!newRole) return; if (['superadmin', 'event_admin', 'alliance_leader', 'moderator'].indexOf(newRole) === -1) { showToast('Rol invalido', 'error'); return; } var { error } = await supabase.schema('v2').from('admin_users').update({ role: newRole }).eq('id', adminId); if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Rol actualizado', 'success'); loadAdmins(); } }
-        async function toggleStatus(adminId, currentStatus) { var newStatus = currentStatus === 'active' ? 'suspended' : 'active'; if (!confirmAction((newStatus === 'suspended' ? 'Suspender' : 'Activar') + ' este admin?')) return; var { error } = await supabase.schema('v2').from('admin_users').update({ status: newStatus }).eq('id', adminId); if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Estado actualizado', 'success'); loadAdmins(); } }
         loadAdmins();
     </script>
 </body>
