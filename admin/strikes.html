@@ -142,14 +142,54 @@
         </div>
     </div>
 
+    <!-- Modal: Editar Strike Aplicado -->
+    <div id="edit-strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex items-center justify-between">
+                <h2 class="text-xl font-bold">&#9999;&#65039; Editar Strike</h2>
+                <button onclick="closeEditStrikeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+            </div>
+            <form id="edit-strike-form" class="p-6 space-y-4">
+                <input type="hidden" id="es-id">
+                <div class="bg-slate-50 rounded-lg p-3 mb-2">
+                    <p class="text-sm text-slate-600"><span class="font-bold">Jugador:</span> <span id="es-player-name"></span> (ID: <span id="es-player-id-display"></span>)</p>
+                    <p class="text-sm text-slate-600"><span class="font-bold">Aplicado:</span> <span id="es-applied-at"></span></p>
+                    <p class="text-sm text-slate-600"><span class="font-bold">Por:</span> <span id="es-applied-by"></span></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike *</label>
+                    <select id="es-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Razon / Justificacion *</label>
+                    <input type="text" id="es-reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Por que se aplica este strike?">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label>
+                    <textarea id="es-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">&#128190; Guardar Cambios</button>
+                    <button type="button" onclick="closeEditStrikeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         requireAdmin();
 
         var isSuperAdmin = false;
         var strikeTypes = [];
         var matches = [];
+        var currentAdminId = null;
 
         async function init() {
+            var sessionData = await supabase.auth.getSession();
+            currentAdminId = sessionData.data.session ? sessionData.data.session.user.id : null;
+            
             var admin = await getAdminRole();
             isSuperAdmin = (admin && admin.role === 'superadmin');
             if (isSuperAdmin) document.getElementById('btn-new-strike-type').classList.remove('hidden');
@@ -178,7 +218,7 @@
             var statusEl = document.getElementById('rules-save-status');
             if (error) { statusEl.textContent = 'Error: ' + error.message; statusEl.className = 'text-xs mt-2 h-4 text-red-500'; }
             else {
-                statusEl.textContent = '&#9989; Guardado correctamente';
+                statusEl.innerHTML = '&#9989; Guardado correctamente';
                 statusEl.className = 'text-xs mt-2 h-4 text-green-600';
                 document.getElementById('rules-url-preview').href = url;
                 document.getElementById('rules-url-preview').classList.remove('hidden');
@@ -323,11 +363,74 @@
             }
         });
 
+        // ===================== EDIT STRIKE MODAL =====================
+        function openEditStrikeModal(strike) {
+            document.getElementById('edit-strike-form').reset();
+            document.getElementById('es-id').value = strike.id;
+            document.getElementById('es-player-name').textContent = strike.player ? strike.player.current_username : '?';
+            document.getElementById('es-player-id-display').textContent = strike.player_id;
+            document.getElementById('es-applied-at').textContent = formatDateTime(strike.applied_at);
+            document.getElementById('es-applied-by').textContent = strike.applied_by_admin 
+                ? strike.applied_by_admin.display_name 
+                : (strike.applied_by ? 'Admin desconocido' : 'Sistema');
+            document.getElementById('es-reason').value = strike.reason || '';
+            document.getElementById('es-notes').value = strike.notes || '';
+
+            // Populate strike type select
+            var options = strikeTypes.filter(function(t) { return t.is_active !== false; }).map(function(t) {
+                var sevLabel = t.severity === 1 ? 'Leve' : t.severity === 2 ? 'Medio' : 'Grave';
+                return '<option value="' + t.id + '"' + (t.id === strike.strike_type_id ? ' selected' : '') + '>' + t.code + ' - ' + t.name + ' (' + sevLabel + ')</option>';
+            }).join('');
+            document.getElementById('es-strike-type').innerHTML = '<option value="">-- Seleccionar --</option>' + options;
+
+            document.getElementById('edit-strike-modal').classList.add('active');
+        }
+
+        function closeEditStrikeModal() {
+            document.getElementById('edit-strike-modal').classList.remove('active');
+        }
+
+        document.getElementById('edit-strike-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var id = document.getElementById('es-id').value;
+            var strikeTypeId = document.getElementById('es-strike-type').value;
+            var reason = document.getElementById('es-reason').value.trim();
+            var notes = document.getElementById('es-notes').value.trim();
+
+            if (!strikeTypeId) { showToast('Selecciona un tipo de strike', 'warning'); return; }
+
+            var { error } = await supabase.schema('v2').from('player_strikes')
+                .update({
+                    strike_type_id: strikeTypeId,
+                    reason: reason,
+                    notes: notes || null
+                })
+                .eq('id', id);
+
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+
+            // Audit log
+            try {
+                var sessionData = await supabase.auth.getSession();
+                await supabase.schema('v2').from('audit_log').insert({
+                    admin_id: sessionData.data.session ? sessionData.data.session.user.id : null,
+                    action: 'strike_edit',
+                    table_name: 'player_strikes',
+                    record_id: id,
+                    new_data: { strike_type_id: strikeTypeId, reason: reason, notes: notes }
+                });
+            } catch (auditErr) { console.log('Audit log error:', auditErr); }
+
+            showToast('&#9999;&#65039; Strike actualizado correctamente', 'success');
+            closeEditStrikeModal();
+            loadStrikeHistory();
+        });
+
         // ===================== STRIKE HISTORY =====================
         async function loadStrikeHistory() {
             var statusFilter = document.getElementById('filter-strike-status').value;
             var query = supabase.schema('v2').from('player_strikes')
-                .select('*, player:players!player_strikes_player_id_fkey(current_username), type:strike_types!player_strikes_strike_type_id_fkey(code, name, severity), match:matches!player_strikes_match_id_fkey(name)')
+                .select(`*, player:players!player_strikes_player_id_fkey(current_username), type:strike_types!player_strikes_strike_type_id_fkey(code, name, severity), match:matches!player_strikes_match_id_fkey(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)`)
                 .order('applied_at', { ascending: false })
                 .limit(100);
 
@@ -347,9 +450,12 @@
             container.innerHTML = strikes.map(function(s) {
                 var sevClass = s.type?.severity === 1 ? 'sev-1' : s.type?.severity === 2 ? 'sev-2' : 'sev-3';
                 var isActive = s.is_active !== false;
+                var adminName = s.applied_by_admin ? s.applied_by_admin.display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
+                var canEdit = isActive; // Solo strikes activos se pueden editar
+                
                 return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card">' +
-                    '<div class="flex items-center justify-between mb-1">' +
-                        '<div class="flex items-center gap-2">' +
+                    '<div class="flex items-center justify-between mb-1 flex-wrap gap-2">' +
+                        '<div class="flex items-center gap-2 flex-wrap">' +
                             '<span class="font-bold text-slate-800">' + (s.player?.current_username || '?') + '</span>' +
                             '<span class="text-xs text-slate-500">ID: ' + s.player_id + '</span>' +
                             '<span class="px-2 py-0.5 rounded text-xs ' + (isActive ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500') + ' font-bold">' + (isActive ? 'ACTIVO' : 'REMOVIDO') + '</span>' +
@@ -357,19 +463,46 @@
                         '<span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span>' +
                     '</div>' +
                     '<p class="text-sm text-slate-600"><span class="font-bold">' + (s.type?.code || '?') + ':</span> ' + (s.reason || 'Sin razon') + '</p>' +
-                    '<p class="text-xs text-slate-400 mt-1">Partida: ' + (s.match?.name || 'General') + '</p>' +
-                    (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="mt-2 text-xs text-red-500 font-bold hover:text-red-700">&#10060; Remover strike</button>' : '') +
+                    '<p class="text-xs text-slate-500 mt-1">&#127918; Partida: ' + (s.match?.name || 'General') + '</p>' +
+                    '<p class="text-xs text-slate-400 mt-1">&#128100; Aplicado por: <span class="font-medium text-slate-500">' + adminName + '</span></p>' +
+                    (s.notes ? '<p class="text-xs text-slate-400 mt-1 italic">&#128221; ' + s.notes + '</p>' : '') +
+                    '<div class="flex gap-3 mt-3">' +
+                        (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="text-xs text-red-500 font-bold hover:text-red-700">&#10060; Remover strike</button>' : '') +
+                        (canEdit ? '<button onclick="editStrike(\'' + s.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">&#9999;&#65039; Editar strike</button>' : '') +
+                    '</div>' +
                 '</div>';
             }).join('');
         }
 
+        async function editStrike(strikeId) {
+            // Fetch full strike data including player info
+            var { data, error } = await supabase.schema('v2').from('player_strikes')
+                .select(`*, player:players!player_strikes_player_id_fkey(current_username), type:strike_types!player_strikes_strike_type_id_fkey(code, name, severity), match:matches!player_strikes_match_id_fkey(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)`)
+                .eq('id', strikeId)
+                .single();
+            
+            if (error || !data) { showToast('Error cargando strike: ' + (error ? error.message : 'No encontrado'), 'error'); return; }
+            
+            if (data.is_active === false) { showToast('No se puede editar un strike removido', 'warning'); return; }
+            
+            openEditStrikeModal(data);
+        }
+
         async function removeStrike(strikeId) {
             if (!confirmAction('Remover este strike? El jugador recuperara reputacion.')) return;
-            var { error } = await supabase.schema('v2').from('player_strikes')
-                .update({ is_active: false, removed_at: new Date().toISOString() })
-                .eq('id', strikeId);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Strike removido', 'success'); loadStrikeHistory(); }
+            
+            try {
+                var sessionData = await supabase.auth.getSession();
+                var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
+                
+                var { error } = await supabase.schema('v2').from('player_strikes')
+                    .update({ is_active: false, removed_at: new Date().toISOString(), removed_by: adminId })
+                    .eq('id', strikeId);
+                if (error) showToast('Error: ' + error.message, 'error');
+                else { showToast('Strike removido', 'success'); loadStrikeHistory(); }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
         }
 
         init();
