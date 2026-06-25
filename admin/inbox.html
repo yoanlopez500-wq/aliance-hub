@@ -24,13 +24,12 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">&#128276; Mensajes Directos</h1>
+                <h1 class="text-2xl font-bold text-slate-800">🔔 Mensajes Directos</h1>
                 <p class="text-slate-500 text-sm">Mensajes internos entre administradores.</p>
             </div>
-            <button onclick="openComposeModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-500 transition">&#9993; Nuevo Mensaje</button>
+            <button onclick="openComposeModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-500 transition">✉ Nuevo Mensaje</button>
         </div>
 
-        <!-- Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
                 <div class="text-2xl font-bold text-slate-800" id="stat-total">0</div>
@@ -50,7 +49,6 @@
             </div>
         </div>
 
-        <!-- Filtros -->
         <div class="flex gap-2 mb-4 flex-wrap">
             <button onclick="setFilter('all')" id="filter-all" class="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white">Todos</button>
             <button onclick="setFilter('unread')" id="filter-unread" class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Sin leer</button>
@@ -58,18 +56,16 @@
             <button onclick="setFilter('sent')" id="filter-sent" class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Enviados</button>
         </div>
 
-        <!-- Lista de mensajes -->
         <div id="messages-list" class="space-y-2">
             <div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Cargando mensajes...</div>
         </div>
     </div>
 
-    <!-- Modal: Ver Mensaje -->
     <div id="view-msg-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex items-center justify-between bg-slate-50">
                 <h2 class="text-lg font-bold text-slate-800" id="view-subject"></h2>
-                <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+                <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4 text-sm text-slate-500">
@@ -80,17 +76,16 @@
             </div>
             <div class="p-4 border-t flex justify-end gap-3">
                 <button onclick="closeViewModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300">Cerrar</button>
-                <button onclick="replyToMessage()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-500">&#8617; Responder</button>
+                <button onclick="replyToMessage()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-500">↩ Responder</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Componer Mensaje -->
     <div id="compose-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex items-center justify-between bg-slate-50">
-                <h2 class="text-lg font-bold text-slate-800">&#9993; Nuevo Mensaje</h2>
-                <button onclick="closeComposeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+                <h2 class="text-lg font-bold text-slate-800">✉ Nuevo Mensaje</h2>
+                <button onclick="closeComposeModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             <form id="compose-form" class="p-6 space-y-4">
                 <div>
@@ -108,7 +103,7 @@
                     <textarea id="compose-body" required rows="5" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none text-sm" placeholder="Escribe tu mensaje..."></textarea>
                 </div>
                 <div class="flex gap-3 pt-2">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">&#128228; Enviar</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">📤 Enviar</button>
                     <button type="button" onclick="closeComposeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300">Cancelar</button>
                 </div>
             </form>
@@ -117,11 +112,7 @@
 
     <script>
         requireAdmin();
-
-        var currentFilter = 'all';
-        var currentAdminId = null;
-        var allMessages = [];
-        var replyToAdminId = null;
+        var currentFilter = 'all', currentAdminId = null, allMessages = [], replyToAdminId = null;
 
         async function init() {
             var sessionData = await supabase.auth.getSession();
@@ -131,71 +122,38 @@
         }
 
         async function loadMessages() {
-            var { data: received, error: err1 } = await supabase.schema('v2')
-                .from('direct_messages')
-                .select('*')
-                .eq('recipient_admin_id', currentAdminId)
-                .order('created_at', { ascending: false });
-
-            var { data: sent, error: err2 } = await supabase.schema('v2')
-                .from('direct_messages')
-                .select('*')
-                .eq('sender_admin_id', currentAdminId)
-                .order('created_at', { ascending: false });
-
-            if (err1 || err2) {
-                document.getElementById('messages-list').innerHTML = '<div class="text-center py-8 text-red-500 bg-white rounded-xl border">Error cargando mensajes</div>';
-                return;
-            }
-
+            var { data: received, error: err1 } = await supabase.from('direct_messages').select('*').eq('recipient_admin_id', currentAdminId).order('created_at', { ascending: false });
+            var { data: sent, error: err2 } = await supabase.from('direct_messages').select('*').eq('sender_admin_id', currentAdminId).order('created_at', { ascending: false });
+            if (err1 || err2) { document.getElementById('messages-list').innerHTML = '<div class="text-center py-8 text-red-500 bg-white rounded-xl border">Error cargando mensajes</div>'; return; }
             var receivedMsgs = received || [];
             var sentMsgs = sent || [];
-
-            // Marcar mensajes enviados
             sentMsgs.forEach(function(m) { m._isSent = true; });
-
-            allMessages = receivedMsgs.concat(sentMsgs).sort(function(a, b) {
-                return new Date(b.created_at) - new Date(a.created_at);
-            });
-
-            // Stats
+            allMessages = receivedMsgs.concat(sentMsgs).sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
             document.getElementById('stat-total').textContent = receivedMsgs.length;
             document.getElementById('stat-unread').textContent = receivedMsgs.filter(function(m) { return !m.read_at; }).length;
             document.getElementById('stat-read').textContent = receivedMsgs.filter(function(m) { return m.read_at; }).length;
             document.getElementById('stat-sent').textContent = sentMsgs.length;
-
             renderMessages();
         }
 
         function setFilter(filter) {
             currentFilter = filter;
-            // Update button styles
             ['all', 'unread', 'read', 'sent'].forEach(function(f) {
                 var btn = document.getElementById('filter-' + f);
-                if (f === filter) {
-                    btn.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white';
-                } else {
-                    btn.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50';
-                }
+                btn.className = f === filter ? 'px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white' : 'px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50';
             });
             renderMessages();
         }
 
         function renderMessages() {
             var container = document.getElementById('messages-list');
-
             var filtered = allMessages.filter(function(m) {
                 if (currentFilter === 'unread') return !m._isSent && !m.read_at;
                 if (currentFilter === 'read') return !m._isSent && m.read_at;
                 if (currentFilter === 'sent') return m._isSent;
                 return true;
             });
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">No hay mensajes</div>';
-                return;
-            }
-
+            if (filtered.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">No hay mensajes</div>'; return; }
             container.innerHTML = filtered.map(function(m) {
                 var isSent = m._isSent;
                 var isUnread = !isSent && !m.read_at;
@@ -203,15 +161,8 @@
                 var badge = isSent ? '<span class="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-bold">ENVIADO</span>' :
                           (isUnread ? '<span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 font-bold">SIN LEER</span>' :
                            '<span class="px-2 py-0.5 rounded text-[10px] bg-green-100 text-green-700 font-bold">LEIDO</span>');
-
                 return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + cardClass + ' msg-card cursor-pointer" onclick="viewMessage(\'' + m.id + '\')">' +
-                    '<div class="flex items-center justify-between mb-1">' +
-                        '<div class="flex items-center gap-2 flex-wrap">' +
-                            '<span class="font-bold text-slate-800 text-sm">' + (m.subject || 'Sin asunto') + '</span>' +
-                            badge +
-                        '</div>' +
-                        '<span class="text-xs text-slate-400">' + formatDateTime(m.created_at) + '</span>' +
-                    '</div>' +
+                    '<div class="flex items-center justify-between mb-1"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800 text-sm">' + (m.subject || 'Sin asunto') + '</span>' + badge + '</div><span class="text-xs text-slate-400">' + formatDateTime(m.created_at) + '</span></div>' +
                     '<p class="text-sm text-slate-600 truncate">' + m.message + '</p>' +
                     '<p class="text-xs text-slate-400 mt-1">' + (isSent ? 'Para: ' + (m.recipient_admin_id ? 'Admin' : 'Desconocido') : 'De: ' + (m.sender_name || 'Admin')) + '</p>' +
                 '</div>';
@@ -221,89 +172,53 @@
         async function viewMessage(messageId) {
             var msg = allMessages.find(function(m) { return m.id === messageId; });
             if (!msg) return;
-
             document.getElementById('view-subject').textContent = msg.subject || 'Sin asunto';
             document.getElementById('view-sender').textContent = msg.sender_name || 'Admin';
             document.getElementById('view-date').textContent = formatDateTime(msg.created_at);
             document.getElementById('view-body').textContent = msg.message;
-
             replyToAdminId = msg.sender_admin_id;
-
             document.getElementById('view-msg-modal').classList.remove('hidden');
             document.getElementById('view-msg-modal').classList.add('flex');
-
-            // Mark as read if unread
             if (!msg._isSent && !msg.read_at) {
                 await markDirectMessageAsRead(messageId);
                 msg.read_at = new Date().toISOString();
                 renderMessages();
-                // Refresh badge
                 if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
             }
         }
 
-        function closeViewModal() {
-            document.getElementById('view-msg-modal').classList.add('hidden');
-            document.getElementById('view-msg-modal').classList.remove('flex');
-        }
+        function closeViewModal() { document.getElementById('view-msg-modal').classList.add('hidden'); document.getElementById('view-msg-modal').classList.remove('flex'); }
+        function replyToMessage() { closeViewModal(); if (replyToAdminId) openComposeModal(replyToAdminId); }
 
-        function replyToMessage() {
-            closeViewModal();
-            if (replyToAdminId) {
-                openComposeModal(replyToAdminId);
-            }
-        }
-
-        // Compose modal
         async function loadAdminRecipients() {
             var admins = await fetchAdminRecipients();
-            var options = admins.filter(function(a) { return a.id !== currentAdminId; }).map(function(a) {
-                return '<option value="' + a.id + '">' + (a.display_name || 'Admin') + ' (' + a.role + ')</option>';
-            }).join('');
+            var options = admins.filter(function(a) { return a.id !== currentAdminId; }).map(function(a) { return '<option value="' + a.id + '">' + (a.display_name || 'Admin') + ' (' + a.role + ')</option>'; }).join('');
             document.getElementById('compose-recipient').innerHTML = '<option value="">-- Seleccionar admin --</option>' + options;
         }
 
         function openComposeModal(preselectRecipientId) {
             document.getElementById('compose-form').reset();
-            if (preselectRecipientId) {
-                document.getElementById('compose-recipient').value = preselectRecipientId;
-            }
+            if (preselectRecipientId) document.getElementById('compose-recipient').value = preselectRecipientId;
             document.getElementById('compose-modal').classList.remove('hidden');
             document.getElementById('compose-modal').classList.add('flex');
         }
-
-        function closeComposeModal() {
-            document.getElementById('compose-modal').classList.add('hidden');
-            document.getElementById('compose-modal').classList.remove('flex');
-        }
+        function closeComposeModal() { document.getElementById('compose-modal').classList.add('hidden'); document.getElementById('compose-modal').classList.remove('flex'); }
 
         document.getElementById('compose-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             var recipientId = document.getElementById('compose-recipient').value;
             var subject = document.getElementById('compose-subject').value.trim();
             var body = document.getElementById('compose-body').value.trim();
-
             if (!recipientId) { showToast('Selecciona un destinatario', 'warning'); return; }
             if (!body) { showToast('Escribe un mensaje', 'warning'); return; }
-
             var result = await sendDirectMessage(recipientId, subject || null, body);
-            if (result.success) {
-                showToast('&#128228; Mensaje enviado', 'success');
-                closeComposeModal();
-                loadMessages();
-            } else {
-                showToast('Error: ' + result.message, 'error');
-            }
+            if (result.success) { showToast('Mensaje enviado', 'success'); closeComposeModal(); loadMessages(); }
+            else { showToast('Error: ' + result.message, 'error'); }
         });
 
-        // Check URL param for specific message
         var urlParams = new URLSearchParams(window.location.search);
         var msgId = urlParams.get('id');
-        if (msgId) {
-            // Will view after load
-            setTimeout(function() { viewMessage(msgId); }, 1000);
-        }
-
+        if (msgId) setTimeout(function() { viewMessage(msgId); }, 1000);
         init();
     </script>
 </body>
