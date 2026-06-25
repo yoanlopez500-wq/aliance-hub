@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug</title></head>
+<body>
+<pre id="log"></pre>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/base.js"></script>
+<script>
+var log = document.getElementById('log');
+function write(msg) { log.textContent += msg + '\n'; }
+
+write('=== DIAGNOSTICO ===');
+write('1. getPlayerData exists: ' + (typeof getPlayerData === 'function'));
+write('2. showLoading exists: ' + (typeof showLoading === 'function'));
+write('3. getStatusBadge exists: ' + (typeof getStatusBadge === 'function'));
+write('4. getTypeBadge exists: ' + (typeof getTypeBadge === 'function'));
+write('5. formatDate exists: ' + (typeof formatDate === 'function'));
+write('6. supabase exists: ' + (typeof supabase !== 'undefined'));
+write('7. supabase.from exists: ' + (typeof supabase !== 'undefined' && typeof supabase.from === 'function'));
+
+if (typeof supabase !== 'undefined') {
+    write('8. Testing Supabase query...');
+    supabase.from('matches').select('*,alliance:alliances!matches_alliance_id_fkey(name,tag)').eq('is_private', false).limit(1)
+        .then(function(r) {
+            write('9. Query OK: ' + JSON.stringify(r.data ? r.data.length + ' rows' : 'null'));
+            if (r.error) write('10. Error: ' + r.error.message);
+            else write('10. Match: ' + (r.data && r.data[0] ? r.data[0].name : 'no data'));
+        })
+        .catch(function(e) {
+            write('9. Query FAIL: ' + e.message);
+        });
+}
+
+window.onerror = function(msg, url, line) {
+    write('ONERROR: ' + msg + ' at ' + url + ':' + line);
+};
+</script>
+</body>
+</html>
