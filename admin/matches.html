@@ -186,8 +186,9 @@
             var statusFilter = document.getElementById('filter-status').value;
             var allianceFilter = document.getElementById('filter-alliance').value;
 
+            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
             var query = supabase.from('matches')
-                .select('*, alliances(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
+                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
                 .order('created_at', { ascending: false });
 
             if (typeFilter) query = query.eq('match_type', typeFilter);
@@ -210,7 +211,8 @@
 
             container.innerHTML = matches.map(function(m) {
                 var allianceLabel = '';
-                if (m.match_type === 'internal' && m.alliances) allianceLabel = '🏴 ' + m.alliances.name;
+                // FIX: usar 'alliance' (nombre de la relacion con FK explicita)
+                if (m.match_type === 'internal' && m.alliance) allianceLabel = '🏴 ' + m.alliance.name;
                 else if (m.match_type === 'duel' && m.alliance_a && m.alliance_b) allianceLabel = '⚔️ ' + m.alliance_a.name + ' vs ' + m.alliance_b.name;
 
                 var approvalBadge = m.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">👁️</span>' : '';
