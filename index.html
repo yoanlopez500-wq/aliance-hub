@@ -68,6 +68,7 @@
         </div>
     </div>
 
+    <!-- Banner PWA + Notificaciones -->
     <div id="pwa-install-banner" class="hidden bg-slate-800 border-b border-amber-500/30">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between gap-4">
@@ -79,6 +80,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="pwa-notify-btn" onclick="requestNotificationPermission()" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition" title="Recibe alertas de nuevas partidas">🔕 Activar notificaciones</button>
                     <button onclick="installPWA()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-400 transition whitespace-nowrap">Instalar</button>
                     <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">✕</button>
                 </div>
