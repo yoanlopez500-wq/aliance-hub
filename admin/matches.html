@@ -218,6 +218,36 @@
 
             allMatches = data || [];
             renderMatches(allMatches);
+
+            // Check for ?edit= parameter after matches are loaded
+            checkEditParameter();
+        }
+
+        // Check if URL has ?edit= parameter (from match-detail "Editar" button)
+        function checkEditParameter() {
+            var editId = new URLSearchParams(window.location.search).get('edit');
+            if (!editId) return;
+
+            var found = allMatches.find(function(m) { return m.id === editId; });
+            if (found) {
+                editMatch(editId);
+            } else {
+                // Match not in current filtered view, fetch it
+                supabase.schema('v2').from('matches')
+                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
+                    .eq('id', editId).single()
+                    .then(function(r) {
+                        if (r.data) {
+                            allMatches.unshift(r.data);
+                            renderMatches(allMatches);
+                            editMatch(editId);
+                        } else {
+                            showToast('Partida no encontrada', 'error');
+                        }
+                    });
+            }
+            // Clean URL without reloading
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         function renderMatches(matches) {
