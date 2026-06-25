@@ -15,8 +15,8 @@
     <div id="admin-nav"></div>
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">&#127988; Alianzas</h1>
-            <button onclick="openAllianceModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">&#10133; Nueva</button>
+            <h1 class="text-2xl font-bold text-slate-800">🏴 Alianzas</h1>
+            <button onclick="openAllianceModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
         </div>
         <div id="alliances-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div class="text-center py-8 text-slate-400 col-span-full">Cargando...</div>
@@ -24,26 +24,62 @@
     </div>
     <script>
         requireAdmin();
+
         async function loadAlliances() {
-            var { data, error } = await supabase.schema('v2').from('alliances').select('*, players(count)').order('name');
             var container = document.getElementById('alliances-list');
-            if (error) { container.innerHTML = '<div class="text-center py-8 text-red-400 col-span-full">Error: ' + error.message + '</div>'; return; }
-            var alliances = data || [];
-            if (alliances.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 col-span-full">Sin alianzas</div>'; return; }
-            container.innerHTML = alliances.map(function(a) {
-                return '<div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition">' +
-                    '<div class="flex items-center gap-3 mb-3">' +
-                        '<div class="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">' + (a.tag || a.name.charAt(0).toUpperCase()) + '</div>' +
-                        '<div><h3 class="font-bold text-slate-800">' + a.name + '</h3><p class="text-xs text-slate-400">[' + (a.tag || '') + ']</p></div>' +
-                    '</div>' +
-                    '<p class="text-sm text-slate-500 mb-2">' + (a.description || 'Sin descripcion') + '</p>' +
-                    '<div class="flex items-center justify-between text-xs text-slate-400">' +
-                        '<span>&#128101; ' + (a.players?.count || 0) + ' jugadores</span>' +
-                        '<span>' + (a.is_active !== false ? '<span class="text-green-600 font-bold">Activa</span>' : '<span class="text-slate-400">Inactiva</span>') + '</span>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
+            try {
+                // 1. Traer alianzas SIN foreign table ambigua
+                var { data: alliances, error } = await supabase.schema('v2').from('alliances').select('*').order('name');
+                if (error) throw error;
+                if (!alliances || alliances.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-slate-400 col-span-full">Sin alianzas</div>';
+                    return;
+                }
+
+                // 2. Contar jugadores por alianza (usando players.current_alliance_id)
+                var { data: playerCounts, error: cErr } = await supabase.schema('v2')
+                    .from('players')
+                    .select('current_alliance_id, count')
+                    .not('current_alliance_id', 'is', null)
+                    .group('current_alliance_id');
+
+                var countMap = {};
+                if (!cErr && playerCounts) {
+                    playerCounts.forEach(function(row) {
+                        countMap[row.current_alliance_id] = parseInt(row.count) || 0;
+                    });
+                }
+
+                // Si el group no funciona, fallback: traer todos los players y contar manual
+                if (cErr) {
+                    var { data: allPlayers } = await supabase.schema('v2').from('players').select('current_alliance_id').not('current_alliance_id', 'is', null);
+                    if (allPlayers) {
+                        allPlayers.forEach(function(p) {
+                            var aid = p.current_alliance_id;
+                            countMap[aid] = (countMap[aid] || 0) + 1;
+                        });
+                    }
+                }
+
+                container.innerHTML = alliances.map(function(a) {
+                    var memberCount = countMap[a.id] || 0;
+                    return '<div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition">' +
+                        '<div class="flex items-center gap-3 mb-3">' +
+                            '<div class="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">' + (a.tag || a.name.charAt(0).toUpperCase()) + '</div>' +
+                            '<div><h3 class="font-bold text-slate-800">' + a.name + '</h3><p class="text-xs text-slate-400">[' + (a.tag || '') + ']</p></div>' +
+                        '</div>' +
+                        '<p class="text-sm text-slate-500 mb-2">' + (a.description || 'Sin descripcion') + '</p>' +
+                        '<div class="flex items-center justify-between text-xs text-slate-400">' +
+                            '<span>👥 ' + memberCount + ' jugadores</span>' +
+                            '<span>' + (a.status === 'active' ? '<span class="text-green-600 font-bold">Activa</span>' : '<span class="text-slate-400">Inactiva</span>') + '</span>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            } catch(e) {
+                container.innerHTML = '<div class="text-center py-8 text-red-400 col-span-full">Error: ' + e.message + '</div>';
+            }
         }
+
         function openAllianceModal() { showToast('Funcion en desarrollo', 'info'); }
         loadAlliances();
     </script>
