@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Chat - Alliance Hub V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/base.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: msgIn 0.18s ease; }
+        .typing-dot::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
+        @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
+        html, body { height: 100dvh; overflow: hidden; }
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
+        #chat-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+        #chat-sidebar.open { transform: translateX(0); }
+        @media(min-width:768px){ #chat-sidebar{transform:none!important;position:relative!important} #sidebar-overlay{display:none!important} }
+        .chan-active { background:#fef3c7!important; border:1px solid #f59e0b!important; font-weight:700; }
+        .date-sep { position:sticky; top:4px; z-index:5; }
+        .bubble-mine { border-bottom-right-radius:3px; background:#f59e0b; color:#1e293b; }
+        .bubble-other { border-bottom-left-radius:3px; background:#f1f5f9; color:#334155; }
+        .dot-online { animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .scroll-btn { transition:opacity 0.2s, transform 0.2s; }
+        .scroll-btn.hidden-btn { opacity:0; transform:scale(0.8); pointer-events:none; }
+        .msg-delivered { opacity:0.7; }
+        .msg-failed { opacity:0.6; border:1px solid #ef4444!important; }
+        .retry-btn { font-size:10px; color:#ef4444; cursor:pointer; text-decoration:underline; }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+    </style>
+</head>
+<body class="bg-slate-100 flex flex-col overflow-hidden">
+    <div id="admin-nav"></div>
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="text-center text-white max-w-sm">
+            <div class="text-5xl mb-4">🔒</div>
+            <h2 class="text-2xl font-bold mb-2">Acceso Restringido</h2>
+            <p class="text-slate-400 mb-6">Solo para administradores y lideres de alianza.</p>
+            <a href="index.html" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400">Volver al inicio</a>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading-screen" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+            <div class="animate-spin text-4xl mb-4 inline-block">⏳</div>
+            <p class="text-slate-500">Verificando acceso...</p>
+        </div>
+    </div>
+
+    <!-- Chat -->
+    <div id="chat-interface" class="flex-1 flex overflow-hidden hidden relative">
+        <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden"></div>
+
+        <!-- Sidebar -->
+        <div id="chat-sidebar" class="fixed md:relative z-40 w-72 md:w-56 bg-slate-800 text-white flex flex-col border-r border-slate-700 h-full shrink-0">
+            <div class="p-3 border-b border-slate-700 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-amber-400">💬 Chat</h2>
+                    <p class="text-[10px] text-slate-400" id="my-role-display">-</p>
+                </div>
+                <button onclick="closeSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
+                <p class="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider font-bold">Canales</p>
+                <div id="global-channels" class="space-y-0.5"></div>
+                <div class="border-t border-slate-700 my-2"></div>
+                <div class="flex items-center justify-between px-2 py-1">
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Directos</p>
+                    <button onclick="openDMSearch()" class="text-amber-400 hover:text-amber-300 text-xs px-1">➕</button>
+                </div>
+                <div id="dm-list" class="space-y-0.5"></div>
+            </div>
+            <div class="p-2 border-t border-slate-700 text-center text-[10px] text-slate-500">
+                💾 Ultimos 30 mensajes por canal
+            </div>
+        </div>
+
+        <!-- Main -->
+        <div class="flex-1 flex flex-col bg-white min-w-0 relative">
+            <!-- Header -->
+            <div class="bg-white border-b border-slate-200 px-3 md:px-4 py-2.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <button onclick="openSidebar()" class="md:hidden text-slate-600 p-1 shrink-0">☰</button>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-bold text-slate-800 truncate" id="channel-title">-</h3>
+                        <p class="text-[11px] text-slate-500 flex items-center gap-1" id="channel-status">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dot-online" id="status-dot"></span>
+                            <span id="status-text">...</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-scroll" class="flex-1 overflow-y-auto px-3 md:px-4 py-3 bg-slate-50 relative">
+                <div class="text-center py-12 text-slate-400">
+                    <div class="text-4xl mb-3">💬</div>
+                    <p class="text-sm">Selecciona un canal</p>
+                </div>
+            </div>
+
+            <!-- Scroll to bottom button -->
+            <button id="scroll-btn" onclick="scrollToBottom(true)" class="scroll-btn hidden-btn absolute bottom-24 right-4 w-9 h-9 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 z-10 text-sm">⬇</button>
+
+            <!-- Input -->
+            <div class="border-t border-slate-200 px-3 md:px-4 pt-2.5 pb-2.5 safe-bottom bg-white shrink-0" style="padding-bottom: max(env(safe-area-inset-bottom, 16px), 20px);">
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="chat-input"
+                        class="flex-1 border border-slate-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-slate-50"
+                        placeholder="Mensaje..."
+                        onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button onclick="sendMessage()"
+                        class="bg-amber-500 text-white w-10 h-10 rounded-full font-bold hover:bg-amber-400 transition flex items-center justify-center text-lg shrink-0 shadow-md">
+                        ➤
+                    </button>
+                </div>
+                <div id="typing-indicator" class="text-[11px] text-slate-400 mt-1 h-4 pl-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DM Modal -->
+    <div id="dm-search-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <h3 class="font-bold text-slate-800 mb-3">💬 Nuevo Directo</h3>
+            <input type="text" id="dm-search-input" placeholder="Buscar..."
+                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3 text-sm"
+                onkeyup="searchDMUsers()">
+            <div id="dm-search-results" class="space-y-1 max-h-60 overflow-y-auto"></div>
+            <button onclick="closeDMSearch()" class="mt-3 w-full py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <h3 class="font-bold text-red-700 mb-2">🚩 Reportar</h3>
+            <div class="bg-amber-50 rounded-lg p-3 mb-3 text-sm">
+                <p class="text-slate-600">"<span id="report-msg-text" class="font-medium"></span>"</p>
+                <p class="text-[11px] text-slate-400 mt-1">de: <span id="report-msg-sender"></span></p>
+            </div>
+            <select id="report-reason" class="w-full px-3 py-2 rounded-lg border border-slate-300 mb-3 text-sm">
+                <option value="spam">Spam</option>
+                <option value="harassment">Acoso</option>
+                <option value="inappropriate">Inapropiado</option>
+                <option value="other">Otro</option>
+            </select>
+            <div class="flex gap-3">
+                <button onclick="submitReport()" class="flex-1 bg-red-500 text-white font-bold py-2 rounded-lg hover:bg-red-400 text-sm">Reportar</button>
+                <button onclick="closeReportModal()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg hover:bg-slate-200 text-sm">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ROLE_H = { moderator:1, alliance_leader:2, event_admin:3, superadmin:4 };
+        const CHANS = {
+            admin_global:     { name:'🌐 Global Admin',   desc:'Todos los admins',      minRole:'moderator' },
+            alliance_global:  { name:'🏴 Global Lideres', desc:'Lideres de alianzas',   minRole:'alliance_leader' }
+        };
+        const LS_DM = 'ah_chat_dms_v2';
+        const MAX_LOCAL = 200;
+
+        let me = null, curChan = null, rtSub = null, pgSub = null;
+        let admins = [], dms = [], reportMsg = null, typingTimer;
+        let msgCache = new Map();
+
+        function hasRole(r, minR) { return (ROLE_H[r]||0) >= (ROLE_H[minR]||0); }
+        function fmtRole(r) { const n={superadmin:'Super Admin',event_admin:'Admin Eventos',alliance_leader:'Lider',moderator:'Moderador'}; return n[r]||r; }
+        function esc(t) { if(!t)return''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+        function fmtTime(ts) { return ts ? new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : ''; }
+        function fmtDate(ts) { const d=new Date(ts),n=new Date(); if(d.toDateString()===n.toDateString())return'Hoy'; const y=new Date();y.setDate(y.getDate()-1); if(d.toDateString()===y.toDateString())return'Ayer'; return d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}); }
+
+        function dbChan(ch) {
+            if(ch.startsWith('dm-')) {
+                const oid = ch.replace('dm-', '');
+                const ids = [me.id, oid].sort();
+                return 'dm:' + ids[0].slice(0,8) + ':' + ids[1].slice(0,8);
+            }
+            return ch;
+        }
+        function broadcastChan(ch) { return 'rt_' + dbChan(ch).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+        function getCache(ch) { return msgCache.get(dbChan(ch)) || []; }
+        function setCache(ch, msgs) { msgCache.set(dbChan(ch), msgs.slice(-MAX_LOCAL)); }
+        function addToCache(ch, msg) {
+            const dbc = dbChan(ch);
+            const msgs = msgCache.get(dbc) || [];
+            if(msgs.some(m => m.id === msg.id)) return false;
+            msgs.push(msg);
+            msgCache.set(dbc, msgs.slice(-MAX_LOCAL));
+            return true;
+        }
+
+        async function init() {
+            const {data:{session}} = await supabase.auth.getSession();
+            if(!session){ showDeny(); return; }
+            const {data:adm,error} = await supabase.from('admin_users').select('*,alliances(name)').eq('id',session.user.id).eq('status','active').maybeSingle();
+            if(error||!adm || (!hasRole(adm.role,'moderator')&&!hasRole(adm.role,'alliance_leader'))){ showDeny(); return; }
+            me = { id:session.user.id, name:adm.display_name||session.user.email.split('@')[0], role:adm.role, alliance:adm.alliances?.name||'' };
+            document.getElementById('my-role-display').textContent = fmtRole(me.role) + (me.alliance?' — '+me.alliance:'');
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('chat-interface').classList.remove('hidden');
+            await loadAdmins();
+            loadDMs();
+            renderChans(); renderDMList();
+            const defaultChan = hasRole(me.role,'moderator') ? 'admin_global' : 'alliance_global';
+            switchChan(defaultChan);
+        }
+        function showDeny() { document.getElementById('loading-screen').classList.add('hidden'); document.getElementById('access-denied').classList.remove('hidden'); }
+
+        async function loadAdmins() {
+            try {
+                const {data} = await supabase.from('admin_users').select('id,role,display_name,alliance_id,alliances(name,tag)').eq('status','active').neq('id', me.id);
+                admins = data || [];
+            } catch(e) { admins = []; }
+        }
+
+        function loadDMs() {
+            try { const r = localStorage.getItem(LS_DM); if(r) dms = JSON.parse(r) || []; } catch(e) { dms = []; }
+        }
+        function saveDMs() {
+            try { localStorage.setItem(LS_DM, JSON.stringify(dms)); } catch(e) {}
+        }
+
+        function openSidebar() { document.getElementById('chat-sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.remove('hidden'); }
+        function closeSidebar() { document.getElementById('chat-sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.add('hidden'); }
+
+        function renderChans() {
+            const el = document.getElementById('global-channels');
+            let h = '';
+            Object.keys(CHANS).forEach(k => {
+                const c = CHANS[k]; if(!hasRole(me.role, c.minRole)) return;
+                h += `<button id="ch-${k}" onclick="switchChan('${k}');closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${curChan===k?'chan-active':''}">
+                    <span class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm shrink-0">${c.name.charAt(0)}</span>
+                    <div class="min-w-0"><div class="font-medium truncate">${c.name}</div><div class="text-[10px] text-slate-400 truncate">${c.desc}</div></div>
+                </button>`;
+            });
+            el.innerHTML = h || '<p class="text-xs text-slate-500 px-3">Sin canales</p>';
+        }
+
+        function renderDMList() {
+            const el = document.getElementById('dm-list');
+            if(!dms.length){ el.innerHTML='<p class="text-xs text-slate-500 px-3 py-2">Sin conversaciones</p>'; return; }
+            el.innerHTML = dms.map(dm => {
+                const a = admins.find(x => x.id === dm.id);
+                const n = a ? (a.display_name || 'Admin') : 'Desconocido';
+                const t = a?.alliances ? ` [${a.alliances.tag}]` : '';
+                const cid = `dm-${dm.id}`;
+                return `<button id="ch-${cid}" onclick="switchChan('${cid}');closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${curChan===cid?'chan-active':''}">
+                    <span class="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-xs shrink-0">💬</span>
+                    <div class="min-w-0"><div class="font-medium truncate">${n}${t}</div><div class="text-[10px] text-slate-400">${a?fmtRole(a.role):''}</div></div>
+                </button>`;
+            }).join('');
+        }
+
+        function openDMSearch() { document.getElementById('dm-search-modal').classList.remove('hidden'); document.getElementById('dm-search-modal').classList.add('flex'); document.getElementById('dm-search-input').value=''; document.getElementById('dm-search-results').innerHTML=''; document.getElementById('dm-search-input').focus(); }
+        function closeDMSearch() { document.getElementById('dm-search-modal').classList.add('hidden'); document.getElementById('dm-search-modal').classList.remove('flex'); }
+        function searchDMUsers() {
+            const q = document.getElementById('dm-search-input').value.toLowerCase().trim();
+            const el = document.getElementById('dm-search-results');
+            if(!q){ el.innerHTML=''; return; }
+            const f = admins.filter(a => (a.display_name||'').toLowerCase().includes(q) || (a.alliances?.name||'').toLowerCase().includes(q));
+            el.innerHTML = f.length ? f.map(a => `<button onclick="startDM('${a.id}')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">👤</span><div><div class="font-medium text-sm">${a.display_name||'Admin'}${a.alliances?` [${a.alliances.tag}]`:''}</div><div class="text-[11px] text-slate-500">${fmtRole(a.role)}</div></div></button>`).join('') : '<p class="text-sm text-slate-400 text-center py-4">Sin resultados</p>';
+        }
+        function startDM(aid) {
+            if(!dms.some(d => d.id === aid)){ dms.push({id:aid}); saveDMs(); renderDMList(); }
+            closeDMSearch();
+            switchChan(`dm-${aid}`);
+        }
+
+        async function switchChan(ch) {
+            if(curChan === ch) return;
+            if(rtSub){ try{ await rtSub.unsubscribe(); }catch(e){} rtSub = null; }
+            if(pgSub){ try{ await pgSub.unsubscribe(); }catch(e){} pgSub = null; }
+            curChan = ch;
+            const title = document.getElementById('channel-title');
+            const desc = document.getElementById('channel-status');
+            if(ch.startsWith('dm-')){
+                const oid = ch.replace('dm-', '');
+                const a = admins.find(x => x.id === oid);
+                title.textContent = a ? `💬 ${a.display_name}` : '💬 Directo';
+                desc.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 dot-online"></span><span>${a ? fmtRole(a.role) + (a.alliances ? ` — ${a.alliances.name}` : '') : 'Privado'}</span>`;
+            } else {
+                const c = CHANS[ch];
+                title.textContent = c ? c.name : ch;
+                desc.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 dot-online"></span><span>${c ? c.desc : ''}</span>`;
+            }
+            document.querySelectorAll('.chan-active').forEach(el => el.classList.remove('chan-active'));
+            const btn = document.getElementById('ch-'+ch); if(btn) btn.classList.add('chan-active');
+            await loadHistory(ch);
+            connectRT(ch);
+        }
+
+        async function loadHistory(ch) {
+            const dbc = dbChan(ch);
+            const el = document.getElementById('chat-scroll');
+            el.innerHTML = '<div class="text-center py-8 text-slate-400"><div class="animate-spin text-2xl mb-2 inline-block">⏳</div><p class="text-xs">Cargando historial...</p></div>';
+            try {
+                const { data, error } = await supabase.from('chat_messages').select('*').eq('channel', dbc).order('created_at', { ascending: true }).limit(30);
+                if(error) throw error;
+                const msgs = (data || []).map(row => ({ id: 'db_' + row.id, sid: row.sender_admin_id, name: row.sender_name, role: row.sender_role, text: row.message, type: row.message_type || 'text', ts: row.created_at, persisted: true }));
+                setCache(ch, msgs);
+                renderMsgs(msgs);
+            } catch(e) {
+                console.error('Error loading history:', e);
+                setCache(ch, []);
+                el.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">Sin mensajes previos. Escribe algo!</p></div>';
+            }
+        }
+
+        function renderMsgs(msgs) {
+            const el = document.getElementById('chat-scroll');
+            if(!msgs || !msgs.length){ el.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">Sin mensajes. Escribe algo!</p></div>'; return; }
+            let h = ''; let lastD = null;
+            msgs.forEach(m => {
+                const cd = new Date(m.ts).toDateString();
+                if(lastD !== cd){ h += `<div class="date-sep flex justify-center my-3"><span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(m.ts)}</span></div>`; lastD = cd; }
+                h += msgHTML(m);
+            });
+            el.innerHTML = h;
+            scrollToBottom(true);
+        }
+
+        function msgHTML(m) {
+            if(m.type === 'sys') return `<div class="flex justify-center my-2"><span class="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">${esc(m.text)}</span></div>`;
+            const isMe = m.sid === me.id;
+            const t = fmtTime(m.ts);
+            const rep = (!isMe && m.sid) ? `<button onclick="openReport('${esc(m.text)}','${esc(m.name)}')" class="ml-1 text-[10px] text-red-400 opacity-0 group-hover:opacity-100 transition">🚩</button>` : '';
+            const del = !m.persisted ? '<span class="text-[10px] opacity-40 ml-1">⏳</span>' : '';
+            const fail = m.failed ? '<span class="retry-btn ml-1" onclick="retrySend(this)">Reintentar</span>' : '';
+            const cls = isMe ? 'bubble-mine' : 'bubble-other';
+            const al = isMe ? 'justify-end' : 'justify-start';
+            const nc = isMe ? 'text-amber-900' : 'text-slate-500';
+            const ocls = m.failed ? ' msg-failed' : (!m.persisted ? ' msg-delivered' : '');
+            return `<div class="msg-in group flex ${al} mb-1.5 px-1" data-msg-id="${m.id}" data-msg-text="${esc(m.text)}">
+                <div class="max-w-[85%] md:max-w-[60%] ${cls}${ocls} rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                    <div class="flex items-center gap-1.5 mb-0.5 flex-wrap"><span class="text-[11px] font-bold ${nc}">${esc(m.name)}</span>${m.role?`<span class="text-[10px] px-1 py-0.5 rounded bg-white/40">${fmtRole(m.role)}</span>`:''}<span class="text-[10px] opacity-50">${t}</span>${del}${rep}${fail}</div>
+                    <div class="text-sm whitespace-pre-wrap break-words leading-relaxed">${esc(m.text)}</div>
+                </div>
+            </div>`;
+        }
+
+        function appendMsg(msg) {
+            const el = document.getElementById('chat-scroll');
+            const empty = el.querySelector('.text-center');
+            if(empty) empty.remove();
+            const msgs = getCache(curChan);
+            const prev = msgs[msgs.length - 2];
+            if(prev && new Date(prev.ts).toDateString() !== new Date(msg.ts).toDateString()){
+                const s = document.createElement('div');
+                s.className = 'date-sep flex justify-center my-3';
+                s.innerHTML = `<span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(msg.ts)}</span>`;
+                el.appendChild(s);
+            }
+            const d = document.createElement('div');
+            d.innerHTML = msgHTML(msg);
+            el.appendChild(d.firstElementChild);
+            scrollToBottom();
+        }
+
+        function updateMsgStatus(msgId, status) {
+            const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+            if(!el) return;
+            const bubble = el.querySelector('[class*="max-w-"]');
+            if(!bubble) return;
+            if(status === 'persisted') {
+                bubble.classList.remove('msg-delivered');
+                const pending = bubble.querySelector('.opacity-40');
+                if(pending) pending.remove();
+            } else if(status === 'failed') {
+                bubble.classList.add('msg-failed');
+                bubble.classList.remove('msg-delivered');
+                const pending = bubble.querySelector('.opacity-40');
+                if(pending) pending.remove();
+                const actions = bubble.querySelector('.flex.items-center.gap-1');
+                if(actions && !actions.querySelector('.retry-btn')) {
+                    const rb = document.createElement('span');
+                    rb.className = 'retry-btn ml-1';
+                    rb.textContent = 'Reintentar';
+                    rb.onclick = function() { retrySend(this); };
+                    actions.appendChild(rb);
+                }
+            }
+        }
+
+        function scrollToBottom(force) {
+            const el = document.getElementById('chat-scroll');
+            const near = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+            if(force || near) el.scrollTop = el.scrollHeight;
+            if(!force){ const btn = document.getElementById('scroll-btn'); if(near) btn.classList.add('hidden-btn'); else btn.classList.remove('hidden-btn'); }
+        }
+        document.getElementById('chat-scroll').addEventListener('scroll', function(){
+            const el = this;
+            const near = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+            const btn = document.getElementById('scroll-btn');
+            if(near) btn.classList.add('hidden-btn');
+            else btn.classList.remove('hidden-btn');
+        });
+
+        function connectRT(ch) {
+            const bc = broadcastChan(ch);
+            const dbc = dbChan(ch);
+            document.getElementById('status-dot').className = 'w-1.5 h-1.5 rounded-full bg-yellow-400 dot-online';
+            document.getElementById('status-text').textContent = 'Conectando...';
+            rtSub = supabase.channel(bc, { config:{ broadcast:{ self:false } } });
+            rtSub
+                .on('broadcast', { event:'msg' }, p => {
+                    const m = p.payload;
+                    if(m.sid === me.id) return;
+                    if(addToCache(ch, m)) appendMsg(m);
+                })
+                .on('broadcast', { event:'typing' }, p => {
+                    const ind = document.getElementById('typing-indicator');
+                    if(p.payload.sid !== me.id){
+                        ind.textContent = `${p.payload.name} esta escribiendo...`;
+                        ind.classList.add('typing-dot');
+                        clearTimeout(typingTimer);
+                        typingTimer = setTimeout(() => { ind.textContent=''; ind.classList.remove('typing-dot'); }, 3000);
+                    }
+                })
+                .subscribe(st => {
+                    const dot = document.getElementById('status-dot');
+                    const txt = document.getElementById('status-text');
+                    if(st === 'SUBSCRIBED'){ dot.className='w-1.5 h-1.5 rounded-full bg-green-500 dot-online'; txt.textContent='En linea'; }
+                    else if(st==='CLOSED'||st==='CHANNEL_ERROR'){ dot.className='w-1.5 h-1.5 rounded-full bg-red-400 dot-online'; txt.textContent='Desconectado'; }
+                    else { dot.className='w-1.5 h-1.5 rounded-full bg-yellow-400 dot-online'; txt.textContent='Conectando...'; }
+                });
+
+            pgSub = supabase.channel('pg_' + bc)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `channel=eq.${dbc}` }, payload => {
+                    const row = payload.new;
+                    const msg = { id: 'db_' + row.id, sid: row.sender_admin_id, name: row.sender_name, role: row.sender_role, text: row.message, type: row.message_type || 'text', ts: row.created_at, persisted: true };
+                    if(msg.sid === me.id) {
+                        const cached = getCache(ch);
+                        const pending = cached.find(m => m.sid === me.id && !m.persisted && m.text === msg.text);
+                        if(pending) { pending.id = msg.id; pending.persisted = true; updateMsgStatus(pending.id, 'persisted'); }
+                        else if(addToCache(ch, msg)) appendMsg(msg);
+                    } else {
+                        if(addToCache(ch, msg)) appendMsg(msg);
+                    }
+                })
+                .subscribe();
+        }
+
+        async function sendMessage() {
+            const inp = document.getElementById('chat-input');
+            const txt = inp.value.trim();
+            if(!txt || !curChan) return;
+            inp.value = '';
+            const dbc = dbChan(curChan);
+            const tempId = 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+            const msg = { id: tempId, sid: me.id, name: me.name, role: me.role, text: txt, type: 'text', ts: new Date().toISOString(), persisted: false };
+            addToCache(curChan, msg);
+            appendMsg(msg);
+            try {
+                const { data: inserted, error } = await supabase.from('chat_messages').insert({ channel: dbc, sender_admin_id: me.id, sender_name: me.name, sender_role: me.role, message: txt, message_type: 'text' }).select().single();
+                if(error) throw error;
+                msg.id = 'db_' + inserted.id;
+                msg.persisted = true;
+                updateMsgStatus(tempId, 'persisted');
+                if(rtSub) await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
+            } catch(e) {
+                console.error('Error persisting message:', e);
+                msg.failed = true;
+                updateMsgStatus(tempId, 'failed');
+                if(rtSub) await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
+            }
+        }
+
+        document.getElementById('chat-input').addEventListener('input', function(){
+            if(rtSub && me) rtSub.send({type:'broadcast',event:'typing',payload:{sid:me.id,name:me.name}});
+        });
+
+        function retrySend(el) {
+            const msgEl = el.closest('[data-msg-id]');
+            if(!msgEl) return;
+            const text = msgEl.getAttribute('data-msg-text');
+            if(!text) return;
+            const dbc = dbChan(curChan);
+            const cached = msgCache.get(dbc) || [];
+            const idx = cached.findIndex(m => m.id === msgEl.getAttribute('data-msg-id'));
+            if(idx > -1) cached.splice(idx, 1);
+            msgEl.remove();
+            document.getElementById('chat-input').value = text;
+            sendMessage();
+        }
+
+        function openReport(text, sender){
+            reportMsg = {text:text, sender:sender};
+            document.getElementById('report-msg-text').textContent = text;
+            document.getElementById('report-msg-sender').textContent = sender;
+            document.getElementById('report-reason').value = 'spam';
+            document.getElementById('report-modal').classList.remove('hidden');
+            document.getElementById('report-modal').classList.add('flex');
+        }
+        function closeReportModal(){
+            document.getElementById('report-modal').classList.add('hidden');
+            document.getElementById('report-modal').classList.remove('flex');
+            reportMsg = null;
+        }
+        async function submitReport(){
+            if(!reportMsg) return;
+            try {
+                await supabase.from('chat_reports').insert({ channel: dbChan(curChan), reporter_id: me.id, reporter_name: me.name, reason: document.getElementById('report-reason').value, message_preview: reportMsg.text });
+                showToast('Reporte enviado', 'success');
+                closeReportModal();
+            } catch(e) { showToast('Error al reportar', 'error'); }
+        }
+        document.getElementById('dm-search-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeDMSearch(); });
+        document.getElementById('report-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeReportModal(); });
+
+        init();
+    </script>
+</body>
+</html>

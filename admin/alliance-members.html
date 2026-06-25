@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miembros de Alianza V2 - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/base.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/pwa-utils.js"></script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div id="header-section" class="mb-6">
+            <div class="text-center py-12 text-slate-400">Cargando...</div>
+        </div>
+
+        <!-- Solicitudes pendientes -->
+        <div id="pending-section" class="hidden mb-6">
+            <h2 class="font-bold text-slate-800 mb-3">⏳ Solicitudes Pendientes</h2>
+            <div id="pending-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden"></div>
+        </div>
+
+        <!-- Miembros aprobados -->
+        <div id="members-section" class="mb-6">
+            <h2 class="font-bold text-slate-800 mb-3">👥 Miembros Aprobados</h2>
+            <div id="members-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="text-center py-8 text-slate-400">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        requireAdmin();
+
+        async function init() {
+            var admin = await getAdminRole();
+
+            if (!admin.alliance_id) {
+                document.getElementById('header-section').innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">⚠️</div><h2 class="text-xl font-bold text-slate-800">No tienes alianza asignada</h2><p class="text-slate-500 mt-2">Contacta al superadmin para que te asigne una alianza.</p></div>';
+                document.getElementById('members-section').classList.add('hidden');
+                return;
+            }
+
+            var { data: alliance } = await supabase
+                .from('alliances')
+                .select('*')
+                .eq('id', admin.alliance_id)
+                .single();
+
+            document.getElementById('header-section').innerHTML =
+                '<div class="bg-white rounded-xl border border-slate-200 p-6 flex items-center justify-between">' +
+                    '<div>' +
+                        '<div class="flex items-center gap-2 mb-1"><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700 font-bold">TU ALIANZA</span></div>' +
+                        '<h1 class="text-2xl font-bold text-slate-800">' + alliance.name + ' <span class="text-slate-500 text-lg">[' + alliance.tag + ']</span></h1>' +
+                        '<p class="text-slate-500 text-sm">' + (alliance.description || 'Sin descripción') + '</p>' +
+                    '</div>' +
+                    '<div class="text-right"><a href="alliances.html" class="text-sm text-amber-600 hover:text-amber-700 font-medium">Editar alianza →</a></div>' +
+                '</div>';
+
+            loadMembers(admin.alliance_id);
+        }
+
+        async function loadMembers(allianceId) {
+            // Solicitudes pendientes
+            var { data: pending } = await supabase
+                .from('alliance_memberships')
+                .select('*, players(current_username)')
+                .eq('alliance_id', allianceId)
+                .eq('status', 'pending')
+                .order('requested_at', { ascending: false });
+
+            if (pending && pending.length > 0) {
+                document.getElementById('pending-section').classList.remove('hidden');
+                document.getElementById('pending-list').innerHTML = pending.map(function(m) {
+                    return '<div class="flex items-center justify-between p-4 border-b">' +
+                        '<div>' +
+                            '<p class="font-medium">' + (m.players?.current_username || 'Jugador ' + m.player_id) + ' (ID: ' + m.player_id + ')</p>' +
+                            '<p class="text-xs text-slate-500">Solicitado: ' + formatDateTime(m.requested_at) + '</p>' +
+                        '</div>' +
+                        '<div class="flex gap-2">' +
+                            '<button onclick="approveMember(' + m.player_id + ')" class="px-3 py-1 bg-green-500 text-white rounded text-sm font-bold hover:bg-green-400">✓ Aprobar</button>' +
+                            '<button onclick="rejectMember(' + m.player_id + ')" class="px-3 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">✕ Rechazar</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            } else {
+                document.getElementById('pending-section').classList.add('hidden');
+            }
+
+            // Miembros aprobados
+            var { data: members } = await supabase
+                .from('alliance_memberships')
+                .select('*, players(current_username, total_kills, total_deaths, games_played, strikes, status)')
+                .eq('alliance_id', allianceId)
+                .eq('status', 'approved')
+                .order('approved_at', { ascending: false });
+
+            var container = document.getElementById('members-list');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin miembros aprobados</div>';
+                return;
+            }
+
+            container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Jugador</th><th class="text-right p-3">Partidas</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-right p-3">Strikes</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>' +
+                members.map(function(m) {
+                    var p = m.players;
+                    var kd = p && p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : (p ? p.total_kills : 0);
+                    return '<tr class="border-b hover:bg-slate-50">' +
+                        '<td class="p-3 font-medium">' + (p?.current_username || 'Jugador ' + m.player_id) + '</td>' +
+                        '<td class="p-3 text-right">' + (p?.games_played || 0) + '</td>' +
+                        '<td class="p-3 text-right text-green-600 font-bold">' + ((p?.total_kills || 0).toLocaleString()) + '</td>' +
+                        '<td class="p-3 text-right text-red-500">' + ((p?.total_deaths || 0).toLocaleString()) + '</td>' +
+                        '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + kd + '</td>' +
+                        '<td class="p-3 text-right font-bold ' + ((p?.strikes || 0) >= 2 ? 'text-red-600' : 'text-slate-600') + '">' + (p?.strikes || 0) + '</td>' +
+                        '<td class="p-3">' + getStatusBadge(p?.status || 'active') + '</td>' +
+                        '<td class="p-3"><button onclick="removeMember(' + m.player_id + ')" class="text-red-500 hover:text-red-700 text-sm font-bold">Expulsar</button></td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table>';
+        }
+
+        async function approveMember(playerId) {
+            var admin = await getAdminRole();
+            var { error } = await supabase.from('alliance_memberships')
+                .update({ status: 'approved', approved_by: admin.id, approved_at: new Date().toISOString() })
+                .eq('player_id', playerId);
+
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Miembro aprobado', 'success'); init(); }
+        }
+
+        async function rejectMember(playerId) {
+            var { error } = await supabase.from('alliance_memberships')
+                .update({ status: 'rejected' })
+                .eq('player_id', playerId);
+
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Solicitud rechazada', 'success'); init(); }
+        }
+
+        async function removeMember(playerId) {
+            if (!confirmAction('Expulsar a este miembro de la alianza?')) return;
+            var { error } = await supabase.from('alliance_memberships')
+                .delete()
+                .eq('player_id', playerId);
+
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Miembro expulsado', 'success'); init(); }
+        }
+
+        init();
+    </script>
+</body>
+</html>

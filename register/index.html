@@ -3,52 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Alliance Hub</title>
+    <title>Registro - Alliance Hub V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/base.js"></script>
-    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
     <div id="admin-nav"></div>
 
-    <div class="max-w-md mx-auto px-4 py-8">
-        <!-- ESTADO 1: Formulario de registro -->
-        <div id="register-form-container" class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div class="max-w-lg mx-auto px-4 py-8">
+        <div id="register-container" class="bg-white rounded-2xl border border-slate-200 p-8">
             <div class="text-center mb-6">
-                <div class="text-3xl mb-2">📝</div>
-                <h1 class="text-xl font-bold text-slate-800">Pre-registro</h1>
-                <p class="text-slate-500 text-sm" id="game-name">Cargando...</p>
+                <div class="text-4xl mb-3">📝</div>
+                <h1 class="text-2xl font-bold text-slate-800">Registro a Partida</h1>
+                <p class="text-slate-500" id="match-info">Cargando...</p>
+            </div>
+
+            <!-- Banner de esperando aprobación -->
+            <div id="waiting-approval-banner" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-6 mb-6 text-center">
+                <div class="text-4xl mb-3">⏳</div>
+                <h2 class="font-bold text-orange-800">Esperando aprobación del admin</h2>
+                <p class="text-orange-600 text-sm mt-2">Tu registro está pendiente. Cuando el admin te apruebe, verás aquí el ID y contraseña.</p>
+            </div>
+
+            <!-- Datos de partida (solo visibles si aprobado) -->
+            <div id="match-credentials" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+                <h2 class="font-bold text-green-800 mb-3">🔓 Datos de Acceso</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-lg p-3 border border-green-200">
+                        <p class="text-xs text-green-600 uppercase font-bold">ID de Partida</p>
+                        <p id="cred-game-id" class="text-lg font-mono font-bold text-green-800">---</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-green-200">
+                        <p class="text-xs text-green-600 uppercase font-bold">Contraseña</p>
+                        <p id="cred-password" class="text-lg font-mono font-bold text-green-800">---</p>
+                    </div>
+                </div>
             </div>
 
             <form id="register-form" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu ID de jugador (del juego) *</label>
-                    <input type="number" id="reg-id" required
-                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                        placeholder="Ej: 99702975">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu ID de Jugador</label>
+                    <input type="number" id="reg-player-id" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        readonly>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu username *</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu Username</label>
                     <input type="text" id="reg-username" required
-                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                        placeholder="Ej: Tlaloc27">
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        readonly>
                 </div>
-                <div class="flex items-start gap-3">
-                    <input type="checkbox" id="reg-rules" required class="mt-1 w-5 h-5 rounded border-slate-300 text-amber-500 focus:ring-amber-500">
-                    <label class="text-sm text-slate-600">
-                        Acepto las <a id="rules-link" href="#" target="_blank" class="text-amber-600 font-bold">reglas y términos</a> de esta partida
-                    </label>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Nación que elegirás *</label>
+                    <input type="text" id="reg-nation" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition"
+                        placeholder="Ej: Imperio Aleman">
                 </div>
 
                 <button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
@@ -56,214 +69,139 @@
                 </button>
             </form>
 
-            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p class="text-xs text-blue-700">💡 Tu navegador recordará tu ID y username para futuros registros</p>
-            </div>
-        </div>
-
-        <!-- ESTADO 2: Ya registrado - muestra info de la partida -->
-        <div id="registered-info" class="hidden bg-white rounded-2xl border border-slate-200 p-6">
-            <div class="text-center mb-6">
-                <div class="text-5xl mb-2">✅</div>
-                <h1 class="text-2xl font-bold text-green-700">¡Inscrito!</h1>
-                <p class="text-slate-500 text-sm" id="registered-game-name">Cargando...</p>
-            </div>
-
-            <div class="space-y-4">
-                <!-- ID de partida (si show_game_id es true) -->
-                <div id="game-id-display" class="hidden p-4 bg-amber-50 rounded-xl border border-amber-200">
-                    <p class="text-xs text-amber-700 uppercase font-bold tracking-wide mb-1">ID de la partida</p>
-                    <div class="flex items-center gap-2">
-                        <code id="game-id-value" class="text-lg font-mono font-bold text-amber-800">---</code>
-                        <button onclick="copyToClipboard('game-id-value')" class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded hover:bg-amber-300">📋 Copiar</button>
-                    </div>
-                </div>
-
-                <!-- Contraseña (si existe) -->
-                <div id="game-password-display" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <p class="text-xs text-purple-700 uppercase font-bold tracking-wide mb-1">Contraseña</p>
-                    <div class="flex items-center gap-2">
-                        <code id="game-password-value" class="text-lg font-mono font-bold text-purple-800">---</code>
-                        <button onclick="copyToClipboard('game-password-value')" class="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded hover:bg-purple-300">📋 Copiar</button>
-                    </div>
-                </div>
-
-                <!-- Info de la partida -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <p class="text-xs text-slate-500 uppercase font-bold tracking-wide mb-2">Detalles</p>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-slate-500">Tu ID:</span> <span id="reg-player-id" class="font-medium">---</span></div>
-                        <div class="flex justify-between"><span class="text-slate-500">Username:</span> <span id="reg-player-name" class="font-medium">---</span></div>
-                        <div class="flex justify-between"><span class="text-slate-500">Estado:</span> <span id="reg-game-status" class="font-medium">---</span></div>
-                    </div>
-                </div>
-
-                <!-- Botón para volver -->
-                <a href="../index.html" class="block w-full text-center bg-slate-800 text-white font-bold py-3 rounded-lg hover:bg-slate-700 transition">
-                    ← Volver al inicio
-                </a>
-            </div>
-        </div>
-
-        <!-- ESTADO 3: Partida no abierta -->
-        <div id="game-closed" class="hidden bg-white rounded-2xl border border-slate-200 p-6 text-center">
-            <div class="text-5xl mb-3">🔒</div>
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Registro cerrado</h2>
-            <p class="text-slate-500 mb-4">Esta partida no está abierta para registro.</p>
-            <a href="../index.html" class="inline-block bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition">Ver otras partidas</a>
+            <div id="error-msg" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+            <div id="success-msg" class="mt-4 text-green-600 text-sm text-center hidden"></div>
         </div>
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const gameId = urlParams.get('game');
+        var urlParams = new URLSearchParams(window.location.search);
+        var matchId = urlParams.get('match');
+        var playerData = getPlayerData();
 
-        if (!gameId) location.href = '../index.html';
+        if (!matchId) { window.location.href = '../index.html'; }
+        if (!playerData.playerId) { window.location.href = '../login-player.html'; }
 
-        var currentGame = null;
-        var isRegistered = false;
+        var currentMatch = null;
+        var myRegistration = null;
 
-        // Cargar datos guardados del jugador
-        const saved = getPlayerData();
-        if (saved.playerId) document.getElementById('reg-id').value = saved.playerId;
-        if (saved.username) document.getElementById('reg-username').value = saved.username;
+        async function init() {
+            document.getElementById('reg-player-id').value = playerData.playerId;
+            document.getElementById('reg-username').value = playerData.username;
 
-        async function initPage() {
-            // Verificar versión de caché
-            await checkCacheVersion();
+            // Verificar si ya está registrado
+            var { data: reg } = await supabase
+                .from('match_registrations')
+                .select('*')
+                .eq('match_id', matchId)
+                .eq('player_id', playerData.playerId)
+                .single();
 
-            // Cargar datos de la partida
-            const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
-            if (!game) {
-                location.href = '../index.html';
+            myRegistration = reg;
+
+            if (reg && (reg.status === 'confirmed' || reg.status === 'approved')) {
+                // Ya registrado y aprobado
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('success-msg').textContent = '✅ Ya estás registrado en esta partida.';
+                document.getElementById('success-msg').classList.remove('hidden');
+                saveLastRegisteredMatch(matchId);
+                // Mostrar credenciales si la partida lo permite
+                showCredentialsIfApproved();
                 return;
             }
-            currentGame = game;
 
-            // Mostrar nombre de la partida
-            document.getElementById('game-name').textContent = game.name;
-            document.getElementById('registered-game-name').textContent = game.name;
-
-            // Si la partida no está abierta, mostrar mensaje
-            if (game.status !== 'open') {
-                document.getElementById('register-form-container').classList.add('hidden');
-                document.getElementById('game-closed').classList.remove('hidden');
+            if (reg && reg.status === 'pending_approval') {
+                // Esperando aprobación
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('waiting-approval-banner').classList.remove('hidden');
                 return;
             }
 
-            // Si hay URL de reglas, mostrar link
-            if (game.rules_pdf_url) {
-                document.getElementById('rules-link').href = game.rules_pdf_url;
+            if (reg && reg.status === 'rejected') {
+                document.getElementById('error-msg').textContent = '❌ Tu solicitud fue rechazada.';
+                document.getElementById('error-msg').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+                return;
             }
 
-            // Verificar si el jugador YA está registrado (consultando Supabase)
-            const savedPlayer = getPlayerData();
-            if (savedPlayer.playerId) {
-                const { data: existing } = await supabase
-                    .from('registrations')
-                    .select('*')
-                    .eq('game_id', gameId)
-                    .eq('player_id', parseInt(savedPlayer.playerId))
-                    .single();
+            // Cargar info de la partida
+            var { data: match } = await supabase
+                .from('matches')
+                .select('*, alliances(name, tag)')
+                .eq('id', matchId)
+                .single();
 
-                if (existing) {
-                    // SÍ está registrado - mostrar info de la partida
-                    showRegisteredState(savedPlayer.playerId, savedPlayer.username, existing);
-                    return;
+            if (!match) { document.getElementById('match-info').textContent = 'Partida no encontrada'; return; }
+            currentMatch = match;
+
+            document.getElementById('match-info').innerHTML = getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + ' • ' + match.name;
+
+            if (match.status !== 'open') {
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('error-msg').textContent = '❌ Esta partida no está abierta para registro.';
+                document.getElementById('error-msg').classList.remove('hidden');
+            }
+        }
+
+        async function showCredentialsIfApproved() {
+            var { data: match } = await supabase
+                .from('matches')
+                .select('game_id, password, requires_approval')
+                .eq('id', matchId)
+                .single();
+
+            if (match) {
+                currentMatch = match;
+                if (!match.requires_approval || (myRegistration && myRegistration.status === 'approved')) {
+                    document.getElementById('match-credentials').classList.remove('hidden');
+                    document.getElementById('cred-game-id').textContent = match.game_id || '---';
+                    document.getElementById('cred-password').textContent = match.password || '---';
+                }
+                if (match.requires_approval && myRegistration && myRegistration.status === 'pending_approval') {
+                    document.getElementById('waiting-approval-banner').classList.remove('hidden');
                 }
             }
-
-            // NO está registrado - mostrar formulario
-            document.getElementById('register-form-container').classList.remove('hidden');
-            document.getElementById('registered-info').classList.add('hidden');
         }
 
-        function showRegisteredState(playerId, username, registration) {
-            isRegistered = true;
-            document.getElementById('register-form-container').classList.add('hidden');
-            document.getElementById('registered-info').classList.remove('hidden');
-
-            // Mostrar datos del jugador
-            document.getElementById('reg-player-id').textContent = playerId;
-            document.getElementById('reg-player-name').textContent = username;
-            document.getElementById('reg-game-status').innerHTML = getStatusBadge(currentGame.status);
-
-            // Mostrar ID de partida si está configurado
-            if (currentGame.show_game_id) {
-                document.getElementById('game-id-display').classList.remove('hidden');
-                document.getElementById('game-id-value').textContent = currentGame.game_id;
-            }
-
-            // Mostrar contraseña si existe
-            if (currentGame.password) {
-                document.getElementById('game-password-display').classList.remove('hidden');
-                document.getElementById('game-password-value').textContent = currentGame.password;
-            }
-        }
-
-        // Formulario de registro
         document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            var errorMsg = document.getElementById('error-msg');
+            var successMsg = document.getElementById('success-msg');
 
-            const playerId = parseInt(document.getElementById('reg-id').value);
-            const username = document.getElementById('reg-username').value.trim();
+            errorMsg.classList.add('hidden');
+            successMsg.classList.add('hidden');
 
-            // Guardar datos del jugador para futuro
-            savePlayerData(playerId, username);
+            var nation = document.getElementById('reg-nation').value.trim();
+            if (!nation) { errorMsg.textContent = '❌ Elige una nación'; errorMsg.classList.remove('hidden'); return; }
 
-            // Verificar si ya está registrado (doble check)
-            const { data: existing } = await supabase
-                .from('registrations')
-                .select('id')
-                .eq('game_id', gameId)
-                .eq('player_id', playerId);
+            // Upsert con manejo de conflictos
+            var { error } = await supabase.from('match_registrations').upsert({
+                match_id: matchId,
+                player_id: parseInt(playerData.playerId),
+                nation: nation,
+                username: playerData.username,
+                status: currentMatch && currentMatch.requires_approval ? 'pending_approval' : 'confirmed',
+                registered_at: new Date().toISOString()
+            }, { onConflict: 'match_id,player_id' });
 
-            if (existing && existing.length > 0) {
-                showToast('Ya estás registrado en esta partida', 'warning');
-                showRegisteredState(playerId, username, existing[0]);
-                return;
+            if (error) { errorMsg.textContent = '❌ Error: ' + error.message; errorMsg.classList.remove('hidden'); }
+            else {
+                saveLastRegisteredMatch(matchId);
+
+                if (currentMatch && currentMatch.requires_approval) {
+                    successMsg.textContent = '✅ Solicitud enviada. Espera aprobación del admin.';
+                    successMsg.classList.remove('hidden');
+                    document.getElementById('register-form').classList.add('hidden');
+                    document.getElementById('waiting-approval-banner').classList.remove('hidden');
+                } else {
+                    successMsg.textContent = '✅ Registrado! Redirigiendo...';
+                    successMsg.classList.remove('hidden');
+                    setTimeout(function() { window.location.href = '../game.html?id=' + matchId; }, 1500);
+                }
             }
-
-            // 1. Crear/actualizar jugador PRIMERO (requerido por FK)
-            await supabase.from('players').upsert({
-                id: playerId,
-                current_username: username,
-                last_seen: new Date().toISOString()
-            }, { onConflict: 'id' });
-
-            // 2. Insertar registro
-            const { data: newReg, error } = await supabase.from('registrations').insert({
-                game_id: gameId,
-                player_id: playerId,
-                username: username,
-                accepted_rules: true
-            }).select().single();
-
-            showToast('¡Registro exitoso!', 'success');
-            showRegisteredState(playerId, username, newReg);
         });
 
-        // Helper para copiar al portapapeles
-        function copyToClipboard(elementId) {
-            const text = document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copiado al portapapeles', 'success');
-            }).catch(() => {
-                // Fallback
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showToast('Copiado al portapapeles', 'success');
-            });
-        }
-
-        window.copyToClipboard = copyToClipboard;
-
-        // Iniciar
-        initPage();
+        init();
     </script>
 </body>
 </html>
