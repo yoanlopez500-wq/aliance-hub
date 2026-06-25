@@ -14,108 +14,68 @@
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
-
     <div class="max-w-4xl mx-auto px-4 py-8">
         <h1 class="text-2xl font-bold text-slate-800 mb-2">📊 Importar Resultados CSV</h1>
         <p class="text-slate-500 mb-6">Pega los resultados del reporte del juego (tab-separated)</p>
-
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Partida</label>
-                <select id="import-match" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                    <option value="">-- Seleccionar partida --</option>
-                </select>
+                <select id="import-match" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Seleccionar partida --</option></select>
+                <p id="match-loading" class="text-xs text-slate-400 mt-1">Cargando partidas...</p>
             </div>
-
             <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Resultado del Reporte</label>
-                <textarea id="csv-input" rows="12" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none font-mono text-xs" placeholder="Nacion&#9;Jugador&#9;Bajas&#9;Muertes&#10;Indias Britanicas&#9;Tlaloc27&#9;15497&#9;8020&#10;Imperio Aleman&#9;OtroJugador&#9;12345&#9;6789&#10;..."></textarea>
-                <p class="text-xs text-slate-500 mt-1">Formato: Nacion[TAB]Jugador[TAB]Bajas[TAB]Muertes (una línea por jugador)</p>
+                <textarea id="csv-input" rows="12" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none font-mono text-xs" placeholder="Nacion&#9;Jugador&#9;Bajas&#9;Muertes&#10;Indias Britanicas&#9;Tlaloc27&#9;15497&#9;8020&#10;..."></textarea>
+                <p class="text-xs text-slate-500 mt-1">Formato: Nacion[TAB]Jugador[TAB]Bajas[TAB]Muertes</p>
             </div>
-
             <div class="flex gap-3">
                 <button onclick="importCSV()" class="flex-1 bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">Importar y Guardar</button>
                 <button onclick="document.getElementById('csv-input').value=''" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition">Limpiar</button>
             </div>
         </div>
-
         <div id="preview-section" class="hidden mt-6 bg-white rounded-xl border border-slate-200 p-6">
             <h2 class="font-bold text-slate-800 mb-4">👁️ Vista Previa</h2>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50"><tr><th class="text-left p-3">Nación</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead>
-                    <tbody id="preview-tbody"></tbody>
-                </table>
+                <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nacion</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead><tbody id="preview-tbody"></tbody></table>
             </div>
         </div>
     </div>
-
     <script>
-        requireAdmin();
-        requireMinRole('event_admin');
-
+        requireAdmin(); requireMinRole('event_admin');
         async function loadMatches() {
-            var { data: matches } = await supabase
-                .from('matches')
-                .select('id, name, match_type, alliances(name, tag)')
-                .eq('csv_imported', false)
-                .order('created_at', { ascending: false });
-
-            var select = document.getElementById('import-match');
-            select.innerHTML = '<option value="">-- Seleccionar partida --</option>' +
-                (matches || []).map(function(m) {
-                    var label = m.name + ' (' + m.match_type + ')';
-                    if (m.alliances) label += ' [' + m.alliances.tag + ']';
-                    return '<option value="' + m.id + '">' + label + '</option>';
-                }).join('');
+            try {
+                var { data: matches, error } = await supabase.schema('v2').from('matches').select('id, name, match_type, alliance:alliances!matches_alliance_id_fkey(name, tag)').eq('csv_imported', false).order('created_at', { ascending: false });
+                if (error) throw error;
+                var select = document.getElementById('import-match');
+                document.getElementById('match-loading').classList.add('hidden');
+                if (!matches || matches.length === 0) { select.innerHTML = '<option value="">-- No hay partidas pendientes --</option>'; return; }
+                select.innerHTML = '<option value="">-- Seleccionar partida --</option>' + matches.map(function(m) { var label = m.name + ' (' + m.match_type + ')'; if (m.alliance) label += ' [' + m.alliance.tag + ']'; return '<option value="' + m.id + '">' + label + '</option>'; }).join('');
+            } catch (e) { document.getElementById('match-loading').textContent = 'Error: ' + e.message; }
         }
-
         async function importCSV() {
             var matchId = document.getElementById('import-match').value;
             var raw = document.getElementById('csv-input').value.trim();
-
             if (!matchId) { showToast('Selecciona una partida', 'warning'); return; }
             if (!raw) { showToast('Pega el resultado del reporte', 'warning'); return; }
-
             var lines = raw.split('\n').filter(function(l) { return l.trim(); });
             var results = [];
-
             for (var i = 0; i < lines.length; i++) {
                 var parts = lines[i].split('\t');
                 if (parts.length >= 4) {
                     var kills = parseInt(parts[2].replace(/,/g, '')) || 0;
                     var deaths = parseInt(parts[3].replace(/,/g, '')) || 0;
-                    var kd = deaths > 0 ? (kills / deaths).toFixed(2) : kills;
-                    results.push({
-                        match_id: matchId,
-                        nation: parts[0].trim(),
-                        kills: kills,
-                        deaths: deaths,
-                        kd_ratio: kd,
-                        raw_csv_data: parts
-                    });
+                    results.push({ match_id: matchId, nation: parts[0].trim(), kills: kills, deaths: deaths, kd_ratio: deaths > 0 ? (kills / deaths).toFixed(2) : kills, raw_csv_data: parts });
                 }
             }
-
-            if (results.length === 0) { showToast('No se pudo parsear el CSV. Verifica el formato.', 'error'); return; }
-
-            // Mostrar preview
+            if (results.length === 0) { showToast('No se pudo parsear el CSV', 'error'); return; }
             document.getElementById('preview-section').classList.remove('hidden');
-            document.getElementById('preview-tbody').innerHTML = results.map(function(r) {
-                return '<tr class="border-b hover:bg-slate-50"><td class="p-3">' + r.nation + '</td><td class="p-3 font-medium">' + r.raw_csv_data[1] + '</td><td class="p-3 text-right text-green-600 font-bold">' + r.kills.toLocaleString() + '</td><td class="p-3 text-right text-red-500">' + r.deaths.toLocaleString() + '</td><td class="p-3 text-right font-bold ' + (r.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + r.kd_ratio + '</td></tr>';
-            }).join('');
-
-            // Upsert
-            for (var i = 0; i < results.length; i++) {
-                await supabase.from('match_results').upsert(results[i], { onConflict: 'match_id,nation' });
-            }
-
-            await supabase.from('matches').update({ csv_imported: true, status: 'finished' }).eq('id', matchId);
-
-            showToast(results.length + ' resultados importados correctamente', 'success');
-            loadMatches();
+            document.getElementById('preview-tbody').innerHTML = results.map(function(r) { return '<tr class="border-b hover:bg-slate-50"><td class="p-3">' + r.nation + '</td><td class="p-3 font-medium">' + r.raw_csv_data[1] + '</td><td class="p-3 text-right text-green-600 font-bold">' + r.kills.toLocaleString() + '</td><td class="p-3 text-right text-red-500">' + r.deaths.toLocaleString() + '</td><td class="p-3 text-right font-bold ' + (r.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + r.kd_ratio + '</td></tr>'; }).join('');
+            try {
+                for (var i = 0; i < results.length; i++) { await supabase.schema('v2').from('match_results').upsert({ match_id: results[i].match_id, nation: results[i].nation, kills: results[i].kills, deaths: results[i].deaths, kd_ratio: results[i].kd_ratio, raw_csv_data: results[i].raw_csv_data }, { onConflict: 'match_id,nation' }); }
+                await supabase.schema('v2').from('matches').update({ csv_imported: true, status: 'finished' }).eq('id', matchId);
+                showToast(results.length + ' resultados importados', 'success'); loadMatches();
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
-
         loadMatches();
     </script>
 </body>
