@@ -28,16 +28,14 @@
         async function loadAlliances() {
             var container = document.getElementById('alliances-list');
             try {
-                // 1. Traer alianzas SIN foreign table ambigua
-                var { data: alliances, error } = await supabase.schema('v2').from('alliances').select('*').order('name');
+                var { data: alliances, error } = await supabase.from('alliances').select('*').order('name');
                 if (error) throw error;
                 if (!alliances || alliances.length === 0) {
                     container.innerHTML = '<div class="text-center py-8 text-slate-400 col-span-full">Sin alianzas</div>';
                     return;
                 }
 
-                // 2. Contar jugadores por alianza (usando players.current_alliance_id)
-                var { data: playerCounts, error: cErr } = await supabase.schema('v2')
+                var { data: playerCounts, error: cErr } = await supabase
                     .from('players')
                     .select('current_alliance_id, count')
                     .not('current_alliance_id', 'is', null)
@@ -50,9 +48,8 @@
                     });
                 }
 
-                // Si el group no funciona, fallback: traer todos los players y contar manual
                 if (cErr) {
-                    var { data: allPlayers } = await supabase.schema('v2').from('players').select('current_alliance_id').not('current_alliance_id', 'is', null);
+                    var { data: allPlayers } = await supabase.from('players').select('current_alliance_id').not('current_alliance_id', 'is', null);
                     if (allPlayers) {
                         allPlayers.forEach(function(p) {
                             var aid = p.current_alliance_id;
