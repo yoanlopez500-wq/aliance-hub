@@ -46,11 +46,11 @@
             <button onclick="filterHistory('all')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
             <button onclick="filterHistory('internal')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="internal">Internas</button>
             <button onclick="filterHistory('duel')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
-            <button onclick="filterHistory('public_31')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Públicas 31</button>
+            <button onclick="filterHistory('public_31')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Publicas 31</button>
             <button onclick="filterHistory('public_500')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
         </div>
 
-        <h2 class="font-bold text-slate-800 mb-3">📜 Historial de Partidas</h2>
+        <h2 class="font-bold text-slate-800 mb-3">Historial de Partidas</h2>
         <div id="player-history" class="space-y-3">
             <div class="text-center py-8 text-slate-400">Cargando...</div>
         </div>
@@ -100,9 +100,11 @@
         }
 
         async function loadHistory() {
+            // FIX: Eliminar alliances(name, tag) anidado en matches - causa ambiguedad de FK
+            // Solo traer datos de matches sin el join a alliances
             var { data: history } = await supabase
                 .from('match_results')
-                .select('*, matches(name, match_type, game_id, created_at, alliances(name, tag))')
+                .select('*, matches(name, match_type, game_id, created_at)')
                 .eq('player_id', playerId)
                 .order('imported_at', { ascending: false });
 
