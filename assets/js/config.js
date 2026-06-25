@@ -17,5 +17,5 @@ window.VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY;
 // El CDN de Supabase carga 'window.supabase' como namespace.
 // Creamos el cliente y lo asignamos a window.supabase (global)
 window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  db: { schema: 'v2' }  // <-- IMPORTANTE: apunta al schema v2
+  db: { schema: 'public' }
 });
