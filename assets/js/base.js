@@ -1,5 +1,5 @@
 // assets/js/base.js
-// Funciones compartidas + sistema de caché + push notifications + lazy login
+// Funciones compartidas + sistema de cache + push notifications + lazy login + NOTIFICACIONES INTERNAS
 
 // Detectar base path
 window.__AH_BASE_PATH = (function() {
@@ -19,7 +19,7 @@ function ahPath(p) {
 }
 
 // ============================================
-// CACHÉ CONTROLADO
+// CACHE CONTROLADO
 // ============================================
 const CACHE_VERSION_KEY = 'ah_v2_cache_version';
 const CURRENT_CACHE_VERSION = 'v2.1';
@@ -41,7 +41,7 @@ async function checkCacheVersion() {
         var localVersion = localStorage.getItem(CACHE_VERSION_KEY);
 
         if (localVersion !== serverVersion) {
-            console.log('Cache version mismatch:', localVersion, '->', serverVersion, '- Limpiando caché...');
+            console.log('Cache version mismatch:', localVersion, '->', serverVersion, '- Limpiando cache...');
             var playerId = localStorage.getItem('ah_v2_player_id');
             var username = localStorage.getItem('ah_v2_username');
             var allianceId = localStorage.getItem('ah_v2_alliance_id');
@@ -422,6 +422,130 @@ function createChatAction(type, data) {
         data: data,
         timestamp: new Date().toISOString()
     };
+}
+
+// ============================================
+// NUEVO: NOTIFICACIONES INTERNAS (Mensajes Directos)
+// ============================================
+async function countUnreadDirectMessages() {
+    try {
+        var sessionData = await supabase.auth.getSession();
+        if (!sessionData.data.session) return 0;
+
+        var { count, error } = await supabase.schema('v2')
+            .from('direct_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipient_admin_id', sessionData.data.session.user.id)
+            .is('read_at', null);
+
+        if (error) {
+            console.error('Error counting unread messages:', error);
+            return 0;
+        }
+        return count || 0;
+    } catch (e) {
+        console.error('countUnreadDirectMessages error:', e);
+        return 0;
+    }
+}
+
+async function fetchRecentDirectMessages(limit) {
+    limit = limit || 10;
+    try {
+        var sessionData = await supabase.auth.getSession();
+        if (!sessionData.data.session) return [];
+
+        var { data, error } = await supabase.schema('v2')
+            .from('direct_messages')
+            .select('*')
+            .eq('recipient_admin_id', sessionData.data.session.user.id)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching direct messages:', error);
+            return [];
+        }
+        return data || [];
+    } catch (e) {
+        console.error('fetchRecentDirectMessages error:', e);
+        return [];
+    }
+}
+
+async function markDirectMessageAsRead(messageId) {
+    try {
+        var { error } = await supabase.schema('v2')
+            .from('direct_messages')
+            .update({ read_at: new Date().toISOString() })
+            .eq('id', messageId);
+
+        if (error) {
+            console.error('Error marking message as read:', error);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error('markDirectMessageAsRead error:', e);
+        return false;
+    }
+}
+
+async function sendDirectMessage(recipientAdminId, subject, message) {
+    try {
+        var sessionData = await supabase.auth.getSession();
+        var senderId = sessionData.data.session ? sessionData.data.session.user.id : null;
+        
+        // Obtener nombre del remitente
+        var senderName = 'Admin';
+        if (senderId) {
+            var { data: admin } = await supabase.schema('v2')
+                .from('admin_users')
+                .select('display_name')
+                .eq('id', senderId)
+                .single();
+            if (admin && admin.display_name) senderName = admin.display_name;
+        }
+
+        var { error } = await supabase.schema('v2')
+            .from('direct_messages')
+            .insert({
+                sender_admin_id: senderId,
+                sender_name: senderName,
+                recipient_admin_id: recipientAdminId,
+                subject: subject || null,
+                message: message
+            });
+
+        if (error) {
+            console.error('Error sending direct message:', error);
+            return { success: false, message: error.message };
+        }
+        return { success: true, message: 'Mensaje enviado' };
+    } catch (e) {
+        console.error('sendDirectMessage error:', e);
+        return { success: false, message: e.message };
+    }
+}
+
+// Obtener lista de admins para enviar mensajes
+async function fetchAdminRecipients() {
+    try {
+        var { data, error } = await supabase.schema('v2')
+            .from('admin_users')
+            .select('id, display_name, role')
+            .eq('status', 'active')
+            .order('display_name');
+
+        if (error) {
+            console.error('Error fetching admins:', error);
+            return [];
+        }
+        return data || [];
+    } catch (e) {
+        console.error('fetchAdminRecipients error:', e);
+        return [];
+    }
 }
 
 // ============================================
