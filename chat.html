@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chat - Alliance Hub V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,9 +27,12 @@
         .channel-btn.active, .dm-btn.active { background: #fef3c7; border: 1px solid #f59e0b; font-weight: 700; }
         .chat-msg:hover { background: rgba(0,0,0,0.02); }
         #chat-scroll { scroll-behavior: smooth; }
+        /* Fix: safe area para botones de navegacion del telefono */
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        body { height: 100dvh; }
     </style>
 </head>
-<body class="bg-slate-100 h-screen flex flex-col overflow-hidden" data-role="public">
+<body class="bg-slate-100 flex flex-col overflow-hidden" data-role="public">
     <div id="admin-nav"></div>
 
     <div id="access-denied" class="hidden fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
@@ -106,7 +109,8 @@
                 </div>
             </div>
 
-            <div class="border-t border-slate-200 px-3 md:px-6 py-3 bg-slate-50 shrink-0">
+            <!-- Barra de entrada con safe area para botones de navegacion del telefono -->
+            <div class="border-t border-slate-200 px-3 md:px-6 pt-3 pb-3 safe-bottom bg-slate-50 shrink-0">
                 <div class="flex gap-2">
                     <input type="text" id="chat-input"
                         class="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
