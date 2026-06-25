@@ -15,17 +15,14 @@
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
-
     <div class="max-w-6xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <div><h1 class="text-2xl font-bold text-slate-800">🏴 Alianzas V2</h1><p class="text-slate-500">Crear, editar y gestionar alianzas</p></div>
             <button onclick="openAllianceModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
         </div>
-
         <div id="alliances-desktop" class="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
         <div id="alliances-mobile" class="md:hidden space-y-3"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
     </div>
-
     <div id="alliance-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold mb-4" id="modal-title">Nueva Alianza</h2>
@@ -39,44 +36,29 @@
             </form>
         </div>
     </div>
-
     <script>
         requireAdmin(); requireMinRole('event_admin');
-
         async function loadAlliances() {
             try {
-                var { data: alliances, error } = await supabase.schema('v2').from('alliances').select('*, players(current_username)').order('name');
+                var { data: alliances, error } = await supabase.schema('v2').from('alliances').select('*, leader:players!alliances_leader_id_fkey(current_username)').order('name');
                 if (error) throw error;
                 renderDesktop(alliances || []);
                 renderMobile(alliances || []);
-            } catch (e) {
-                document.getElementById('alliances-desktop').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>';
-                document.getElementById('alliances-mobile').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>';
-            }
+            } catch (e) { document.getElementById('alliances-desktop').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; document.getElementById('alliances-mobile').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
         }
-
         function renderDesktop(alliances) {
             var container = document.getElementById('alliances-desktop');
             if (alliances.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin alianzas</div>'; return; }
-            container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nombre</th><th class="text-left p-3">Tag</th><th class="text-left p-3">Lider</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>' + alliances.map(function(a) {
-                var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activa</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Inactiva</span>';
-                return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">' + a.name + '</td><td class="p-3 text-slate-500">[' + a.tag + ']</td><td class="p-3 text-slate-500">' + (a.players?.current_username || 'Sin lider') + '</td><td class="p-3">' + statusBadge + '</td><td class="p-3"><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">Eliminar</button></div></td></tr>';
-            }).join('') + '</tbody></table>';
+            container.innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nombre</th><th class="text-left p-3">Tag</th><th class="text-left p-3">Lider</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>' + alliances.map(function(a) { var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activa</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Inactiva</span>'; return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">' + a.name + '</td><td class="p-3 text-slate-500">[' + a.tag + ']</td><td class="p-3 text-slate-500">' + (a.leader?.current_username || 'Sin lider') + '</td><td class="p-3">' + statusBadge + '</td><td class="p-3"><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">Eliminar</button></div></td></tr>'; }).join('') + '</tbody></table>';
         }
-
         function renderMobile(alliances) {
             var container = document.getElementById('alliances-mobile');
             if (alliances.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin alianzas</div>'; return; }
-            container.innerHTML = alliances.map(function(a) {
-                var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activa</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Inactiva</span>';
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4"><div class="flex items-center justify-between mb-2"><span class="font-bold text-slate-800">' + a.name + '</span>' + statusBadge + '</div><div class="text-sm text-slate-500 space-y-1 mb-3"><p><span class="text-slate-400">Tag:</span> [' + a.tag + ']</p><p><span class="text-slate-400">Lider:</span> ' + (a.players?.current_username || 'Sin lider') + '</p></div><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="flex-1 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="flex-1 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Eliminar</button></div></div>';
-            }).join('');
+            container.innerHTML = alliances.map(function(a) { var statusBadge = a.status === 'active' ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activa</span>' : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Inactiva</span>'; return '<div class="bg-white rounded-xl border border-slate-200 p-4"><div class="flex items-center justify-between mb-2"><span class="font-bold text-slate-800">' + a.name + '</span>' + statusBadge + '</div><div class="text-sm text-slate-500 space-y-1 mb-3"><p><span class="text-slate-400">Tag:</span> [' + a.tag + ']</p><p><span class="text-slate-400">Lider:</span> ' + (a.leader?.current_username || 'Sin lider') + '</p></div><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="flex-1 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="flex-1 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-bold">Eliminar</button></div></div>'; }).join('');
         }
-
         function openAllianceModal() { document.getElementById('alliance-form').reset(); document.getElementById('alliance-id').value = ''; document.getElementById('modal-title').textContent = 'Nueva Alianza'; document.getElementById('alliance-modal').classList.add('active'); }
         async function editAlliance(id) { var { data: a } = await supabase.schema('v2').from('alliances').select('*').eq('id', id).single(); if (!a) return; document.getElementById('alliance-id').value = a.id; document.getElementById('a-name').value = a.name; document.getElementById('a-tag').value = a.tag; document.getElementById('a-desc').value = a.description || ''; document.getElementById('a-leader').value = a.leader_id || ''; document.getElementById('modal-title').textContent = 'Editar Alianza'; document.getElementById('alliance-modal').classList.add('active'); }
         function closeModal() { document.getElementById('alliance-modal').classList.remove('active'); }
-
         document.getElementById('alliance-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             var id = document.getElementById('alliance-id').value;
@@ -85,14 +67,7 @@
             if (result.error) showToast('Error: ' + result.error.message, 'error');
             else { showToast(id ? 'Alianza actualizada' : 'Alianza creada', 'success'); closeModal(); loadAlliances(); }
         });
-
-        async function deleteAlliance(id) {
-            if (!confirmAction('Eliminar esta alianza?')) return;
-            var { error } = await supabase.schema('v2').from('alliances').delete().eq('id', id);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Eliminada', 'success'); loadAlliances(); }
-        }
-
+        async function deleteAlliance(id) { if (!confirmAction('Eliminar esta alianza?')) return; var { error } = await supabase.schema('v2').from('alliances').delete().eq('id', id); if (error) showToast('Error: ' + error.message, 'error'); else { showToast('Eliminada', 'success'); loadAlliances(); } }
         loadAlliances();
     </script>
 </body>
