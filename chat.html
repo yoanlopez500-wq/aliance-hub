@@ -11,23 +11,25 @@
     <script src="assets/js/auth.js"></script>
     <meta name="theme-color" content="#0f172a">
     <style>
-        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .msg-in { animation: msgIn 0.2s ease; }
-        .typing-dot::after { content: '...'; animation: dots 1.2s steps(4,end) infinite; }
-        @keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: msgIn 0.18s ease; }
+        .typing-dot::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
+        @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
         body { height: 100dvh; }
-        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px); }
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
         #chat-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
         #chat-sidebar.open { transform: translateX(0); }
-        @media (min-width: 768px) { #chat-sidebar { transform: none !important; position: relative !important; } #sidebar-overlay { display: none !important; } }
-        .chan-active { background: #fef3c7 !important; border: 1px solid #f59e0b !important; font-weight: 700; }
-        .date-sep { position: sticky; top: 4px; z-index: 5; }
-        .bubble-mine { border-bottom-right-radius: 2px; background: #fbbf24; color: #1e293b; }
-        .bubble-other { border-bottom-left-radius: 2px; background: #f1f5f9; color: #334155; }
-        .online-dot { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        @media(min-width:768px){ #chat-sidebar{transform:none!important;position:relative!important} #sidebar-overlay{display:none!important} }
+        .chan-active { background:#fef3c7!important; border:1px solid #f59e0b!important; font-weight:700; }
+        .date-sep { position:sticky; top:4px; z-index:5; }
+        .bubble-mine { border-bottom-right-radius:3px; background:#f59e0b; color:#1e293b; }
+        .bubble-other { border-bottom-left-radius:3px; background:#f1f5f9; color:#334155; }
+        .dot-online { animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .scroll-btn { transition:opacity 0.2s, transform 0.2s; }
+        .scroll-btn.hidden-btn { opacity:0; transform:scale(0.8); pointer-events:none; }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
     </style>
 </head>
 <body class="bg-slate-100 flex flex-col overflow-hidden">
@@ -36,9 +38,9 @@
     <!-- Access Denied -->
     <div id="access-denied" class="hidden fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
         <div class="text-center text-white max-w-sm">
-            <div class="text-6xl mb-4">🔒</div>
+            <div class="text-5xl mb-4">🔒</div>
             <h2 class="text-2xl font-bold mb-2">Acceso Restringido</h2>
-            <p class="text-slate-400 mb-6">El chat es exclusivo para <strong>administradores</strong> y <strong>lideres de alianza</strong>.</p>
+            <p class="text-slate-400 mb-6">Solo para administradores y lideres de alianza.</p>
             <a href="index.html" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400">Volver al inicio</a>
         </div>
     </div>
@@ -51,12 +53,12 @@
         </div>
     </div>
 
-    <!-- Chat Interface -->
+    <!-- Chat -->
     <div id="chat-interface" class="flex-1 flex overflow-hidden hidden relative">
         <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden"></div>
 
         <!-- Sidebar -->
-        <div id="chat-sidebar" class="fixed md:relative z-40 w-72 md:w-60 bg-slate-800 text-white flex flex-col border-r border-slate-700 h-full shrink-0">
+        <div id="chat-sidebar" class="fixed md:relative z-40 w-72 md:w-56 bg-slate-800 text-white flex flex-col border-r border-slate-700 h-full shrink-0">
             <div class="p-3 border-b border-slate-700 flex items-center justify-between">
                 <div>
                     <h2 class="text-base font-bold text-amber-400">💬 Chat</h2>
@@ -65,510 +67,332 @@
                 <button onclick="closeSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">✕</button>
             </div>
             <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
-                <p class="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider font-bold">Canales Globales</p>
+                <p class="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider font-bold">Canales</p>
                 <div id="global-channels" class="space-y-0.5"></div>
                 <div class="border-t border-slate-700 my-2"></div>
                 <div class="flex items-center justify-between px-2 py-1">
                     <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Directos</p>
-                    <button onclick="openDMSearch()" class="text-amber-400 hover:text-amber-300 text-xs px-1" title="Nuevo">➕</button>
+                    <button onclick="openDMSearch()" class="text-amber-400 hover:text-amber-300 text-xs px-1">➕</button>
                 </div>
                 <div id="dm-list" class="space-y-0.5"></div>
             </div>
             <div class="p-2 border-t border-slate-700 text-center text-[10px] text-slate-500">
-                💾 Guardado en servidor
+                📱 Solo este dispositivo. Tunel directo.
             </div>
         </div>
 
-        <!-- Main Chat Area -->
-        <div class="flex-1 flex flex-col bg-white min-w-0">
+        <!-- Main -->
+        <div class="flex-1 flex flex-col bg-white min-w-0 relative">
             <!-- Header -->
-            <div class="bg-white border-b border-slate-200 px-3 md:px-4 py-3 flex items-center justify-between shrink-0">
+            <div class="bg-white border-b border-slate-200 px-3 md:px-4 py-2.5 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button onclick="openSidebar()" class="md:hidden text-slate-600 p-1 shrink-0 text-lg">☰</button>
+                    <button onclick="openSidebar()" class="md:hidden text-slate-600 p-1 shrink-0">☰</button>
                     <div class="min-w-0">
-                        <h3 class="text-base font-bold text-slate-800 truncate" id="channel-title">Selecciona un canal</h3>
-                        <p class="text-[11px] text-slate-500 truncate flex items-center gap-1" id="channel-desc">
-                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 online-dot"></span>
-                            <span id="status-text">Conectando...</span>
+                        <h3 class="text-sm font-bold text-slate-800 truncate" id="channel-title">-</h3>
+                        <p class="text-[11px] text-slate-500 flex items-center gap-1" id="channel-status">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dot-online" id="status-dot"></span>
+                            <span id="status-text">...</span>
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Messages Area -->
-            <div id="chat-scroll" class="flex-1 overflow-y-auto px-3 md:px-4 py-3 bg-slate-50">
+            <!-- Messages -->
+            <div id="chat-scroll" class="flex-1 overflow-y-auto px-3 md:px-4 py-3 bg-slate-50 relative">
                 <div class="text-center py-12 text-slate-400">
                     <div class="text-4xl mb-3">💬</div>
-                    <p class="text-sm">Selecciona un canal para empezar</p>
+                    <p class="text-sm">Selecciona un canal</p>
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="border-t border-slate-200 px-3 md:px-4 pt-3 pb-3 safe-bottom bg-white shrink-0">
-                <div class="flex gap-2">
+            <!-- Scroll to bottom button -->
+            <button id="scroll-btn" onclick="scrollToBottom(true)" class="scroll-btn hidden-btn absolute bottom-20 right-4 w-9 h-9 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 z-10 text-sm">⬇</button>
+
+            <!-- Input -->
+            <div class="border-t border-slate-200 px-3 md:px-4 pt-2.5 pb-2.5 safe-bottom bg-white shrink-0">
+                <div class="flex gap-2 items-center">
                     <input type="text" id="chat-input"
                         class="flex-1 border border-slate-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-slate-50"
-                        placeholder="Escribe un mensaje..."
+                        placeholder="Mensaje..."
                         onkeypress="if(event.key==='Enter') sendMessage()">
                     <button onclick="sendMessage()"
-                        class="bg-amber-500 text-slate-900 w-10 h-10 rounded-full font-bold hover:bg-amber-400 transition flex items-center justify-center text-lg shrink-0 shadow-md">
+                        class="bg-amber-500 text-white w-10 h-10 rounded-full font-bold hover:bg-amber-400 transition flex items-center justify-center text-lg shrink-0 shadow-md">
                         ➤
                     </button>
                 </div>
-                <div id="typing-indicator" class="text-[11px] text-slate-400 mt-1 h-4"></div>
+                <div id="typing-indicator" class="text-[11px] text-slate-400 mt-1 h-4 pl-1"></div>
             </div>
         </div>
     </div>
 
-    <!-- DM Search Modal -->
+    <!-- DM Modal -->
     <div id="dm-search-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl">
-            <h3 class="font-bold text-slate-800 mb-3 text-lg">💬 Nuevo Mensaje Directo</h3>
-            <input type="text" id="dm-search-input" placeholder="Buscar admin..."
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none mb-3 text-sm"
+            <h3 class="font-bold text-slate-800 mb-3">💬 Nuevo Directo</h3>
+            <input type="text" id="dm-search-input" placeholder="Buscar..."
+                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3 text-sm"
                 onkeyup="searchDMUsers()">
             <div id="dm-search-results" class="space-y-1 max-h-60 overflow-y-auto"></div>
-            <button onclick="closeDMSearch()" class="mt-3 w-full py-2.5 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition">Cancelar</button>
+            <button onclick="closeDMSearch()" class="mt-3 w-full py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200">Cancelar</button>
         </div>
     </div>
 
     <!-- Report Modal -->
     <div id="report-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg p-5 shadow-2xl">
-            <h3 class="font-bold text-red-700 mb-2">🚩 Reportar Mensaje</h3>
-            <div class="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-3 mb-3">
-                <p class="text-[11px] text-slate-500 mb-1">Mensaje reportado:</p>
-                <p class="text-sm text-slate-800 font-medium" id="report-msg-text">-</p>
-                <p class="text-[11px] text-slate-400 mt-1">de: <span id="report-msg-sender">-</span></p>
+        <div class="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <h3 class="font-bold text-red-700 mb-2">🚩 Reportar</h3>
+            <div class="bg-amber-50 rounded-lg p-3 mb-3 text-sm">
+                <p class="text-slate-600">"<span id="report-msg-text" class="font-medium"></span>"</p>
+                <p class="text-[11px] text-slate-400 mt-1">de: <span id="report-msg-sender"></span></p>
             </div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Motivo:</label>
-            <select id="report-reason" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none mb-3 text-sm">
-                <option value="spam">Spam / Publicidad</option>
-                <option value="harassment">Acoso / Insultos</option>
-                <option value="inappropriate">Contenido inapropiado</option>
-                <option value="language">Lenguaje ofensivo</option>
+            <select id="report-reason" class="w-full px-3 py-2 rounded-lg border border-slate-300 mb-3 text-sm">
+                <option value="spam">Spam</option>
+                <option value="harassment">Acoso</option>
+                <option value="inappropriate">Inapropiado</option>
                 <option value="other">Otro</option>
             </select>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Detalles:</label>
-            <textarea id="report-details" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none mb-4 resize-none text-sm" placeholder="Describe el problema..."></textarea>
             <div class="flex gap-3">
-                <button onclick="submitReport()" class="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-lg hover:bg-red-400 transition text-sm">Reportar</button>
-                <button onclick="closeReportModal()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-2.5 rounded-lg hover:bg-slate-200 transition text-sm">Cancelar</button>
+                <button onclick="submitReport()" class="flex-1 bg-red-500 text-white font-bold py-2 rounded-lg hover:bg-red-400 text-sm">Reportar</button>
+                <button onclick="closeReportModal()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg hover:bg-slate-200 text-sm">Cerrar</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ===================== CONFIG =====================
-        const ROLE_HIERARCHY = { moderator: 1, alliance_leader: 2, event_admin: 3, superadmin: 4 };
-        const CHANNELS = {
-            admin_global: { name: '🌐 Global Admin', desc: 'Todos los administradores', channel: 'admin_global', minRole: 'moderator' },
-            alliance_global: { name: '🏴 Global Líderes', desc: 'Líderes de todas las alianzas', channel: 'alliance_global', minRole: 'alliance_leader' }
+        // ============= CONFIG =============
+        const ROLE_H = { moderator:1, alliance_leader:2, event_admin:3, superadmin:4 };
+        const CHANS = {
+            admin_global:  { name:'🌐 Global Admin',  desc:'Todos los admins',     topic:'ah-chat-admin',     minRole:'moderator' },
+            alliance_global:{ name:'🏴 Global Líderes', desc:'Líderes de alianzas', topic:'ah-chat-leaders',  minRole:'alliance_leader' }
         };
+        const LS_MSG = 'ah_chat_msg_';      // messages
+        const LS_DM  = 'ah_chat_dms';       // DM list
+        const MAX_MSG = 200;
 
-        // ===================== STATE =====================
-        let myUser = null, currentChannel = null, realtimeChannel = null;
-        let allAdmins = [], dmConversations = [], reportTargetMsg = null;
-        let typingTimeout;
+        // ============= STATE =============
+        let me = null, curChan = null, rtChan = null;
+        let admins = [], dms = [], reportMsg = null, typingTimer;
 
-        // ===================== HELPERS =====================
-        function hasMinRole(userRole, required) {
-            return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[required] || 0);
-        }
-        function formatRole(role) {
-            const names = { superadmin: 'Super Admin', event_admin: 'Admin Eventos', alliance_leader: 'Líder', moderator: 'Moderador' };
-            return names[role] || role;
-        }
-        function esc(text) {
-            if (!text) return '';
-            const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
-        }
-        function fmtTime(ts) {
-            if (!ts) return '';
-            return new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        }
-        function fmtDateSep(ts) {
-            const d = new Date(ts), now = new Date();
-            if (d.toDateString() === now.toDateString()) return 'Hoy';
-            const yest = new Date(); yest.setDate(yest.getDate() - 1);
-            if (d.toDateString() === yest.toDateString()) return 'Ayer';
-            return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-        }
+        function hasRole(r, minR) { return (ROLE_H[r]||0) >= (ROLE_H[minR]||0); }
+        function fmtRole(r) { const n={superadmin:'Super Admin',event_admin:'Admin Eventos',alliance_leader:'Líder',moderator:'Moderador'}; return n[r]||r; }
+        function esc(t) { if(!t)return''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+        function fmtTime(ts) { return ts ? new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : ''; }
+        function fmtDate(ts) { const d=new Date(ts),n=new Date(); if(d.toDateString()===n.toDateString())return'Hoy'; const y=new Date();y.setDate(y.getDate()-1); if(d.toDateString()===y.toDateString())return'Ayer'; return d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}); }
 
-        // ===================== ACCESS =====================
-        async function checkAccess() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) { showDenied(); return false; }
-                const { data: admin, error } = await supabase.schema('v2')
-                    .from('admin_users').select('*, alliances(name)')
-                    .eq('id', session.user.id).eq('status', 'active').maybeSingle();
-                if (error || !admin) { showDenied(); return false; }
-                if (!hasMinRole(admin.role, 'moderator') && !hasMinRole(admin.role, 'alliance_leader')) { showDenied(); return false; }
-                myUser = {
-                    id: session.user.id,
-                    display_name: admin.display_name || session.user.email.split('@')[0],
-                    role: admin.role,
-                    alliance_id: admin.alliance_id,
-                    alliance_name: admin.alliances?.name || ''
-                };
-                document.getElementById('my-role-display').textContent = formatRole(myUser.role) + (myUser.alliance_name ? ' — ' + myUser.alliance_name : '');
-                return true;
-            } catch (e) { showDenied(); return false; }
+        // ============= STORAGE =============
+        function lsKey(ch) { return LS_MSG + ch; }
+        function saveMsgs(ch, msgs) {
+            try { localStorage.setItem(lsKey(ch), JSON.stringify(msgs.slice(-MAX_MSG))); } catch(e){}
         }
-        function showDenied() {
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('access-denied').classList.remove('hidden');
+        function loadMsgs(ch) {
+            try { const r=localStorage.getItem(lsKey(ch)); return r?JSON.parse(r):[]; } catch(e){return[];}
+        }
+        function addMsg(ch, msg) {
+            const msgs = loadMsgs(ch);
+            if(msgs.some(m=>m.id===msg.id)) return false;
+            msgs.push(msg);
+            saveMsgs(ch, msgs);
+            return true;
         }
 
-        // ===================== INIT =====================
+        // ============= ACCESS =============
         async function init() {
-            const ok = await checkAccess(); if (!ok) return;
+            const {data:{session}} = await supabase.auth.getSession();
+            if(!session){ showDeny(); return; }
+            const {data:adm,error} = await supabase.schema('v2').from('admin_users').select('*,alliances(name)').eq('id',session.user.id).eq('status','active').maybeSingle();
+            if(error||!adm || (!hasRole(adm.role,'moderator')&&!hasRole(adm.role,'alliance_leader'))){ showDeny(); return; }
+            me = { id:session.user.id, name:adm.display_name||session.user.email.split('@')[0], role:adm.role, alliance:adm.alliances?.name||'' };
+            document.getElementById('my-role-display').textContent = fmtRole(me.role) + (me.alliance?' — '+me.alliance:'');
             document.getElementById('loading-screen').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
             await loadAdmins();
-            loadDMConversations();
-            renderChannels();
-            renderDMList();
-            const defaultCh = hasMinRole(myUser.role, 'moderator') ? 'admin_global' : 'alliance_global';
-            switchChannel(defaultCh);
+            loadDMs();
+            renderChans(); renderDMList();
+            switchChan(hasRole(me.role,'moderator')?'admin_global':'alliance_global');
         }
+        function showDeny() { document.getElementById('loading-screen').classList.add('hidden'); document.getElementById('access-denied').classList.remove('hidden'); }
 
-        // ===================== ADMINS =====================
-        async function loadAdmins() {
-            try {
-                const { data } = await supabase.schema('v2').from('admin_users')
-                    .select('id, role, display_name, alliance_id, alliances(name, tag)')
-                    .eq('status', 'active').neq('id', myUser.id).order('role', { ascending: false });
-                allAdmins = data || [];
-            } catch (e) { console.error('loadAdmins error:', e); }
-        }
+        async function loadAdmins() { try{const {data}=await supabase.schema('v2').from('admin_users').select('id,role,display_name,alliance_id,alliances(name,tag)').eq('status','active').neq('id',me.id); admins=data||[];}catch(e){} }
 
-        // ===================== DM CONVERSATIONS (localStorage) =====================
-        function loadDMConversations() {
-            try {
-                const raw = localStorage.getItem('ah_v2_dm_conversations');
-                if (raw) dmConversations = JSON.parse(raw) || [];
-            } catch (e) { dmConversations = []; }
-        }
-        function saveDMConversations() {
-            try { localStorage.setItem('ah_v2_dm_conversations', JSON.stringify(dmConversations)); } catch (e) {}
-        }
+        // ============= DM =============
+        function loadDMs() { try{const r=localStorage.getItem(LS_DM); if(r) dms=JSON.parse(r)||[];}catch(e){dms=[];} }
+        function saveDMs() { try{localStorage.setItem(LS_DM,JSON.stringify(dms));}catch(e){} }
 
-        // ===================== SIDEBAR =====================
+        // ============= UI =============
         function openSidebar() { document.getElementById('chat-sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.remove('hidden'); }
         function closeSidebar() { document.getElementById('chat-sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.add('hidden'); }
 
-        function renderChannels() {
-            const container = document.getElementById('global-channels');
-            let html = '';
-            Object.keys(CHANNELS).forEach(key => {
-                const ch = CHANNELS[key];
-                if (!hasMinRole(myUser.role, ch.minRole)) return;
-                html += `<button id="ch-${key}" onclick="switchChannel('${key}'); closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${currentChannel === key ? 'chan-active' : ''}">
-                    <span class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm shrink-0">${ch.name.charAt(0)}</span>
-                    <div class="min-w-0"><div class="font-medium truncate">${ch.name}</div><div class="text-[10px] text-slate-400 truncate">${ch.desc}</div></div>
+        function renderChans() {
+            const el=document.getElementById('global-channels');
+            let h='';
+            Object.keys(CHANS).forEach(k=>{
+                const c=CHANS[k]; if(!hasRole(me.role,c.minRole)) return;
+                h+=`<button id="ch-${k}" onclick="switchChan('${k}');closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${curChan===k?'chan-active':''}">
+                    <span class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm shrink-0">${c.name.charAt(0)}</span>
+                    <div class="min-w-0"><div class="font-medium truncate">${c.name}</div><div class="text-[10px] text-slate-400 truncate">${c.desc}</div></div>
                 </button>`;
             });
-            container.innerHTML = html || '<p class="text-xs text-slate-500 px-3">Sin canales</p>';
+            el.innerHTML=h||'<p class="text-xs text-slate-500 px-3">Sin canales</p>';
         }
-
         function renderDMList() {
-            const container = document.getElementById('dm-list');
-            if (!dmConversations.length) { container.innerHTML = '<p class="text-xs text-slate-500 px-3 py-2">Sin conversaciones</p>'; return; }
-            container.innerHTML = dmConversations.map(dm => {
-                const admin = allAdmins.find(a => a.id === dm.adminId);
-                const name = admin ? (admin.display_name || 'Admin') : 'Desconocido';
-                const role = admin ? formatRole(admin.role) : '';
-                const alliance = admin?.alliances ? ` [${admin.alliances.tag}]` : '';
-                const chId = `dm-${dm.adminId}`;
-                return `<button id="ch-${chId}" onclick="switchChannel('${chId}'); closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${currentChannel === chId ? 'chan-active' : ''}">
+            const el=document.getElementById('dm-list');
+            if(!dms.length){el.innerHTML='<p class="text-xs text-slate-500 px-3 py-2">Sin conversaciones</p>';return;}
+            el.innerHTML=dms.map(dm=>{
+                const a=admins.find(x=>x.id===dm.id);
+                const n=a?(a.display_name||'Admin'):'Desconocido';
+                const t=a?.alliances?` [${a.alliances.tag}]`:'';
+                const cid=`dm-${dm.id}`;
+                return `<button id="ch-${cid}" onclick="switchChan('${cid}');closeSidebar();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition flex items-center gap-2 ${curChan===cid?'chan-active':''}">
                     <span class="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-xs shrink-0">💬</span>
-                    <div class="min-w-0"><div class="font-medium truncate">${name}${alliance}</div><div class="text-[10px] text-slate-400">${role}</div></div>
+                    <div class="min-w-0"><div class="font-medium truncate">${n}${t}</div><div class="text-[10px] text-slate-400">${a?fmtRole(a.role):''}</div></div>
                 </button>`;
             }).join('');
         }
 
-        // ===================== DM SEARCH =====================
-        function openDMSearch() {
-            document.getElementById('dm-search-modal').classList.remove('hidden');
-            document.getElementById('dm-search-modal').classList.add('flex');
-            document.getElementById('dm-search-input').value = '';
-            document.getElementById('dm-search-results').innerHTML = '';
-            document.getElementById('dm-search-input').focus();
-        }
+        // DM search
+        function openDMSearch() { document.getElementById('dm-search-modal').classList.remove('hidden'); document.getElementById('dm-search-modal').classList.add('flex'); document.getElementById('dm-search-input').value=''; document.getElementById('dm-search-results').innerHTML=''; document.getElementById('dm-search-input').focus(); }
         function closeDMSearch() { document.getElementById('dm-search-modal').classList.add('hidden'); document.getElementById('dm-search-modal').classList.remove('flex'); }
-
         function searchDMUsers() {
-            const q = document.getElementById('dm-search-input').value.toLowerCase().trim();
-            const container = document.getElementById('dm-search-results');
-            if (!q) { container.innerHTML = ''; return; }
-            const filtered = allAdmins.filter(a =>
-                (a.display_name || '').toLowerCase().includes(q) ||
-                (a.alliances?.name || '').toLowerCase().includes(q) ||
-                (a.alliances?.tag || '').toLowerCase().includes(q)
-            );
-            if (!filtered.length) { container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Sin resultados</p>'; return; }
-            container.innerHTML = filtered.map(a => {
-                const name = a.display_name || 'Admin';
-                const alliance = a.alliances ? ` [${a.alliances.tag}]` : '';
-                return `<button onclick="startDM('${a.id}')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-3">
-                    <span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">👤</span>
-                    <div><div class="font-medium text-sm">${name}${alliance}</div><div class="text-[11px] text-slate-500">${formatRole(a.role)}</div></div>
-                </button>`;
-            }).join('');
+            const q=document.getElementById('dm-search-input').value.toLowerCase().trim();
+            const el=document.getElementById('dm-search-results');
+            if(!q){el.innerHTML='';return;}
+            const f=admins.filter(a=>(a.display_name||'').toLowerCase().includes(q)||(a.alliances?.name||'').toLowerCase().includes(q));
+            el.innerHTML=f.length?f.map(a=>`<button onclick="startDM('${a.id}')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">👤</span><div><div class="font-medium text-sm">${a.display_name||'Admin'}${a.alliances?` [${a.alliances.tag}]`:''}</div><div class="text-[11px] text-slate-500">${fmtRole(a.role)}</div></div></button>`).join(''):'<p class="text-sm text-slate-400 text-center py-4">Sin resultados</p>';
+        }
+        function startDM(aid) { if(!dms.some(d=>d.id===aid)){dms.push({id:aid});saveDMs();renderDMList();} closeDMSearch(); switchChan(`dm-${aid}`); }
+
+        // ============= CHANNEL =============
+        function topicFor(ch) {
+            if(ch.startsWith('dm-')){ const oid=ch.replace('dm-',''); const ids=[me.id,oid].sort(); return `dm_${ids[0].slice(0,8)}_${ids[1].slice(0,8)}`; }
+            return CHANS[ch]?.topic||ch;
         }
 
-        function startDM(adminId) {
-            if (!dmConversations.some(d => d.adminId === adminId)) {
-                dmConversations.push({ adminId });
-                saveDMConversations();
-                renderDMList();
-            }
-            closeDMSearch();
-            switchChannel(`dm-${adminId}`);
-        }
+        async function switchChan(ch) {
+            if(curChan===ch) return;
+            if(rtChan){ await rtChan.unsubscribe(); rtChan=null; }
+            curChan=ch;
 
-        // ===================== CHANNEL SWITCHING =====================
-        function getChannelKey(key) {
-            if (key.startsWith('dm-')) {
-                const otherId = key.replace('dm-', '');
-                const ids = [myUser.id, otherId].sort();
-                return `dm:${ids[0]}:${ids[1]}`;
-            }
-            return CHANNELS[key]?.channel || key;
-        }
-
-        async function switchChannel(channelKey) {
-            if (currentChannel === channelKey) return;
-            if (realtimeChannel) { await realtimeChannel.unsubscribe(); realtimeChannel = null; }
-            currentChannel = channelKey;
-
-            // Update header
-            const title = document.getElementById('channel-title');
-            const desc = document.getElementById('channel-desc');
-            if (channelKey.startsWith('dm-')) {
-                const otherId = channelKey.replace('dm-', '');
-                const admin = allAdmins.find(a => a.id === otherId);
-                title.textContent = admin ? `💬 ${admin.display_name}` : '💬 Mensaje Directo';
-                desc.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 online-dot"></span><span>${admin ? formatRole(admin.role) + (admin.alliances ? ' — ' + admin.alliances.name : '') : 'Privado'}</span>`;
+            // Header
+            const title=document.getElementById('channel-title');
+            const desc=document.getElementById('channel-status');
+            if(ch.startsWith('dm-')){
+                const oid=ch.replace('dm-',''); const a=admins.find(x=>x.id===oid);
+                title.textContent=a?`💬 ${a.display_name}`:'💬 Directo';
+                desc.innerHTML=`<span class="w-1.5 h-1.5 rounded-full bg-green-500 dot-online"></span><span>${a?fmtRole(a.role)+(a.alliances?` — ${a.alliances.name}`:''):'Privado'}</span>`;
             } else {
-                const ch = CHANNELS[channelKey];
-                title.textContent = ch ? ch.name : channelKey;
-                desc.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 online-dot"></span><span>${ch ? ch.desc : ''}</span>`;
+                const c=CHANS[ch]; title.textContent=c?c.name:ch;
+                desc.innerHTML=`<span class="w-1.5 h-1.5 rounded-full bg-green-500 dot-online"></span><span>${c?c.desc:''}</span>`;
             }
+            document.querySelectorAll('.chan-active').forEach(el=>{el.classList.remove('chan-active');});
+            const btn=document.getElementById('ch-'+ch); if(btn) btn.classList.add('chan-active');
 
-            // Update active state
-            document.querySelectorAll('.chan-active').forEach(el => {
-                el.classList.remove('chan-active');
-                el.style.background = ''; el.style.border = ''; el.style.fontWeight = '';
+            renderMsgs();
+            connectRT();
+        }
+
+        // ============= RENDER =============
+        function renderMsgs() {
+            const el=document.getElementById('chat-scroll');
+            const msgs=loadMsgs(topicFor(curChan));
+            if(!msgs.length){el.innerHTML='<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">Sin mensajes. Escribe algo!</p></div>'; return;}
+            let h=''; let lastD=null;
+            msgs.forEach(m=>{
+                const cd=new Date(m.ts).toDateString();
+                if(lastD!==cd){ h+=`<div class="date-sep flex justify-center my-3"><span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(m.ts)}</span></div>`; lastD=cd; }
+                h+=msgHTML(m);
             });
-            const activeBtn = document.getElementById(`ch-${channelKey}`);
-            if (activeBtn) activeBtn.classList.add('chan-active');
-
-            // Load messages from Supabase
-            await loadMessagesFromServer();
-
-            // Connect realtime
-            connectRealtime();
+            el.innerHTML=h;
+            scrollToBottom(true);
         }
 
-        // ===================== LOAD MESSAGES FROM SUPABASE =====================
-        async function loadMessagesFromServer() {
-            const container = document.getElementById('chat-scroll');
-            container.innerHTML = '<div class="text-center py-8 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p class="text-sm">Cargando mensajes...</p></div>';
-
-            try {
-                const chKey = getChannelKey(currentChannel);
-                const { data, error } = await supabase.schema('v2')
-                    .from('chat_messages')
-                    .select('*')
-                    .eq('channel', chKey)
-                    .order('created_at', { ascending: true })
-                    .limit(200);
-
-                if (error) throw error;
-
-                renderMessageList(data || []);
-            } catch (e) {
-                console.error('loadMessages error:', e);
-                container.innerHTML = `<div class="text-center py-8 text-red-400"><p>Error cargando mensajes</p><p class="text-xs">${e.message}</p></div>`;
-            }
-        }
-
-        function renderMessageList(messages) {
-            const container = document.getElementById('chat-scroll');
-            if (!messages.length) {
-                container.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">No hay mensajes aún. ¡Sé el primero!</p></div>';
-                return;
-            }
-
-            let html = '';
-            let lastDate = null;
-            messages.forEach(m => {
-                const currDate = new Date(m.created_at).toDateString();
-                if (lastDate !== currDate) {
-                    html += `<div class="date-sep flex justify-center my-3"><span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDateSep(m.created_at)}</span></div>`;
-                    lastDate = currDate;
-                }
-                html += renderMsgHTML(m);
-            });
-            container.innerHTML = html;
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function renderMsgHTML(msg) {
-            if (msg.message_type === 'system') {
-                return `<div class="flex justify-center my-2"><span class="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">${esc(msg.message)}</span></div>`;
-            }
-            const isMine = msg.sender_admin_id === myUser.id;
-            const time = fmtTime(msg.created_at);
-            const reportBtn = (!isMine && msg.sender_admin_id) ? `<button onclick="openReport('${msg.id}', '${esc(msg.message)}', '${esc(msg.sender_name)}')" class="ml-1 text-[10px] text-red-400 opacity-0 group-hover:opacity-100 transition">🚩</button>` : '';
-            const bubbleClass = isMine ? 'bubble-mine' : 'bubble-other';
-            const alignClass = isMine ? 'justify-end' : 'justify-start';
-            const nameColor = isMine ? 'text-amber-900' : 'text-slate-500';
-
-            return `<div class="msg-in group flex ${alignClass} mb-1.5 px-1" data-msg-id="${msg.id}">
-                <div class="max-w-[85%] md:max-w-[60%] ${bubbleClass} rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
-                    <div class="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                        <span class="text-[11px] font-bold ${nameColor}">${esc(msg.sender_name)}</span>
-                        ${msg.sender_role ? `<span class="text-[10px] px-1 py-0.5 rounded bg-white/40">${formatRole(msg.sender_role)}</span>` : ''}
-                        <span class="text-[10px] opacity-50">${time}</span>
-                        ${reportBtn}
-                    </div>
-                    <div class="text-sm whitespace-pre-wrap break-words leading-relaxed">${esc(msg.message)}</div>
+        function msgHTML(m) {
+            if(m.type==='sys') return `<div class="flex justify-center my-2"><span class="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full">${esc(m.text)}</span></div>`;
+            const isMe=m.sid===me.id;
+            const t=fmtTime(m.ts);
+            const rep=(!isMe&&m.sid)?`<button onclick="openReport('${esc(m.text)}','${esc(m.name)}')" class="ml-1 text-[10px] text-red-400 opacity-0 group-hover:opacity-100 transition">🚩</button>`:'';
+            const cls=isMe?'bubble-mine':'bubble-other';
+            const al=isMe?'justify-end':'justify-start';
+            const nc=isMe?'text-amber-900':'text-slate-500';
+            return `<div class="msg-in group flex ${al} mb-1.5 px-1">
+                <div class="max-w-[85%] md:max-w-[60%] ${cls} rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                    <div class="flex items-center gap-1.5 mb-0.5 flex-wrap"><span class="text-[11px] font-bold ${nc}">${esc(m.name)}</span>${m.role?`<span class="text-[10px] px-1 py-0.5 rounded bg-white/40">${fmtRole(m.role)}</span>`:''}<span class="text-[10px] opacity-50">${t}</span>${rep}</div>
+                    <div class="text-sm whitespace-pre-wrap break-words leading-relaxed">${esc(m.text)}</div>
                 </div>
             </div>`;
         }
 
-        // ===================== REALTIME =====================
-        function connectRealtime() {
-            const chKey = getChannelKey(currentChannel);
-            document.getElementById('status-text').textContent = 'Conectando...';
+        function appendMsg(msg) {
+            const el=document.getElementById('chat-scroll');
+            const empty=el.querySelector('.text-center');
+            if(empty) empty.remove();
 
-            realtimeChannel = supabase.channel(chKey, { config: { broadcast: { self: false } } });
+            // Date separator
+            const msgs=loadMsgs(topicFor(curChan));
+            const prev=msgs[msgs.length-2];
+            if(prev && new Date(prev.ts).toDateString()!==new Date(msg.ts).toDateString()){
+                const s=document.createElement('div'); s.className='date-sep flex justify-center my-3';
+                s.innerHTML=`<span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(msg.ts)}</span>`;
+                el.appendChild(s);
+            }
+            const d=document.createElement('div'); d.innerHTML=msgHTML(msg);
+            el.appendChild(d.firstElementChild);
+            scrollToBottom();
+        }
 
-            realtimeChannel
-                .on('broadcast', { event: 'new_message' }, (payload) => {
-                    handleNewMessage(payload.payload);
-                })
-                .on('broadcast', { event: 'typing' }, (payload) => {
-                    const indicator = document.getElementById('typing-indicator');
-                    if (payload.payload.user_id !== myUser.id) {
-                        indicator.textContent = `${payload.payload.user_name} está escribiendo...`;
-                        indicator.classList.add('typing-dot');
-                        clearTimeout(typingTimeout);
-                        typingTimeout = setTimeout(() => {
-                            indicator.textContent = '';
-                            indicator.classList.remove('typing-dot');
-                        }, 3000);
-                    }
-                })
-                .subscribe((status) => {
-                    const statusText = document.getElementById('status-text');
-                    if (status === 'SUBSCRIBED') {
-                        statusText.textContent = 'En línea';
-                    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                        statusText.textContent = 'Desconectado';
-                    }
+        function scrollToBottom(force) {
+            const el=document.getElementById('chat-scroll');
+            const near = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+            if(force || near) el.scrollTop = el.scrollHeight;
+            if(!force){ const btn=document.getElementById('scroll-btn'); if(near) btn.classList.add('hidden-btn'); else btn.classList.remove('hidden-btn'); }
+        }
+        document.getElementById('chat-scroll').addEventListener('scroll', function(){ const el=this; const near=el.scrollHeight-el.scrollTop-el.clientHeight<100; const btn=document.getElementById('scroll-btn'); if(near)btn.classList.add('hidden-btn'); else btn.classList.remove('hidden-btn'); });
+
+        // ============= REALTIME (TUNNEL ONLY) =============
+        function connectRT() {
+            const tp=topicFor(curChan);
+            document.getElementById('status-dot').className='w-1.5 h-1.5 rounded-full bg-yellow-400 dot-online';
+            document.getElementById('status-text').textContent='Conectando...';
+
+            rtChan = supabase.channel(tp, { config:{ broadcast:{ self:false } } });
+            rtChan
+                .on('broadcast', { event:'msg' }, p => { const m=p.payload; if(addMsg(tp,m)) appendMsg(m); })
+                .on('broadcast', { event:'typing' }, p => { const ind=document.getElementById('typing-indicator'); if(p.payload.sid!==me.id){ ind.textContent=`${p.payload.name} está escribiendo...`; ind.classList.add('typing-dot'); clearTimeout(typingTimer); typingTimer=setTimeout(()=>{ind.textContent='';ind.classList.remove('typing-dot');},3000); } })
+                .subscribe(st => {
+                    const dot=document.getElementById('status-dot');
+                    const txt=document.getElementById('status-text');
+                    if(st==='SUBSCRIBED'){ dot.className='w-1.5 h-1.5 rounded-full bg-green-500 dot-online'; txt.textContent='En línea'; }
+                    else if(st==='CLOSED'||st==='CHANNEL_ERROR'){ dot.className='w-1.5 h-1.5 rounded-full bg-red-400 dot-online'; txt.textContent='Desconectado'; }
+                    else { dot.className='w-1.5 h-1.5 rounded-full bg-yellow-400 dot-online'; txt.textContent='Conectando...'; }
                 });
         }
 
-        function handleNewMessage(msg) {
-            const container = document.getElementById('chat-scroll');
-            const empty = container.querySelector('.text-center.py-12, .text-center.py-8');
-            if (empty) empty.remove();
-
-            const div = document.createElement('div');
-            div.innerHTML = renderMsgHTML(msg);
-            container.appendChild(div.firstElementChild);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // ===================== SEND MESSAGE =====================
+        // ============= SEND =============
         async function sendMessage() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text || !currentChannel) return;
-            input.value = '';
+            const inp=document.getElementById('chat-input');
+            const txt=inp.value.trim();
+            if(!txt||!curChan) return;
+            inp.value='';
 
-            const chKey = getChannelKey(currentChannel);
-            const msgData = {
-                channel: chKey,
-                sender_admin_id: myUser.id,
-                sender_name: myUser.display_name,
-                sender_role: myUser.role,
-                message: text,
-                message_type: 'text'
-            };
+            const tp=topicFor(curChan);
+            const msg={ id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), sid:me.id, name:me.name, role:me.role, text:txt, type:'text', ts:new Date().toISOString() };
 
-            try {
-                // Save to Supabase
-                const { data, error } = await supabase.schema('v2')
-                    .from('chat_messages')
-                    .insert(msgData)
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                // Broadcast via realtime
-                if (realtimeChannel && data) {
-                    await realtimeChannel.send({
-                        type: 'broadcast',
-                        event: 'new_message',
-                        payload: data
-                    });
-                }
-
-                // Render locally
-                handleNewMessage(data || msgData);
-            } catch (e) {
-                console.error('sendMessage error:', e);
-                showToast('Error enviando mensaje: ' + e.message, 'error');
+            // Save locally
+            addMsg(tp, msg);
+            // Render
+            appendMsg(msg);
+            // Broadcast through tunnel (Supabase Realtime only, NO DB save)
+            if(rtChan){
+                await rtChan.send({ type:'broadcast', event:'msg', payload:msg });
             }
         }
+        document.getElementById('chat-input').addEventListener('input', function(){ if(rtChan&&me) rtChan.send({type:'broadcast',event:'typing',payload:{sid:me.id,name:me.name}}); });
 
-        document.getElementById('chat-input').addEventListener('input', function() {
-            if (!realtimeChannel || !myUser) return;
-            realtimeChannel.send({
-                type: 'broadcast',
-                event: 'typing',
-                payload: { user_id: myUser.id, user_name: myUser.display_name }
-            });
-        });
-
-        // ===================== REPORT =====================
-        function openReport(msgId, msgText, senderName) {
-            reportTargetMsg = { id: msgId };
-            document.getElementById('report-msg-text').textContent = msgText;
-            document.getElementById('report-msg-sender').textContent = senderName;
-            document.getElementById('report-reason').value = 'spam';
-            document.getElementById('report-details').value = '';
-            document.getElementById('report-modal').classList.remove('hidden');
-            document.getElementById('report-modal').classList.add('flex');
-        }
-        function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); document.getElementById('report-modal').classList.remove('flex'); reportTargetMsg = null; }
-
-        async function submitReport() {
-            if (!reportTargetMsg) return;
-            try {
-                const { error } = await supabase.schema('v2').from('chat_reports').insert({
-                    channel: getChannelKey(currentChannel),
-                    reported_message_id: reportTargetMsg.id,
-                    reporter_id: myUser.id,
-                    reporter_name: myUser.display_name,
-                    reason: document.getElementById('report-reason').value + (document.getElementById('report-details').value.trim() ? ': ' + document.getElementById('report-details').value.trim() : '')
-                });
-                if (error) throw error;
-                showToast('Reporte enviado', 'success');
-                closeReportModal();
-            } catch (e) { showToast('Error: ' + e.message, 'error'); }
-        }
-
-        // Modal click-outside
-        document.getElementById('dm-search-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDMSearch(); });
-        document.getElementById('report-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeReportModal(); });
+        // ============= REPORT =============
+        function openReport(text,sender){ reportMsg={text:text,sender:sender}; document.getElementById('report-msg-text').textContent=text; document.getElementById('report-msg-sender').textContent=sender; document.getElementById('report-reason').value='spam'; document.getElementById('report-modal').classList.remove('hidden'); document.getElementById('report-modal').classList.add('flex'); }
+        function closeReportModal(){ document.getElementById('report-modal').classList.add('hidden'); document.getElementById('report-modal').classList.remove('flex'); reportMsg=null; }
+        async function submitReport(){ if(!reportMsg)return; try{ await supabase.schema('v2').from('chat_reports').insert({ channel:topicFor(curChan), reporter_id:me.id, reporter_name:me.name, reason:document.getElementById('report-reason').value }); showToast('Reporte enviado','success'); closeReportModal(); }catch(e){ showToast('Error','error'); } }
+        document.getElementById('dm-search-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeDMSearch(); });
+        document.getElementById('report-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeReportModal(); });
 
         // Start
         init();
