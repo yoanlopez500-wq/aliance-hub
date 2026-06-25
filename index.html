@@ -68,7 +68,21 @@
         </div>
     </div>
 
-    <!-- Banner PWA + Notificaciones -->
+    <!-- Reglas Base Global -->
+    <div id="global-rules-section" class="hidden bg-blue-50 border-b border-blue-200">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">📜</span>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
+                    <p class="text-xs text-blue-600">Reglas estandar que aplican a todas las partidas. Las reglas adicionales de cada partida estan en su descripcion.</p>
+                </div>
+                <a id="global-rules-link" href="#" target="_blank" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">Ver Reglas</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner -->
     <div id="pwa-install-banner" class="hidden bg-slate-800 border-b border-amber-500/30">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between gap-4">
@@ -113,6 +127,7 @@
         </div>
     </div>
 
+    <!-- Matches -->
     <div id="matches" class="max-w-7xl mx-auto px-4 py-10">
         <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
             <h2 class="text-2xl font-bold text-slate-800">Partidas</h2>
@@ -167,7 +182,13 @@
         async function loadMatches() {
             showLoading('matches-list');
             try {
-                var { data, error } = await supabase.schema('v2').from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)').eq('is_private', false).order('created_at', { ascending: false });
+                var { data, error } = await supabase
+                    .schema('v2')
+                    .from('matches')
+                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
+                    .eq('is_private', false)
+                    .order('created_at', { ascending: false });
+
                 if (error) throw error;
                 allMatches = data || [];
                 renderMatches(allMatches);
@@ -176,22 +197,69 @@
 
         function renderMatches(matches) {
             var c = document.getElementById('matches-list');
-            if (matches.length === 0) { c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>'; return; }
+            if (matches.length === 0) {
+                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
+                return;
+            }
+
             c.innerHTML = matches.map(function(match) {
-                var allianceLabel = match.match_type === 'internal' && match.alliance ? match.alliance.name : match.match_type === 'duel' ? 'Duelo' : 'Global';
+                var allianceLabel = '';
+                if (match.match_type === 'internal' && match.alliance) allianceLabel = match.alliance.name;
+                else if (match.match_type === 'duel') allianceLabel = 'Duelo';
+                else allianceLabel = 'Global';
+
                 var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">Aprobacion</span>' : '';
                 var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">Ganadores</span>' : '';
                 var canRegister = match.status === 'open' && match.match_type !== 'public_quick';
-                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') + approvalBadge + winnerBadge + '</div><h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3><p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p><div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400"><span>📅 ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>👥 ' + match.max_players + ' jugadores max</span></div></div><div class="flex flex-col gap-2"><a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' + (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') + '</div></div></div>';
+
+                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">' +
+                    '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
+                        '<div class="flex-1">' +
+                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+                                getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
+                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') +
+                                approvalBadge + winnerBadge +
+                            '</div>' +
+                            '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
+                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p>' +
+                            '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
+                                '<span>📅 ' + formatDate(match.created_at) + '</span>' +
+                                '<span>' + allianceLabel + '</span>' +
+                                '<span>👥 ' + match.max_players + ' jugadores max</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex flex-col gap-2">' +
+                            '<a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' +
+                            (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             }).join('');
         }
 
         function filterMatches(type) {
-            document.querySelectorAll('.filter-btn').forEach(function(btn) { btn.className = btn.dataset.filter === type ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium' : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200'; });
+            document.querySelectorAll('.filter-btn').forEach(function(btn) {
+                btn.className = btn.dataset.filter === type
+                    ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
+                    : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
+            });
             renderMatches(type === 'all' ? allMatches : allMatches.filter(function(m) { return m.match_type === type; }));
         }
 
-        checkAlliance(); loadStats(); loadMatches();
+        async function loadGlobalRules() {
+            try {
+                var { data } = await supabase.schema('v2').from('app_settings').select('value').eq('key', 'rules_url').single();
+                if (data && data.value) {
+                    document.getElementById('global-rules-section').classList.remove('hidden');
+                    document.getElementById('global-rules-link').href = data.value;
+                }
+            } catch (e) {}
+        }
+
+        checkAlliance();
+        loadStats();
+        loadMatches();
+        loadGlobalRules();
     </script>
 </body>
 </html>
