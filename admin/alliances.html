@@ -3,32 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alianzas - Alliance Hub</title>
+    <title>Alianzas V2 - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/base.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/pwa-utils.js"></script>
-<!-- PWA Meta Tags -->
+    <style>.modal { display: none; } .modal.active { display: flex; }</style>
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
 
-    <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">🏴 Alianzas</h1>
-                <p class="text-slate-500">Gestiona las alianzas registradas</p>
+                <h1 class="text-2xl font-bold text-slate-800">🏴 Alianzas V2</h1>
+                <p class="text-slate-500">Crear, editar y gestionar alianzas</p>
             </div>
-            <button onclick="openModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
+            <button onclick="openAllianceModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
         </div>
 
         <div id="alliances-list" class="space-y-3">
@@ -36,26 +30,28 @@
         </div>
     </div>
 
-    <div id="alliance-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md">
-            <div class="p-6 border-b">
-                <h2 class="text-xl font-bold" id="modal-title">Nueva Alianza</h2>
-            </div>
-            <form id="alliance-form" class="p-6 space-y-4">
+    <div id="alliance-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6">
+            <h2 class="text-xl font-bold mb-4" id="modal-title">Nueva Alianza</h2>
+            <form id="alliance-form" class="space-y-4">
                 <input type="hidden" id="alliance-id">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
-                    <input type="text" id="alliance-name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                    <input type="text" id="a-name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Tag *</label>
-                    <input type="text" id="alliance-tag" required maxlength="10" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="ej: GA">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tag * (2-10 caracteres)</label>
+                    <input type="text" id="a-tag" required minlength="2" maxlength="10" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none uppercase">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
-                    <textarea id="alliance-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></textarea>
+                    <textarea id="a-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></textarea>
                 </div>
-                <div class="flex gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Líder (ID Jugador)</label>
+                    <input type="number" id="a-leader" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
                     <button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button>
                     <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
                 </div>
@@ -65,102 +61,90 @@
 
     <script>
         requireAdmin();
-
-        let allAlliances = [];
+        requireMinRole('event_admin');
 
         async function loadAlliances() {
-            const { data, error } = await supabase.from('alliances').select('*').order('name');
-            if (error) return;
+            var { data: alliances } = await supabase
+                .from('alliances')
+                .select('*, players(current_username)')
+                .order('name');
 
-            allAlliances = data || [];
-            const container = document.getElementById('alliances-list');
-
-            if (allAlliances.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin alianzas registradas</div>';
+            var container = document.getElementById('alliances-list');
+            if (!alliances || alliances.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin alianzas</div>';
                 return;
             }
 
-            container.innerHTML = allAlliances.map(a => `
-                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="bg-slate-800 text-white px-2 py-0.5 rounded text-sm font-bold">${a.tag}</span>
-                            <h3 class="font-bold text-slate-800">${a.name}</h3>
-                            ${!a.active ? '<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">Penalizada</span>' : ''}
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">${a.description || 'Sin descripción'}</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="editAlliance('${a.id}')" class="px-3 py-1.5 bg-amber-500 text-slate-900 text-sm rounded font-bold hover:bg-amber-400">Editar</button>
-                        <button onclick="toggleActive('${a.id}', ${a.active})" class="px-3 py-1.5 ${a.active ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} text-sm rounded hover:opacity-80">
-                            ${a.active ? 'Penalizar' : 'Activar'}
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = alliances.map(function(a) {
+                var statusBadge = a.status === 'active' 
+                    ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Activa</span>'
+                    : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">Inactiva</span>';
+
+                return '<div class="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between">' +
+                    '<div>' +
+                        '<div class="flex items-center gap-2 mb-1">' + statusBadge + '</div>' +
+                        '<h3 class="font-bold text-slate-800">' + a.name + ' <span class="text-slate-500 text-sm">[' + a.tag + ']</span></h3>' +
+                        '<p class="text-sm text-slate-500">' + (a.description || 'Sin descripción') + '</p>' +
+                        '<p class="text-xs text-slate-400 mt-1">Líder: ' + (a.players?.current_username || 'Sin líder') + '</p>' +
+                    '</div>' +
+                    '<div class="flex gap-2">' +
+                        '<button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400">Editar</button>' +
+                        '<button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">🗑️</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-        function openModal() {
+        function openAllianceModal() {
             document.getElementById('alliance-form').reset();
             document.getElementById('alliance-id').value = '';
             document.getElementById('modal-title').textContent = 'Nueva Alianza';
-            document.getElementById('alliance-modal').classList.remove('hidden');
-            document.getElementById('alliance-modal').classList.add('flex');
+            document.getElementById('alliance-modal').classList.add('active');
         }
 
-        function closeModal() {
-            document.getElementById('alliance-modal').classList.add('hidden');
-            document.getElementById('alliance-modal').classList.remove('flex');
-        }
-
-        function editAlliance(id) {
-            const a = allAlliances.find(x => x.id === id);
+        async function editAlliance(id) {
+            var { data: a } = await supabase.from('alliances').select('*').eq('id', id).single();
             if (!a) return;
 
             document.getElementById('alliance-id').value = a.id;
-            document.getElementById('alliance-name').value = a.name;
-            document.getElementById('alliance-tag').value = a.tag;
-            document.getElementById('alliance-desc').value = a.description || '';
+            document.getElementById('a-name').value = a.name;
+            document.getElementById('a-tag').value = a.tag;
+            document.getElementById('a-desc').value = a.description || '';
+            document.getElementById('a-leader').value = a.leader_id || '';
             document.getElementById('modal-title').textContent = 'Editar Alianza';
-            document.getElementById('alliance-modal').classList.remove('hidden');
-            document.getElementById('alliance-modal').classList.add('flex');
+            document.getElementById('alliance-modal').classList.add('active');
         }
 
-        async function toggleActive(id, current) {
-            const { error } = await supabase.from('alliances').update({ active: !current }).eq('id', id);
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                showToast(current ? 'Alianza penalizada' : 'Alianza activada', 'success');
-                loadAlliances();
-            }
-        }
+        function closeModal() { document.getElementById('alliance-modal').classList.remove('active'); }
 
         document.getElementById('alliance-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const id = document.getElementById('alliance-id').value;
-            const data = {
-                name: document.getElementById('alliance-name').value.trim(),
-                tag: document.getElementById('alliance-tag').value.trim(),
-                description: document.getElementById('alliance-desc').value.trim() || null
+            var id = document.getElementById('alliance-id').value;
+            var data = {
+                name: document.getElementById('a-name').value.trim(),
+                tag: document.getElementById('a-tag').value.trim().toUpperCase(),
+                description: document.getElementById('a-desc').value || null,
+                leader_id: document.getElementById('a-leader').value ? parseInt(document.getElementById('a-leader').value) : null
             };
 
-            let result;
+            var result;
             if (id) {
                 result = await supabase.from('alliances').update(data).eq('id', id);
             } else {
                 result = await supabase.from('alliances').insert([data]);
             }
 
-            if (result.error) {
-                showToast('Error: ' + result.error.message, 'error');
-            } else {
-                showToast(id ? 'Actualizado' : 'Creado', 'success');
-                closeModal();
-                loadAlliances();
-            }
+            if (result.error) showToast('Error: ' + result.error.message, 'error');
+            else { showToast(id ? 'Alianza actualizada' : 'Alianza creada', 'success'); closeModal(); loadAlliances(); }
         });
+
+        async function deleteAlliance(id) {
+            if (!confirmAction('Eliminar esta alianza? Se desvincularán sus jugadores.')) return;
+            var { error } = await supabase.from('alliances').delete().eq('id', id);
+            if (error) showToast('Error: ' + error.message, 'error');
+            else { showToast('Eliminada', 'success'); loadAlliances(); }
+        }
 
         loadAlliances();
     </script>
