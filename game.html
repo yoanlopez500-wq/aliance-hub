@@ -100,9 +100,10 @@
         if (!matchId) location.href = 'index.html';
 
         async function loadMatch() {
+            // FIX: Especificar FK explicita para evitar ambiguedad con alliances
             var { data: match } = await supabase
                 .from('matches')
-                .select('*, alliances(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag), players!matches_referee_id_fkey(current_username)')
+                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
                 .eq('id', matchId)
                 .single();
 
@@ -117,13 +118,14 @@
                 return;
             }
 
-            // NUEVO: Cargar ganadores si existen
+            // Cargar ganadores si existen
             if (match.winners_declared) {
                 loadWinners(matchId);
             }
 
+            // FIX: usar 'alliance' en lugar de 'alliances'
             var allianceLabel = '';
-            if (match.match_type === 'internal' && match.alliances) allianceLabel = '🏴 ' + match.alliances.name + ' [' + match.alliances.tag + ']';
+            if (match.match_type === 'internal' && match.alliance) allianceLabel = '🏴 ' + match.alliance.name + ' [' + match.alliance.tag + ']';
             else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
             else allianceLabel = '🌍 Global';
 
@@ -162,7 +164,6 @@
                     '<span>📅 ' + formatDate(match.created_at) + '</span>' +
                     '<span>' + allianceLabel + '</span>' +
                     '<span>👥 Max ' + match.max_players + '</span>' +
-                    (match.referee_id ? '<span>👨‍⚖️ Árbitro: ' + (match.players?.current_username || '?') + '</span>' : '') +
                 '</div>' +
                 (match.status === 'open' && !isRegistered ? '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Registrarme</a></div>' 
                     : isRegistered && regStatus === 'approved' ? '<div class="mt-4"><span class="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-bold">✓ Aprobado</span></div>'
@@ -183,7 +184,6 @@
             loadResults();
         }
 
-        // NUEVO: Cargar y mostrar ganadores
         async function loadWinners(matchId) {
             var { data: winners } = await supabase
                 .from('match_winners')
