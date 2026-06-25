@@ -223,6 +223,7 @@ async function initAdminNav() {
             { href: ahPath('admin/invites.html'), label: '🔑 Invitar', minRole: 'event_admin' },
             { href: ahPath('admin/leagues.html'), label: '🏆 Ligas', minRole: 'event_admin' },
             { href: ahPath('admin/admins.html'), label: '👥 Admins', minRole: 'event_admin' },
+            { href: ahPath('admin/strikes.html'), label: '⚡ Strikes', minRole: 'moderator' },
             { href: ahPath('admin/alliance-members.html'), label: '🏴 Miembros', minRole: 'alliance_leader', requiresAlliance: true },
         ];
 
