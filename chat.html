@@ -240,8 +240,10 @@
             document.getElementById('loading-screen').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
 
-            // Init channels in memory
-            Object.keys(CHANNELS).forEach(function(k) { allMessages[k] = []; });
+            // Load global channels from localStorage (same key format as base.js)
+            Object.keys(CHANNELS).forEach(function(k) {
+                allMessages[k] = loadMessagesFromStorage(k);
+            });
 
             // Load DM conversations from localStorage
             loadDMConversations();
@@ -257,9 +259,10 @@
             switchChannel(defaultCh);
         }
 
-        // ===================== LOCALSTORAGE PERSISTENCE =====================
+        // ===================== LOCALSTORAGE PERSISTENCE (keys match base.js) =====================
+        // base.js uses: 'ah_v2_chat_' + channel
         function getChannelStorageKey(channelKey) {
-            return 'ah_v2_chat_channel_' + channelKey;
+            return 'ah_v2_chat_' + channelKey;
         }
 
         function getLastReadKey() {
@@ -330,7 +333,6 @@
         function markChannelAsRead(channelKey) {
             lastReadTimestamps[channelKey] = new Date().toISOString();
             saveLastRead();
-            // Refresh badge
             setTimeout(function() { renderGlobalChannels(); renderDMList(); }, 50);
         }
 
@@ -338,7 +340,7 @@
             var msgs = allMessages[channelKey] || [];
             var lastRead = lastReadTimestamps[channelKey];
             if (!lastRead) {
-                // First time - show count of messages from last 1 hour only (not all history)
+                // First time - show count of messages from last 1 hour only
                 var oneHourAgo = new Date(Date.now() - 3600000);
                 return msgs.filter(function(m) { return new Date(m.timestamp) > oneHourAgo && m.sender_id !== myUser.id && m.sender_id !== 'system'; }).length;
             }
@@ -537,11 +539,9 @@
             allMessages[currentChannel].push(msg);
             saveMessagesToStorage(currentChannel);
 
-            // Update unread badge if not currently viewing
-            if (currentChannel) {
-                renderGlobalChannels();
-                renderDMList();
-            }
+            // Update unread badge
+            renderGlobalChannels();
+            renderDMList();
 
             var container = document.getElementById('chat-scroll');
             var empty = container.querySelector('.text-center.py-12');
