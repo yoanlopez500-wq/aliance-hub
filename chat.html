@@ -162,7 +162,6 @@
     </div>
 
     <script>
-        // ============= CONFIG =============
         const ROLE_H = { moderator:1, alliance_leader:2, event_admin:3, superadmin:4 };
         const CHANS = {
             admin_global:     { name:'🌐 Global Admin',   desc:'Todos los admins',      minRole:'moderator' },
@@ -171,7 +170,6 @@
         const LS_DM = 'ah_chat_dms_v2';
         const MAX_LOCAL = 200;
 
-        // ============= STATE =============
         let me = null, curChan = null, rtSub = null, pgSub = null;
         let admins = [], dms = [], reportMsg = null, typingTimer;
         let msgCache = new Map();
@@ -190,11 +188,7 @@
             }
             return ch;
         }
-
-        function broadcastChan(ch) {
-            return 'rt_' + dbChan(ch).replace(/[^a-zA-Z0-9_-]/g, '_');
-        }
-
+        function broadcastChan(ch) { return 'rt_' + dbChan(ch).replace(/[^a-zA-Z0-9_-]/g, '_'); }
         function getCache(ch) { return msgCache.get(dbChan(ch)) || []; }
         function setCache(ch, msgs) { msgCache.set(dbChan(ch), msgs.slice(-MAX_LOCAL)); }
         function addToCache(ch, msg) {
@@ -209,7 +203,7 @@
         async function init() {
             const {data:{session}} = await supabase.auth.getSession();
             if(!session){ showDeny(); return; }
-            const {data:adm,error} = await supabase.schema('v2').from('admin_users').select('*,alliances(name)').eq('id',session.user.id).eq('status','active').maybeSingle();
+            const {data:adm,error} = await supabase.from('admin_users').select('*,alliances(name)').eq('id',session.user.id).eq('status','active').maybeSingle();
             if(error||!adm || (!hasRole(adm.role,'moderator')&&!hasRole(adm.role,'alliance_leader'))){ showDeny(); return; }
             me = { id:session.user.id, name:adm.display_name||session.user.email.split('@')[0], role:adm.role, alliance:adm.alliances?.name||'' };
             document.getElementById('my-role-display').textContent = fmtRole(me.role) + (me.alliance?' — '+me.alliance:'');
@@ -225,10 +219,7 @@
 
         async function loadAdmins() {
             try {
-                const {data} = await supabase.schema('v2').from('admin_users')
-                    .select('id,role,display_name,alliance_id,alliances(name,tag)')
-                    .eq('status','active')
-                    .neq('id', me.id);
+                const {data} = await supabase.from('admin_users').select('id,role,display_name,alliance_id,alliances(name,tag)').eq('status','active').neq('id', me.id);
                 admins = data || [];
             } catch(e) { admins = []; }
         }
@@ -291,7 +282,6 @@
             if(rtSub){ try{ await rtSub.unsubscribe(); }catch(e){} rtSub = null; }
             if(pgSub){ try{ await pgSub.unsubscribe(); }catch(e){} pgSub = null; }
             curChan = ch;
-
             const title = document.getElementById('channel-title');
             const desc = document.getElementById('channel-status');
             if(ch.startsWith('dm-')){
@@ -306,7 +296,6 @@
             }
             document.querySelectorAll('.chan-active').forEach(el => el.classList.remove('chan-active'));
             const btn = document.getElementById('ch-'+ch); if(btn) btn.classList.add('chan-active');
-
             await loadHistory(ch);
             connectRT(ch);
         }
@@ -315,28 +304,10 @@
             const dbc = dbChan(ch);
             const el = document.getElementById('chat-scroll');
             el.innerHTML = '<div class="text-center py-8 text-slate-400"><div class="animate-spin text-2xl mb-2 inline-block">⏳</div><p class="text-xs">Cargando historial...</p></div>';
-
             try {
-                const { data, error } = await supabase.schema('v2')
-                    .from('chat_messages')
-                    .select('*')
-                    .eq('channel', dbc)
-                    .order('created_at', { ascending: true })
-                    .limit(30);
-
+                const { data, error } = await supabase.from('chat_messages').select('*').eq('channel', dbc).order('created_at', { ascending: true }).limit(30);
                 if(error) throw error;
-
-                const msgs = (data || []).map(row => ({
-                    id: 'db_' + row.id,
-                    sid: row.sender_admin_id,
-                    name: row.sender_name,
-                    role: row.sender_role,
-                    text: row.message,
-                    type: row.message_type || 'text',
-                    ts: row.created_at,
-                    persisted: true
-                }));
-
+                const msgs = (data || []).map(row => ({ id: 'db_' + row.id, sid: row.sender_admin_id, name: row.sender_name, role: row.sender_role, text: row.message, type: row.message_type || 'text', ts: row.created_at, persisted: true }));
                 setCache(ch, msgs);
                 renderMsgs(msgs);
             } catch(e) {
@@ -348,18 +319,11 @@
 
         function renderMsgs(msgs) {
             const el = document.getElementById('chat-scroll');
-            if(!msgs || !msgs.length){
-                el.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">Sin mensajes. Escribe algo!</p></div>';
-                return;
-            }
-            let h = '';
-            let lastD = null;
+            if(!msgs || !msgs.length){ el.innerHTML = '<div class="text-center py-12 text-slate-400"><div class="text-4xl mb-3">💬</div><p class="text-sm">Sin mensajes. Escribe algo!</p></div>'; return; }
+            let h = ''; let lastD = null;
             msgs.forEach(m => {
                 const cd = new Date(m.ts).toDateString();
-                if(lastD !== cd){
-                    h += `<div class="date-sep flex justify-center my-3"><span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(m.ts)}</span></div>`;
-                    lastD = cd;
-                }
+                if(lastD !== cd){ h += `<div class="date-sep flex justify-center my-3"><span class="text-[10px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">${fmtDate(m.ts)}</span></div>`; lastD = cd; }
                 h += msgHTML(m);
             });
             el.innerHTML = h;
@@ -432,11 +396,7 @@
             const el = document.getElementById('chat-scroll');
             const near = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
             if(force || near) el.scrollTop = el.scrollHeight;
-            if(!force){
-                const btn = document.getElementById('scroll-btn');
-                if(near) btn.classList.add('hidden-btn');
-                else btn.classList.remove('hidden-btn');
-            }
+            if(!force){ const btn = document.getElementById('scroll-btn'); if(near) btn.classList.add('hidden-btn'); else btn.classList.remove('hidden-btn'); }
         }
         document.getElementById('chat-scroll').addEventListener('scroll', function(){
             const el = this;
@@ -451,7 +411,6 @@
             const dbc = dbChan(ch);
             document.getElementById('status-dot').className = 'w-1.5 h-1.5 rounded-full bg-yellow-400 dot-online';
             document.getElementById('status-text').textContent = 'Conectando...';
-
             rtSub = supabase.channel(bc, { config:{ broadcast:{ self:false } } });
             rtSub
                 .on('broadcast', { event:'msg' }, p => {
@@ -477,33 +436,14 @@
                 });
 
             pgSub = supabase.channel('pg_' + bc)
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'v2',
-                    table: 'chat_messages',
-                    filter: `channel=eq.${dbc}`
-                }, payload => {
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `channel=eq.${dbc}` }, payload => {
                     const row = payload.new;
-                    const msg = {
-                        id: 'db_' + row.id,
-                        sid: row.sender_admin_id,
-                        name: row.sender_name,
-                        role: row.sender_role,
-                        text: row.message,
-                        type: row.message_type || 'text',
-                        ts: row.created_at,
-                        persisted: true
-                    };
+                    const msg = { id: 'db_' + row.id, sid: row.sender_admin_id, name: row.sender_name, role: row.sender_role, text: row.message, type: row.message_type || 'text', ts: row.created_at, persisted: true };
                     if(msg.sid === me.id) {
                         const cached = getCache(ch);
                         const pending = cached.find(m => m.sid === me.id && !m.persisted && m.text === msg.text);
-                        if(pending) {
-                            pending.id = msg.id;
-                            pending.persisted = true;
-                            updateMsgStatus(pending.id, 'persisted');
-                        } else if(addToCache(ch, msg)) {
-                            appendMsg(msg);
-                        }
+                        if(pending) { pending.id = msg.id; pending.persisted = true; updateMsgStatus(pending.id, 'persisted'); }
+                        else if(addToCache(ch, msg)) appendMsg(msg);
                     } else {
                         if(addToCache(ch, msg)) appendMsg(msg);
                     }
@@ -516,53 +456,23 @@
             const txt = inp.value.trim();
             if(!txt || !curChan) return;
             inp.value = '';
-
             const dbc = dbChan(curChan);
             const tempId = 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-            const msg = {
-                id: tempId,
-                sid: me.id,
-                name: me.name,
-                role: me.role,
-                text: txt,
-                type: 'text',
-                ts: new Date().toISOString(),
-                persisted: false
-            };
-
+            const msg = { id: tempId, sid: me.id, name: me.name, role: me.role, text: txt, type: 'text', ts: new Date().toISOString(), persisted: false };
             addToCache(curChan, msg);
             appendMsg(msg);
-
             try {
-                const { data: inserted, error } = await supabase.schema('v2')
-                    .from('chat_messages')
-                    .insert({
-                        channel: dbc,
-                        sender_admin_id: me.id,
-                        sender_name: me.name,
-                        sender_role: me.role,
-                        message: txt,
-                        message_type: 'text'
-                    })
-                    .select()
-                    .single();
-
+                const { data: inserted, error } = await supabase.from('chat_messages').insert({ channel: dbc, sender_admin_id: me.id, sender_name: me.name, sender_role: me.role, message: txt, message_type: 'text' }).select().single();
                 if(error) throw error;
-
                 msg.id = 'db_' + inserted.id;
                 msg.persisted = true;
                 updateMsgStatus(tempId, 'persisted');
-
-                if(rtSub) {
-                    await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
-                }
+                if(rtSub) await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
             } catch(e) {
                 console.error('Error persisting message:', e);
                 msg.failed = true;
                 updateMsgStatus(tempId, 'failed');
-                if(rtSub) {
-                    await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
-                }
+                if(rtSub) await rtSub.send({ type:'broadcast', event:'msg', payload: msg });
             }
         }
 
@@ -600,13 +510,7 @@
         async function submitReport(){
             if(!reportMsg) return;
             try {
-                await supabase.schema('v2').from('chat_reports').insert({
-                    channel: dbChan(curChan),
-                    reporter_id: me.id,
-                    reporter_name: me.name,
-                    reason: document.getElementById('report-reason').value,
-                    message_preview: reportMsg.text
-                });
+                await supabase.from('chat_reports').insert({ channel: dbChan(curChan), reporter_id: me.id, reporter_name: me.name, reason: document.getElementById('report-reason').value, message_preview: reportMsg.text });
                 showToast('Reporte enviado', 'success');
                 closeReportModal();
             } catch(e) { showToast('Error al reportar', 'error'); }
