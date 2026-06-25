@@ -3,34 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin - Alliance Hub</title>
+    <title>Login Admin V2 - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/base.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/pwa-utils.js"></script>
-<!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen flex items-center justify-center px-4" data-role="admin">
     <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div class="text-center mb-8">
             <div class="text-4xl mb-3">⚔️</div>
-            <h1 class="text-2xl font-bold text-slate-800">Alliance Hub</h1>
+            <h1 class="text-2xl font-bold text-slate-800">Alliance Hub V2</h1>
             <p class="text-slate-500 text-sm mt-1">Panel de Administración</p>
         </div>
 
         <!-- Tabs -->
         <div class="flex mb-6 border-b border-slate-200">
             <button onclick="showTab('login')" id="tab-login" class="flex-1 pb-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500">Login</button>
-            <button onclick="showTab('signup')" id="tab-signup" class="flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700">Nuevo Admin (código)</button>
+            <button onclick="showTab('signup')" id="tab-signup" class="flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700">Nuevo Admin</button>
+            <button onclick="showTab('reset')" id="tab-reset" class="flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700">Recuperar</button>
         </div>
 
         <!-- Login -->
@@ -48,14 +42,13 @@
                         class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition"
                         placeholder="Tu contraseña">
                 </div>
-                <button type="submit" 
-                    class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
+                <button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">
                     Entrar al Panel
                 </button>
             </form>
         </div>
 
-        <!-- Signup con código -->
+        <!-- Signup con código + Supremacy ID -->
         <div id="form-signup" class="hidden">
             <form id="signup-form" class="space-y-4">
                 <div>
@@ -71,15 +64,41 @@
                         placeholder="Mínimo 6 caracteres">
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ID de Supremacy 1914 *</label>
+                    <input type="number" id="signup-supremacy-id" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition"
+                        placeholder="Ej: 99702975">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Username en Supremacy *</label>
+                    <input type="text" id="signup-display-name" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition"
+                        placeholder="Ej: Tlaloc27">
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Código de invitación</label>
                     <input type="text" id="signup-code" required
                         class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition uppercase"
                         placeholder="Ej: A3B7C9D2">
-                    <p class="text-xs text-slate-400 mt-1">El código se convertirá automáticamente a mayúsculas</p>
                 </div>
-                <button type="submit" 
-                    class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-400 transition">
+                <button type="submit" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-400 transition">
                     Crear Cuenta Admin
+                </button>
+            </form>
+        </div>
+
+        <!-- Password Reset -->
+        <div id="form-reset" class="hidden">
+            <form id="reset-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email de tu cuenta</label>
+                    <input type="email" id="reset-email" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition"
+                        placeholder="tu-email@ejemplo.com">
+                </div>
+                <p class="text-xs text-slate-500">Te enviaremos un enlace para restablecer tu contraseña.</p>
+                <button type="submit" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg hover:bg-blue-400 transition">
+                    Enviar Enlace de Recuperación
                 </button>
             </form>
         </div>
@@ -87,8 +106,9 @@
         <div id="error-msg" class="mt-4 text-red-500 text-sm text-center hidden"></div>
         <div id="success-msg" class="mt-4 text-green-600 text-sm text-center hidden"></div>
 
-        <div class="mt-6 text-center">
-            <a href="./" class="text-sm text-slate-400 hover:text-slate-600 transition">← Volver al inicio</a>
+        <div class="mt-6 text-center space-y-2">
+            <a href="login-player.html" class="text-sm text-green-600 hover:text-green-700 font-medium block">Soy Jugador → Entrar sin contraseña</a>
+            <a href="index.html" class="text-sm text-slate-400 hover:text-slate-600 block">← Volver al inicio</a>
         </div>
     </div>
 
@@ -96,68 +116,82 @@
         function showTab(tab) {
             document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
             document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+            document.getElementById('form-reset').classList.toggle('hidden', tab !== 'reset');
 
-            document.getElementById('tab-login').className = tab === 'login' 
-                ? 'flex-1 pb-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500'
-                : 'flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700';
-            document.getElementById('tab-signup').className = tab === 'signup'
-                ? 'flex-1 pb-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500'
-                : 'flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700';
+            ['login', 'signup', 'reset'].forEach(function(t) {
+                var btn = document.getElementById('tab-' + t);
+                if (t === tab) {
+                    btn.className = 'flex-1 pb-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500';
+                } else {
+                    btn.className = 'flex-1 pb-3 text-sm font-bold text-slate-500 hover:text-slate-700';
+                }
+            });
         }
 
-        // Login
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const errorMsg = document.getElementById('error-msg');
-            const successMsg = document.getElementById('success-msg');
+            var email = document.getElementById('login-email').value;
+            var password = document.getElementById('login-password').value;
+            var errorMsg = document.getElementById('error-msg');
+            var successMsg = document.getElementById('success-msg');
 
             errorMsg.classList.add('hidden');
             successMsg.classList.add('hidden');
 
-            console.log('Intentando login con:', email);
-            const success = await login(email, password);
+            var success = await login(email, password);
             if (success) {
                 window.location.href = 'admin/index.html';
             } else {
-                errorMsg.textContent = '❌ Email o contraseña incorrectos. Si acabas de crear la cuenta, asegúrate de haber confirmado tu email.';
+                errorMsg.textContent = '❌ Email o contraseña incorrectos';
                 errorMsg.classList.remove('hidden');
             }
         });
 
-        // Signup con código
         document.getElementById('signup-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const code = document.getElementById('signup-code').value;
-            const errorMsg = document.getElementById('error-msg');
-            const successMsg = document.getElementById('success-msg');
+            var email = document.getElementById('signup-email').value;
+            var password = document.getElementById('signup-password').value;
+            var code = document.getElementById('signup-code').value;
+            var supremacyId = document.getElementById('signup-supremacy-id').value;
+            var displayName = document.getElementById('signup-display-name').value.trim();
+            var errorMsg = document.getElementById('error-msg');
+            var successMsg = document.getElementById('success-msg');
 
             errorMsg.classList.add('hidden');
             successMsg.classList.add('hidden');
 
-            console.log('Intentando signup con email:', email, 'código:', code);
-
-            const result = await signupWithInvite(email, password, code);
-            console.log('Resultado signup:', result);
+            var result = await signupWithInvite(email, password, code, supremacyId, displayName);
 
             if (result.success) {
-                successMsg.textContent = '✅ ' + result.message + ' Ahora puedes iniciar sesión.';
+                successMsg.textContent = '✅ ' + result.message;
                 successMsg.classList.remove('hidden');
                 this.reset();
-                setTimeout(() => showTab('login'), 2000);
+                setTimeout(function() { showTab('login'); }, 2000);
+            } else {
+                errorMsg.textContent = '❌ ' + result.message;
+                errorMsg.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('reset-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var email = document.getElementById('reset-email').value;
+            var errorMsg = document.getElementById('error-msg');
+            var successMsg = document.getElementById('success-msg');
+
+            errorMsg.classList.add('hidden');
+            successMsg.classList.add('hidden');
+
+            var result = await sendPasswordReset(email);
+            if (result.success) {
+                successMsg.textContent = '✅ ' + result.message;
+                successMsg.classList.remove('hidden');
+                this.reset();
             } else {
                 errorMsg.textContent = '❌ ' + result.message;
                 errorMsg.classList.remove('hidden');
             }
         });
     </script>
-    <div class="fixed bottom-4 right-4 z-50">
-        <button onclick="clearAppCache()" class="text-xs bg-slate-700 text-slate-300 px-3 py-2 rounded hover:bg-slate-600 transition">
-            🔄 Actualizar app
-        </button>
-    </div>
 </body>
 </html>

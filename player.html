@@ -3,21 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jugador - Alliance Hub</title>
+    <title>Jugador - Alliance Hub V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/base.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/pwa-utils.js"></script>
-<!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
     <div id="admin-nav"></div>
@@ -25,7 +18,7 @@
     <div class="max-w-4xl mx-auto px-4 py-8">
         <div id="player-header" class="text-center py-12 text-slate-400">Cargando...</div>
 
-        <div id="player-stats" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div id="player-stats" class="hidden grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div class="bg-white rounded-xl p-4 border text-center">
                 <div class="text-2xl font-bold text-blue-600" id="p-games">-</div>
                 <div class="text-xs text-slate-500">Partidas</div>
@@ -42,6 +35,19 @@
                 <div class="text-2xl font-bold text-amber-600" id="p-kd">-</div>
                 <div class="text-xs text-slate-500">KD Global</div>
             </div>
+            <div class="bg-white rounded-xl p-4 border text-center">
+                <div class="text-2xl font-bold text-orange-500" id="p-strikes">-</div>
+                <div class="text-xs text-slate-500">Strikes</div>
+            </div>
+        </div>
+
+        <!-- Filtros de historial -->
+        <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="filterHistory('all')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
+            <button onclick="filterHistory('internal')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="internal">Internas</button>
+            <button onclick="filterHistory('duel')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
+            <button onclick="filterHistory('public_31')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Públicas 31</button>
+            <button onclick="filterHistory('public_500')" class="hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
         </div>
 
         <h2 class="font-bold text-slate-800 mb-3">📜 Historial de Partidas</h2>
@@ -51,11 +57,13 @@
     </div>
 
     <script>
-        const playerId = new URLSearchParams(window.location.search).get('id');
+        var playerId = new URLSearchParams(window.location.search).get('id');
         if (!playerId) location.href = 'index.html';
 
+        var allHistory = [];
+
         async function loadPlayer() {
-            const { data: player } = await supabase
+            var { data: player } = await supabase
                 .from('players')
                 .select('*, alliances(name, tag)')
                 .eq('id', playerId)
@@ -66,49 +74,71 @@
                 return;
             }
 
-            const kd = player.total_deaths > 0 ? (player.total_kills / player.total_deaths).toFixed(2) : player.total_kills;
+            var kd = player.total_deaths > 0 ? (player.total_kills / player.total_deaths).toFixed(2) : player.total_kills;
+            var statusClass = player.status === 'active' ? '' : 'bg-red-50 border-red-200';
 
-            document.getElementById('player-header').innerHTML = `
-                <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center mb-6">
-                    <div class="text-5xl mb-4">🎖️</div>
-                    <h1 class="text-3xl font-bold text-slate-800">${player.current_username}</h1>
-                    <p class="text-slate-500 mt-2">
-                        ID: ${player.id}
-                        ${player.alliances ? `• ${player.alliances.name} [${player.alliances.tag}]` : ''}
-                    </p>
-                </div>
-            `;
+            document.getElementById('player-header').innerHTML = 
+                '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center mb-6 ' + statusClass + '">' +
+                    '<div class="text-5xl mb-4">🎖️</div>' +
+                    '<h1 class="text-3xl font-bold text-slate-800">' + player.current_username + '</h1>' +
+                    '<p class="text-slate-500 mt-2">ID: ' + player.id +
+                        (player.alliances ? ' • ' + player.alliances.name + ' [' + player.alliances.tag + ']' : '') +
+                        (player.status !== 'active' ? ' • ' + getStatusBadge(player.status) : '') +
+                    '</p>' +
+                '</div>';
 
             document.getElementById('player-stats').classList.remove('hidden');
             document.getElementById('p-games').textContent = player.games_played || 0;
             document.getElementById('p-kills').textContent = (player.total_kills || 0).toLocaleString();
             document.getElementById('p-deaths').textContent = (player.total_deaths || 0).toLocaleString();
             document.getElementById('p-kd').textContent = kd;
-            document.getElementById('p-kd').className = `text-2xl font-bold ${kd >= 1 ? 'text-green-600' : 'text-orange-500'}`;
+            document.getElementById('p-kd').className = 'text-2xl font-bold ' + (kd >= 1 ? 'text-green-600' : 'text-orange-500');
+            document.getElementById('p-strikes').textContent = player.strikes || 0;
+            document.getElementById('p-strikes').className = 'text-2xl font-bold ' + ((player.strikes || 0) >= 2 ? 'text-red-600' : 'text-orange-500');
 
-            const { data: history } = await supabase
-                .from('game_results')
-                .select('*, games(name, game_id, created_at)')
+            loadHistory();
+        }
+
+        async function loadHistory() {
+            var { data: history } = await supabase
+                .from('match_results')
+                .select('*, matches(name, match_type, game_id, created_at, alliances(name, tag))')
                 .eq('player_id', playerId)
                 .order('imported_at', { ascending: false });
 
-            const container = document.getElementById('player-history');
+            allHistory = history || [];
+            renderHistory(allHistory);
+        }
+
+        function renderHistory(history) {
+            var container = document.getElementById('player-history');
             if (!history || history.length === 0) {
                 container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin historial</div>';
-            } else {
-                container.innerHTML = history.map(h => `
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-                        <div>
-                            <a href="game.html?id=${h.game_id}" class="font-bold text-slate-800 hover:text-amber-600">${h.games.name}</a>
-                            <p class="text-xs text-slate-500">${h.nation} • ${formatDate(h.games.created_at)}</p>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold ${h.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500'}">${h.kd_ratio} KD</div>
-                            <div class="text-xs text-slate-500">${h.kills.toLocaleString()} / ${h.deaths.toLocaleString()}</div>
-                        </div>
-                    </div>
-                `).join('');
+                return;
             }
+
+            container.innerHTML = history.map(function(h) {
+                var typeLabel = getTypeBadge(h.matches.match_type);
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">' +
+                    '<div>' +
+                        '<a href="game.html?id=' + h.match_id + '" class="font-bold text-slate-800 hover:text-amber-600">' + h.matches.name + '</a>' +
+                        '<div class="flex gap-2 mt-1">' + typeLabel + '<span class="text-xs text-slate-500">' + h.nation + ' • ' + formatDate(h.matches.created_at) + '</span></div>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                        '<div class="font-bold ' + (h.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + h.kd_ratio + ' KD</div>' +
+                        '<div class="text-xs text-slate-500">' + h.kills.toLocaleString() + ' / ' + h.deaths.toLocaleString() + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function filterHistory(type) {
+            document.querySelectorAll('.hist-filter').forEach(function(btn) {
+                btn.className = btn.dataset.filter === type 
+                    ? 'hist-filter px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
+                    : 'hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
+            });
+            renderHistory(type === 'all' ? allHistory : allHistory.filter(function(h) { return h.matches.match_type === type; }));
         }
 
         loadPlayer();

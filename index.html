@@ -3,39 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alliance Hub - Supremacy 1914</title>
+    <title>Alliance Hub V2 - Supremacy 1914</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/base.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/pwa-utils.js"></script>
-<style>
+    <style>
         .animate-fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .game-card { transition: all 0.2s; }
-        .game-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .match-card { transition: all 0.2s; }
+        .match-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
     </style>
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
     <link rel="manifest" href="manifest.json">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
-    <!-- SPA redirect handler para GitHub Pages (versión rafgraph oficial) -->
     <script type="text/javascript">
-        // Single Page Apps for GitHub Pages
-        // MIT License
-        // https://github.com/rafgraph/spa-github-pages
-        //
-        // Este script chequea si hay un redirect en el query string
-        // y lo convierte de vuelta a la URL correcta.
-        //
-        // Formato esperado: /?/path&query~and~params#hash
         (function(l) {
             if (l.search) {
                 var q = {};
@@ -44,14 +33,11 @@
                     q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
                 });
                 if (q.p !== undefined) {
-                    // Versión antigua (?p=) - mantener compatibilidad
                     window.history.replaceState(null, null,
                         l.pathname.slice(0, -1) + (q.p || '') +
-                        (q.q ? ('?' + q.q) : '') +
-                        l.hash
+                        (q.q ? ('?' + q.q) : '') + l.hash
                     );
                 } else if (l.search[1] === '/') {
-                    // Versión nueva (/?/path) - formato rafgraph
                     var decoded = l.search.slice(1).split('&').map(function(s) { 
                         return s.replace(/~and~/g, '&');
                     }).join('?');
@@ -68,22 +54,26 @@
     <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
         <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
             <div class="text-center">
-                <h1 class="text-3xl md:text-5xl font-bold mb-4">⚔️ Alliance Hub</h1>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4">⚔️ Alliance Hub V2</h1>
                 <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
-                    Plataforma de rankings y gestión para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
+                    Plataforma de rankings, ligas y gestión para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
                 </p>
                 <div class="mt-6 flex flex-wrap justify-center gap-3">
-                    <a href="#games" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
+                    <a href="#matches" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
                     <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">🏆 Rankings</a>
+                    <a href="login-player.html" class="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition">👤 Entrar</a>
+                    <a href="chat.html" class="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-400 transition">💬 Chat</a>
+                    <!-- NUEVO: Enlace a panel de alianza -->
+                    <a href="alliance-panel.html" id="btn-alliance-panel" class="hidden bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-400 transition">🏴 Mi Alianza</a>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 -mt-6">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-amber-600" id="stat-games">-</div>
+                <div class="text-2xl font-bold text-amber-600" id="stat-matches">-</div>
                 <div class="text-xs text-slate-500 uppercase tracking-wide">Partidas</div>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
@@ -95,108 +85,148 @@
                 <div class="text-xs text-slate-500 uppercase tracking-wide">Alianzas</div>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-purple-600" id="stat-kills">-</div>
+                <div class="text-2xl font-bold text-purple-600" id="stat-leagues">-</div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide">Ligas</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+                <div class="text-2xl font-bold text-red-600" id="stat-kills">-</div>
                 <div class="text-xs text-slate-500 uppercase tracking-wide">Bajas Totales</div>
             </div>
         </div>
     </div>
 
-    <div id="games" class="max-w-7xl mx-auto px-4 py-10">
+    <div id="matches" class="max-w-7xl mx-auto px-4 py-10">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-slate-800">📋 Partidas</h2>
-            <div class="flex gap-2">
-                <button onclick="filterGames('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
-                <button onclick="filterGames('open')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50" data-filter="open">Abiertas</button>
-                <button onclick="filterGames('in_progress')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50" data-filter="in_progress">En curso</button>
-                <button onclick="filterGames('finished')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50" data-filter="finished">Finalizadas</button>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="filterMatches('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
+                <button onclick="filterMatches('internal')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="internal">Internas</button>
+                <button onclick="filterMatches('duel')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
+                <button onclick="filterMatches('public_31')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Públicas 31</button>
+                <button onclick="filterMatches('public_500')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
+                <button onclick="filterMatches('public_quick')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_quick">Rápidas</button>
             </div>
         </div>
-        <div id="games-list" class="grid gap-4">
+        <div id="matches-list" class="grid gap-4">
             <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p>Cargando partidas...</p></div>
         </div>
     </div>
 
     <footer class="bg-slate-900 text-slate-400 py-8 mt-12">
         <div class="max-w-7xl mx-auto px-4 text-center text-sm">
-            <p>Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
-            <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">
-                🔄 Forzar actualización de la app
-            </button>
+            <p>Alliance Hub V2 - Plataforma para comunidades de Supremacy 1914</p>
+            <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">🔄 Forzar actualización</button>
         </div>
     </footer>
 
     <script>
-        let allGames = [];
+        var allMatches = [];
+        var playerData = getPlayerData();
+
+        // NUEVO: Mostrar botón de Mi Alianza si el jugador tiene alianza aprobada
+        async function checkAlliance() {
+            if (!playerData.playerId) return;
+            var { data: membership } = await supabase
+                .from('alliance_memberships')
+                .select('status')
+                .eq('player_id', playerData.playerId)
+                .eq('status', 'approved')
+                .single();
+
+            if (membership) {
+                document.getElementById('btn-alliance-panel').classList.remove('hidden');
+            }
+        }
 
         async function loadStats() {
             try {
-                const { count: gc } = await supabase.from('games').select('*', { count: 'exact', head: true });
-                const { count: pc } = await supabase.from('players').select('*', { count: 'exact', head: true });
-                const { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
-                const { data: kd } = await supabase.from('players').select('total_kills');
-                const tk = kd?.reduce((s, p) => s + (p.total_kills || 0), 0) || 0;
-                document.getElementById('stat-games').textContent = gc || 0;
+                var { count: mc } = await supabase.from('matches').select('*', { count: 'exact', head: true });
+                var { count: pc } = await supabase.from('players').select('*', { count: 'exact', head: true });
+                var { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
+                var { count: lc } = await supabase.from('leagues').select('*', { count: 'exact', head: true });
+                var { data: kd } = await supabase.from('players').select('total_kills');
+                var tk = kd?.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) || 0;
+
+                document.getElementById('stat-matches').textContent = mc || 0;
                 document.getElementById('stat-players').textContent = pc || 0;
                 document.getElementById('stat-alliances').textContent = ac || 0;
+                document.getElementById('stat-leagues').textContent = lc || 0;
                 document.getElementById('stat-kills').textContent = tk.toLocaleString();
             } catch (e) { console.error(e); }
         }
 
-        async function loadGames() {
-            showLoading('games-list');
+        async function loadMatches() {
+            showLoading('matches-list');
             try {
-                const { data, error } = await supabase.from('games').select('*, alliances (name, tag)').order('created_at', { ascending: false });
+                var query = supabase.from('matches')
+                    .select('*, alliances(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
+                    .eq('is_private', false)
+                    .order('created_at', { ascending: false });
+
+                var { data, error } = await query;
                 if (error) throw error;
-                allGames = data || [];
-                renderGames(allGames);
+                allMatches = data || [];
+                renderMatches(allMatches);
             } catch (e) {
-                document.getElementById('games-list').innerHTML = `<div class="text-center py-8 text-red-500">Error: ${e.message}</div>`;
+                document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>';
             }
         }
 
-        function renderGames(games) {
-            const c = document.getElementById('games-list');
-            if (games.length === 0) {
-                c.innerHTML = `<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>`;
+        function renderMatches(matches) {
+            var c = document.getElementById('matches-list');
+            if (matches.length === 0) {
+                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
                 return;
             }
-            c.innerHTML = games.map(game => `
-                <div class="game-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                ${getStatusBadge(game.status)}
-                                ${getTypeBadge(game.type)}
-                                ${game.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒 Privada</span>' : ''}
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-800">${game.name}</h3>
-                            <p class="text-sm text-slate-500 mt-1">${game.description || 'Sin descripción'}</p>
-                            <div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">
-                                <span>📅 ${formatDate(game.created_at)}</span>
-                                ${game.alliances ? `<span>🏴 ${game.alliances.name} [${game.alliances.tag}]</span>` : '<span>🌍 Global</span>'}
-                                <span>👥 ${game.max_players} jugadores max</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <a href="game.html?id=${game.id}" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>
-                            ${game.status === 'open' ? `<a href="register/index.html?game=${game.id}" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+
+            c.innerHTML = matches.map(function(match) {
+                var allianceLabel = '';
+                if (match.match_type === 'internal' && match.alliances) allianceLabel = '🏴 ' + match.alliances.name;
+                else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
+                else allianceLabel = '🌍 Global';
+
+                var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">👁️ Requiere Aprobación</span>' : '';
+                var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">🏆 Ganadores</span>' : '';
+
+                var canRegister = match.status === 'open' && match.match_type !== 'public_quick';
+
+                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">' +
+                    '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
+                        '<div class="flex-1">' +
+                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+                                getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
+                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') +
+                                approvalBadge + winnerBadge +
+                            '</div>' +
+                            '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
+                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripción') + '</p>' +
+                            '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
+                                '<span>📅 ' + formatDate(match.created_at) + '</span>' +
+                                '<span>' + allianceLabel + '</span>' +
+                                '<span>👥 ' + match.max_players + ' jugadores max</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex flex-col gap-2">' +
+                            '<a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' +
+                            (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-        function filterGames(status) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.className = btn.dataset.filter === status 
+        function filterMatches(type) {
+            document.querySelectorAll('.filter-btn').forEach(function(btn) {
+                btn.className = btn.dataset.filter === type 
                     ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
-                    : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50';
+                    : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
             });
-            renderGames(status === 'all' ? allGames : allGames.filter(g => g.status === status));
+            renderMatches(type === 'all' ? allMatches : allMatches.filter(function(m) { return m.match_type === type; }));
         }
 
+        checkAlliance();
         loadStats();
-        loadGames();
+        loadMatches();
     </script>
 </body>
 </html>
