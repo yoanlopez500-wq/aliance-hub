@@ -54,17 +54,16 @@
     <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
         <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
             <div class="text-center">
-                <h1 class="text-3xl md:text-5xl font-bold mb-4">⚔️ Alliance Hub V2</h1>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4">Alliance Hub V2</h1>
                 <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
-                    Plataforma de rankings, ligas y gestión para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
+                    Plataforma de rankings, ligas y gestion para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
                 </p>
                 <div class="mt-6 flex flex-wrap justify-center gap-3">
                     <a href="#matches" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
-                    <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">🏆 Rankings</a>
-                    <a href="login-player.html" class="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition">👤 Entrar</a>
-                    <a href="chat.html" class="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-400 transition">💬 Chat</a>
-                    <!-- NUEVO: Enlace a panel de alianza -->
-                    <a href="alliance-panel.html" id="btn-alliance-panel" class="hidden bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-400 transition">🏴 Mi Alianza</a>
+                    <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">Rankings</a>
+                    <a href="login-player.html" class="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition">Entrar</a>
+                    <a href="chat.html" class="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-400 transition">Chat</a>
+                    <a href="alliance-panel.html" id="btn-alliance-panel" class="hidden bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-400 transition">Mi Alianza</a>
                 </div>
             </div>
         </div>
@@ -97,25 +96,25 @@
 
     <div id="matches" class="max-w-7xl mx-auto px-4 py-10">
         <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-slate-800">📋 Partidas</h2>
+            <h2 class="text-2xl font-bold text-slate-800">Partidas</h2>
             <div class="flex gap-2 flex-wrap">
                 <button onclick="filterMatches('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
                 <button onclick="filterMatches('internal')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="internal">Internas</button>
                 <button onclick="filterMatches('duel')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
-                <button onclick="filterMatches('public_31')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Públicas 31</button>
+                <button onclick="filterMatches('public_31')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Publicas 31</button>
                 <button onclick="filterMatches('public_500')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
-                <button onclick="filterMatches('public_quick')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_quick">Rápidas</button>
+                <button onclick="filterMatches('public_quick')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_quick">Rapidas</button>
             </div>
         </div>
         <div id="matches-list" class="grid gap-4">
-            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p>Cargando partidas...</p></div>
+            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2"></div><p>Cargando partidas...</p></div>
         </div>
     </div>
 
     <footer class="bg-slate-900 text-slate-400 py-8 mt-12">
         <div class="max-w-7xl mx-auto px-4 text-center text-sm">
             <p>Alliance Hub V2 - Plataforma para comunidades de Supremacy 1914</p>
-            <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">🔄 Forzar actualización</button>
+            <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">Forzar actualizacion</button>
         </div>
     </footer>
 
@@ -123,7 +122,6 @@
         var allMatches = [];
         var playerData = getPlayerData();
 
-        // NUEVO: Mostrar botón de Mi Alianza si el jugador tiene alianza aprobada
         async function checkAlliance() {
             if (!playerData.playerId) return;
             var { data: membership } = await supabase
@@ -145,7 +143,7 @@
                 var { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
                 var { count: lc } = await supabase.from('leagues').select('*', { count: 'exact', head: true });
                 var { data: kd } = await supabase.from('players').select('total_kills');
-                var tk = kd?.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) || 0;
+                var tk = kd ? kd.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) : 0;
 
                 document.getElementById('stat-matches').textContent = mc || 0;
                 document.getElementById('stat-players').textContent = pc || 0;
@@ -158,8 +156,9 @@
         async function loadMatches() {
             showLoading('matches-list');
             try {
+                // FIX: Especificar FK explicita para evitar ambiguedad con alliances
                 var query = supabase.from('matches')
-                    .select('*, alliances(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)')
+                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
                     .eq('is_private', false)
                     .order('created_at', { ascending: false });
 
@@ -175,19 +174,18 @@
         function renderMatches(matches) {
             var c = document.getElementById('matches-list');
             if (matches.length === 0) {
-                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
+                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3"></div><p class="text-slate-500">No hay partidas disponibles</p></div>';
                 return;
             }
 
             c.innerHTML = matches.map(function(match) {
                 var allianceLabel = '';
-                if (match.match_type === 'internal' && match.alliances) allianceLabel = '🏴 ' + match.alliances.name;
-                else if (match.match_type === 'duel' && match.alliance_a && match.alliance_b) allianceLabel = '⚔️ ' + match.alliance_a.name + ' vs ' + match.alliance_b.name;
-                else allianceLabel = '🌍 Global';
+                if (match.match_type === 'internal' && match.alliance) allianceLabel = match.alliance.name;
+                else if (match.match_type === 'duel') allianceLabel = 'Duelo';
+                else allianceLabel = 'Global';
 
-                var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">👁️ Requiere Aprobación</span>' : '';
-                var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">🏆 Ganadores</span>' : '';
-
+                var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">Aprobacion</span>' : '';
+                var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">Ganadores</span>' : '';
                 var canRegister = match.status === 'open' && match.match_type !== 'public_quick';
 
                 return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">' +
@@ -195,15 +193,15 @@
                         '<div class="flex-1">' +
                             '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
                                 getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
-                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') +
+                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700"></span>' : '') +
                                 approvalBadge + winnerBadge +
                             '</div>' +
                             '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
-                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripción') + '</p>' +
+                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p>' +
                             '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
-                                '<span>📅 ' + formatDate(match.created_at) + '</span>' +
+                                '<span>' + formatDate(match.created_at) + '</span>' +
                                 '<span>' + allianceLabel + '</span>' +
-                                '<span>👥 ' + match.max_players + ' jugadores max</span>' +
+                                '<span>' + match.max_players + ' jugadores max</span>' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex flex-col gap-2">' +
