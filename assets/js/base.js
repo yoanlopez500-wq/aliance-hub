@@ -1,8 +1,22 @@
 // Base utilities - V2
+// __AH_BASE_PATH: detecta el subdirectorio del repo en GitHub Pages
 window.__AH_BASE_PATH = (function() {
-    var path = window.location.pathname;
-    var base = path.substring(0, path.indexOf('/', path.indexOf('/', 1) + 1) + 1);
-    return base || '/';
+    var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
+    // Para GitHub Pages project: /repo-name/page.html -> base es /repo-name/
+    // Para dominio custom o root: parts[0] es la pagina, base es /
+    if (parts.length >= 1 && parts[0] !== 'admin' && parts[0] !== 'chat' && parts[0] !== 'register') {
+        // Si el primer segmento NO es una pagina conocida, es el nombre del repo
+        var knownPages = ['index.html','login.html','login-player.html','rankings.html','game.html','player.html','reset-password.html','chat.html','404.html','manifest.json','assets','register','service-worker.js'];
+        if (knownPages.indexOf(parts[0]) === -1) {
+            return '/' + parts[0] + '/';
+        }
+    }
+    // Fallback: buscar si estamos en /repo/admin/page.html
+    if (parts.length >= 2) {
+        // El primer segmento deberia ser el repo name
+        return '/' + parts[0] + '/';
+    }
+    return '/';
 })();
 
 function ahPath(relative) {
