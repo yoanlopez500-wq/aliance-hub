@@ -326,8 +326,8 @@ async function initAdminNav() {
             if (l.requiresAlliance && !hasAlliance) return false;
             return true;
         });
-        var switchBtn = '';
-        if (isPlayer) switchBtn = '<a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold">&#127918; Modo Jugador</a>';
+        // Modo Jugador siempre visible para admins (FIX)
+        var switchBtn = '<a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold">&#127918; Modo Jugador</a>';
         var notifBell = buildNotificationBell();
         nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub V2</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + notifBell + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
         startNotifPolling();
