@@ -35,27 +35,14 @@
                     return;
                 }
 
-                var { data: playerCounts, error: cErr } = await supabase
-                    .from('players')
-                    .select('current_alliance_id, count')
-                    .not('current_alliance_id', 'is', null)
-                    .group('current_alliance_id');
-
+                // Contar jugadores por alianza manualmente
                 var countMap = {};
-                if (!cErr && playerCounts) {
-                    playerCounts.forEach(function(row) {
-                        countMap[row.current_alliance_id] = parseInt(row.count) || 0;
+                var { data: allPlayers } = await supabase.from('players').select('current_alliance_id').not('current_alliance_id', 'is', null);
+                if (allPlayers) {
+                    allPlayers.forEach(function(p) {
+                        var aid = p.current_alliance_id;
+                        countMap[aid] = (countMap[aid] || 0) + 1;
                     });
-                }
-
-                if (cErr) {
-                    var { data: allPlayers } = await supabase.from('players').select('current_alliance_id').not('current_alliance_id', 'is', null);
-                    if (allPlayers) {
-                        allPlayers.forEach(function(p) {
-                            var aid = p.current_alliance_id;
-                            countMap[aid] = (countMap[aid] || 0) + 1;
-                        });
-                    }
                 }
 
                 container.innerHTML = alliances.map(function(a) {
