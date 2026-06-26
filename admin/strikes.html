@@ -301,30 +301,80 @@
 
         async function loadStrikeHistory() {
             var statusFilter = document.getElementById('filter-strike-status').value;
-            var query = supabase.from('player_strikes').select('*, player:players!player_strikes_player_id_fkey(id, current_username), strike_type:strike_types(*), match:matches(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)').order('applied_at', { ascending: false }).limit(100);
+            var query = supabase.from('player_strikes').select('*').order('applied_at', { ascending: false }).limit(100);
             if (statusFilter === 'active') query = query.eq('is_active', true);
             else if (statusFilter === 'removed') query = query.eq('is_active', false);
-            var { data, error } = await query;
+            var { data: strikes, error } = await query;
             var container = document.getElementById('strike-history');
             if (error) { container.innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
-            var strikes = data || [];
-            if (strikes.length === 0) { container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin strikes en el historial</div>'; return; }
+            if (!strikes || strikes.length === 0) { container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin strikes en el historial</div>'; return; }
+            
+            // Cargar tablas relacionadas en paralelo
+            var playerIds = strikes.map(function(s) { return s.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+            var strikeTypeIds = strikes.map(function(s) { return s.strike_type_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+            var matchIds = strikes.map(function(s) { return s.match_id; }).filter(function(v) { return v !== null; });
+            var adminIds = strikes.map(function(s) { return s.applied_by; }).filter(function(v) { return v !== null; });
+            
+            var promises = [];
+            promises.push(supabase.from('players').select('id, current_username').in('id', playerIds));
+            promises.push(supabase.from('strike_types').select('*').in('id', strikeTypeIds));
+            if (matchIds.length > 0) promises.push(supabase.from('matches').select('id, name').in('id', matchIds));
+            else promises.push(Promise.resolve({ data: [] }));
+            if (adminIds.length > 0) promises.push(supabase.from('admin_users').select('id, display_name').in('id', adminIds));
+            else promises.push(Promise.resolve({ data: [] }));
+            
+            var results = await Promise.all(promises);
+            var playersMap = {}; (results[0].data || []).forEach(function(p) { playersMap[p.id] = p; });
+            var typesMap = {}; (results[1].data || []).forEach(function(t) { typesMap[t.id] = t; });
+            var matchesMap = {}; (results[2].data || []).forEach(function(m) { matchesMap[m.id] = m; });
+            var adminsMap = {}; (results[3].data || []).forEach(function(a) { adminsMap[a.id] = a; });
+            
             container.innerHTML = strikes.map(function(s) {
-                var typeObj = s.strike_type || {};
+                var typeObj = typesMap[s.strike_type_id] || {};
                 var sevClass = typeObj.severity === 1 ? 'sev-1' : typeObj.severity === 2 ? 'sev-2' : 'sev-3';
                 var isActive = s.is_active !== false;
-                var playerName = s.player ? s.player.current_username : 'Jugador ' + s.player_id;
-                var adminName = s.applied_by_admin ? s.applied_by_admin.display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
-                var matchName = s.match ? s.match.name : 'General';
+                var playerName = playersMap[s.player_id] ? playersMap[s.player_id].current_username : 'Jugador ' + s.player_id;
+                var adminName = s.applied_by && adminsMap[s.applied_by] ? adminsMap[s.applied_by].display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
+                var matchName = s.match_id && matchesMap[s.match_id] ? matchesMap[s.match_id].name : 'General';
                 return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800">' + playerName + '</span><span class="text-xs text-slate-500">ID: ' + s.player_id + '</span><span class="px-2 py-0.5 rounded text-xs ' + (isActive ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500') + ' font-bold">' + (isActive ? 'ACTIVO' : 'REMOVIDO') + '</span></div><span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span></div><p class="text-sm text-slate-600"><span class="font-bold">' + (typeObj.code || '?') + ':</span> ' + (s.reason || 'Sin razon') + '</p><p class="text-xs text-slate-500 mt-1">🎮 Partida: ' + matchName + '</p><p class="text-xs text-slate-400 mt-1">👤 Aplicado por: <span class="font-medium text-slate-500">' + adminName + '</span></p>' + (s.notes ? '<p class="text-xs text-slate-400 mt-1 italic">📝 ' + s.notes + '</p>' : '') + '<div class="flex gap-3 mt-3">' + (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="text-xs text-red-500 font-bold hover:text-red-700">❌ Remover strike</button>' : '') + (isActive ? '<button onclick="editStrike(\'' + s.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">✏️ Editar strike</button>' : '') + '</div></div>';
             }).join('');
         }
 
         async function editStrike(strikeId) {
-            var { data, error } = await supabase.from('player_strikes').select('*, player:players!player_strikes_player_id_fkey(id, current_username), strike_type:strike_types(*), match:matches(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)').eq('id', strikeId).single();
-            if (error || !data) { showToast('Error cargando strike: ' + (error ? error.message : 'No encontrado'), 'error'); return; }
-            if (data.is_active === false) { showToast('No se puede editar un strike removido', 'warning'); return; }
-            openEditStrikeModal(data);
+            var { data: strike, error } = await supabase.from('player_strikes').select('*').eq('id', strikeId).single();
+            if (error || !strike) { showToast('Error cargando strike: ' + (error ? error.message : 'No encontrado'), 'error'); return; }
+            if (strike.is_active === false) { showToast('No se puede editar un strike removido', 'warning'); return; }
+            
+            // Cargar datos relacionados
+            var promises = [];
+            promises.push(supabase.from('players').select('id, current_username').eq('id', strike.player_id).single());
+            promises.push(supabase.from('strike_types').select('*').eq('id', strike.strike_type_id).single());
+            if (strike.match_id) promises.push(supabase.from('matches').select('id, name').eq('id', strike.match_id).single());
+            else promises.push(Promise.resolve({ data: null }));
+            if (strike.applied_by) promises.push(supabase.from('admin_users').select('id, display_name').eq('id', strike.applied_by).single());
+            else promises.push(Promise.resolve({ data: null }));
+            
+            var results = await Promise.all(promises);
+            var player = results[0].data || {};
+            var strikeType = results[1].data || {};
+            var match = results[2].data || null;
+            var admin = results[3].data || null;
+            
+            var enrichedStrike = {
+                id: strike.id,
+                player_id: strike.player_id,
+                player: player,
+                strike_type_id: strike.strike_type_id,
+                strike_type: strikeType,
+                match: match,
+                applied_by: strike.applied_by,
+                applied_by_admin: admin,
+                applied_at: strike.applied_at,
+                reason: strike.reason,
+                notes: strike.notes,
+                is_active: strike.is_active
+            };
+            openEditStrikeModal(enrichedStrike);
         }
 
         async function removeStrike(strikeId) {
