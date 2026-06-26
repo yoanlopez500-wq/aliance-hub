@@ -6,14 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v7: UUID fix in onclick + global fallback functions in base.js -->
+<!-- v8: CSS inyectado desde base.js ?v=8 -->
 <title>Detalle Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=7"></script>
-<script src="../assets/js/base.js?v=7"></script>
-<script src="../assets/js/auth.js?v=7"></script>
-<script src="../assets/js/pwa-utils.js?v=7"></script>
+<script src="../assets/js/config.js?v=8"></script>
+<script src="../assets/js/base.js?v=8"></script>
+<script src="../assets/js/auth.js?v=8"></script>
+<script src="../assets/js/pwa-utils.js?v=8"></script>
 <style>
 .modal{display:none}.modal.active{display:flex}
 .reg-card{transition:background .15s}.reg-card:hover{background:#f8fafc}
@@ -293,7 +293,6 @@ async function loadRegistrations() {
                               '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600">' + (r.status || '?') + '</span>';
             var playerStatusBadge = isSuspended ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold ml-1">SUSPENDIDO</span>' : '';
             
-            // v7 FIX: UUID en onclick necesita comillas para no ser interpretado como resta aritmetica
             var controls = '';
             controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="action-btn btn-strike" title="Strike">⚡</button>';
             if (!isSuspended) {
@@ -323,7 +322,6 @@ async function loadRegistrations() {
     } catch(e) { console.error('Error en loadRegistrations:', e); document.getElementById('reg-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + e.message + '</div>'; }
 }
 
-// Funciones locales - si el HTML se carga correctamente, estas sobreescriben las de base.js
 async function removeRegistration(regId, playerName) {
     if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return;
     try {
@@ -410,7 +408,6 @@ async function loadPending() {
     } catch(e) { console.error('Error en loadPending:', e); document.getElementById('pending-section').classList.add('hidden'); }
 }
 
-// ===== STRIKE UNIFICADO (mismo sistema que strikes.html) =====
 async function loadStrikeTypesUnified() {
     var { data: types, error } = await supabase.from('strike_types').select('*').order('severity');
     if (!error && types) {
@@ -584,7 +581,6 @@ document.getElementById('winners-form').addEventListener('submit', async functio
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 });
 
-// ===== BUSCADOR DE JUGADORES PARA RESULTADO MANUAL =====
 async function openManualModal() {
     var { data: players } = await supabase.from('players').select('id, current_username').order('current_username').limit(500);
     allPlayersCache = players || [];
