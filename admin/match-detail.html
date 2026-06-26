@@ -6,22 +6,27 @@
 <title>Detalle Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=3"></script>
-<script src="../assets/js/base.js?v=3"></script>
-<script src="../assets/js/auth.js?v=3"></script>
-<script src="../assets/js/pwa-utils.js?v=3"></script>
+<script src="../assets/js/config.js?v=4"></script>
+<script src="../assets/js/base.js?v=4"></script>
+<script src="../assets/js/auth.js?v=4"></script>
+<script src="../assets/js/pwa-utils.js?v=4"></script>
 <style>
 .modal{display:none}.modal.active{display:flex}
 .reg-card{transition:background .15s}.reg-card:hover{background:#f8fafc}
-.strike-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:bold}
-.strike-l{background:#fef3c7;color:#92400e}.strike-m{background:#ffedd5;color:#9a3412}.strike-g{background:#fee2e2;color:#991b1b}
-.rep-clean{color:#16a34a}.rep-warn{color:#ca8a04}.rep-bad{color:#dc2626}
+.player-name{color:#111827;font-weight:700;font-size:0.875rem}
+.player-stats{color:#64748B;font-size:0.75rem}
+.action-btn{padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid transparent;cursor:pointer;transition:all .15s}
+.action-btn:hover{transform:translateY(-1px)}
+.btn-strike{background:#FEF3C7;color:#92400E;border-color:#FCD34D}
+.btn-strike:hover{background:#FDE68A}
+.btn-suspend{background:#FFEDD5;color:#9A3412;border-color:#FDBA74}
+.btn-suspend:hover{background:#FED7AA}
+.btn-remove{background:#FEE2E2;color:#991B1B;border-color:#FCA5A5}
+.btn-remove:hover{background:#FECACA}
+.btn-unsuspend{background:#DCFCE7;color:#166534;border-color:#86EFAC}
+.btn-unsuspend:hover{background:#BBF7D0}
 .search-result{cursor:pointer;padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
 .search-result:hover{background:#f1f5f9}
-.search-result.selected{background:#dbeafe;color:#1e40af;font-weight:bold}
-.sev-1 { border-left: 4px solid #fbbf24; }
-.sev-2 { border-left: 4px solid #f97316; }
-.sev-3 { border-left: 4px solid #ef4444; }
 </style>
 <meta name="theme-color" content="#0f172a">
 </head>
@@ -284,28 +289,26 @@ async function loadRegistrations() {
                               '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600">' + (r.status || '?') + '</span>';
             var playerStatusBadge = isSuspended ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold ml-1">SUSPENDIDO</span>' : '';
             
-            // Controles: Strike | Suspender | Quitar
+            // Controles con CSS classes propias para mejor contraste
             var controls = '';
-            // Strike
-            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-bold hover:bg-yellow-200" title="Strike">⚡</button>';
-            // Suspender (solo si no esta ya suspendido)
+            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-strike" title="Strike">⚡</button>';
             if (!isSuspended) {
-                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold hover:bg-orange-200 ml-1" title="Suspender jugador">🚫</button>';
+                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-suspend" title="Suspender">🚫</button>';
             } else {
-                controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 ml-1" title="Reactivar jugador">✓</button>';
+                controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="action-btn btn-unsuspend" title="Reactivar">✓</button>';
             }
-            // Quitar de partida
-            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\\'/g, "\\\\'") + '\')" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold hover:bg-red-200 ml-1" title="Quitar de partida">🗑️</button>';
+            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-remove" title="Quitar">🗑️</button>';
             
+            // FIX: Usar CSS propio .player-name con color #111827 (negro puro) en vez de text-slate-800
             return '<div class="p-3 reg-card">' +
                 '<div class="flex flex-col sm:flex-row sm:items-center gap-2">' +
                     '<div class="flex items-center gap-3 flex-1 min-w-0">' +
                         '<div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
                         '<div class="min-w-0 flex-1">' +
                             '<div class="flex items-center gap-1 flex-wrap">' +
-                                '<span class="font-bold text-slate-800 text-sm truncate">' + (p.current_username || 'Jugador ' + r.player_id) + '</span>' + statusBadge + playerStatusBadge +
+                                '<span class="player-name">' + (p.current_username || 'Jugador ' + r.player_id) + '</span>' + statusBadge + playerStatusBadge +
                             '</div>' +
-                            '<div class="text-xs text-slate-500">ID: ' + r.player_id + ' | Rep: ' + (p.reputation_score || 100) + '/100 | KD: ' + kd + ' | ' + (p.games_played || 0) + ' partidas</div>' +
+                            '<div class="player-stats">ID: ' + r.player_id + ' | Rep: ' + (p.reputation_score || 100) + '/100 | KD: ' + kd + ' | ' + (p.games_played || 0) + ' partidas</div>' +
                         '</div>' +
                     '</div>' +
                     '<div class="flex gap-1 flex-shrink-0 flex-wrap">' + controls + '</div>' +
@@ -320,11 +323,19 @@ async function loadRegistrations() {
 async function removeRegistration(regId, playerName) {
     if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return;
     try {
+        console.log('Removing registration ID:', regId);
         var { error } = await supabase.from('match_registrations').delete().eq('id', regId);
-        if (error) { showToast('Error: ' + error.message, 'error'); console.error('removeRegistration error:', error); return; }
+        if (error) {
+            console.error('removeRegistration error:', error);
+            showToast('Error: ' + error.message, 'error');
+            return;
+        }
         showToast('Jugador quitado de la partida', 'success');
         loadRegistrations();
-    } catch(e) { showToast('Error: ' + e.message, 'error'); console.error('removeRegistration catch:', e); }
+    } catch(e) {
+        console.error('removeRegistration catch:', e);
+        showToast('Error: ' + e.message, 'error');
+    }
 }
 
 // ===== SUSPENDER JUGADOR =====
@@ -376,7 +387,7 @@ async function loadResults() {
         var playersMap = {};
         (players || []).forEach(function(p) { playersMap[p.id] = p; });
         
-        var html = '<div class="divide-y divide-slate-100">' + res.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="p-3 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">' + (r.nation || '-') + '</p></div></div><div class="text-right text-xs"><p class="text-green-600 font-bold">' + (r.kills || 0) + ' bajas</p><p class="text-red-500">' + (r.deaths || 0) + ' muertes</p><p class="font-bold">KD: ' + (r.kd_ratio || 0) + '</p></div></div>'; }).join('') + '</div>';
+        var html = '<div class="divide-y divide-slate-100">' + res.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="p-3 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm" style="color:#111827">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">' + (r.nation || '-') + '</p></div></div><div class="text-right text-xs"><p class="text-green-600 font-bold">' + (r.kills || 0) + ' bajas</p><p class="text-red-500">' + (r.deaths || 0) + ' muertes</p><p class="font-bold">KD: ' + (r.kd_ratio || 0) + '</p></div></div>'; }).join('') + '</div>';
         document.getElementById('results-desktop').innerHTML = html;
         document.getElementById('results-mobile').innerHTML = html;
     } catch(e) { console.error('Error en loadResults:', e); document.getElementById('results-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + e.message + '</div>'; }
@@ -393,7 +404,7 @@ async function loadPending() {
         (players || []).forEach(function(p) { playersMap[p.id] = p; });
         
         document.getElementById('pending-section').classList.remove('hidden');
-        document.getElementById('pending-list').innerHTML = pending.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-xs font-bold text-yellow-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">Solicitud pendiente</p></div></div><div class="flex gap-1"><button onclick="updateRegStatus(' + r.id + ', \'confirmed\')" class="px-2 py-1 bg-green-500 text-white rounded text-xs font-bold">✓</button><button onclick="updateRegStatus(' + r.id + ', \'rejected\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs font-bold">✕</button></div></div>'; }).join('');
+        document.getElementById('pending-list').innerHTML = pending.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-xs font-bold text-yellow-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm" style="color:#111827">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">Solicitud pendiente</p></div></div><div class="flex gap-1"><button onclick="updateRegStatus(' + r.id + ', \'confirmed\')" class="px-2 py-1 bg-green-500 text-white rounded text-xs font-bold">✓</button><button onclick="updateRegStatus(' + r.id + ', \'rejected\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs font-bold">✕</button></div></div>'; }).join('');
     } catch(e) { console.error('Error en loadPending:', e); document.getElementById('pending-section').classList.add('hidden'); }
 }
 
@@ -435,7 +446,6 @@ document.getElementById('apply-strike-form').addEventListener('submit', async fu
     var reason = document.getElementById('as-reason').value.trim();
     if (!typeId || !reason) { showToast('Completa todos los campos', 'warning'); return; }
     try {
-        // UNIFICADO: igual que strikes.html - incluye applied_by y guarda en player_strikes
         var { error } = await supabase.from('player_strikes').insert({
             player_id: playerId,
             match_id: matchId,
@@ -450,7 +460,6 @@ document.getElementById('apply-strike-form').addEventListener('submit', async fu
         loadRegistrations();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 });
-// ===== FIN STRIKE UNIFICADO =====
 
 async function updateRegStatus(regId, status) {
     try {
@@ -553,7 +562,7 @@ async function openWinnersModal() {
         var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
         var playersMap = {};
         (players || []).forEach(function(p) { playersMap[p.id] = p; });
-        list.innerHTML = results.map(function(r, i) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"><span class="text-lg font-bold text-amber-500 w-6">#' + (i+1) + '</span><div class="flex-1"><p class="font-medium text-sm">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">' + r.kills + ' bajas / ' + r.deaths + ' muertes</p></div><input type="checkbox" name="winner" value="' + r.player_id + '" class="w-5 h-5 text-yellow-500 rounded"></div>'; }).join('');
+        list.innerHTML = results.map(function(r, i) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"><span class="text-lg font-bold text-amber-500 w-6">#' + (i+1) + '</span><div class="flex-1"><p class="font-medium text-sm" style="color:#111827">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">' + r.kills + ' bajas / ' + r.deaths + ' muertes</p></div><input type="checkbox" name="winner" value="' + r.player_id + '" class="w-5 h-5 text-yellow-500 rounded"></div>'; }).join('');
     }
     document.getElementById('winners-modal').classList.add('active');
 }
@@ -595,7 +604,7 @@ function searchPlayers(query) {
     var cleanQuery = query.trim().toLowerCase();
     var matches = allPlayersCache.filter(function(p) { return p.current_username && p.current_username.toLowerCase().indexOf(cleanQuery) !== -1; }).slice(0, 10);
     if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">Sin resultados</div>'; resultsDiv.classList.remove('hidden'); return; }
-    resultsDiv.innerHTML = matches.map(function(p) { return '<div class="search-result" onclick="selectPlayer(' + p.id + ', \'' + p.current_username.replace(/\\'/g, "\\\\'") + '\')"><span class="font-medium">' + p.current_username + '</span><span class="text-slate-400 ml-2">ID: ' + p.id + '</span></div>'; }).join('');
+    resultsDiv.innerHTML = matches.map(function(p) { return '<div class="search-result" onclick="selectPlayer(' + p.id + ', \'' + p.current_username.replace(/\'/g, "\\'") + '\')"><span class="font-medium">' + p.current_username + '</span><span class="text-slate-400 ml-2">ID: ' + p.id + '</span></div>'; }).join('');
     resultsDiv.classList.remove('hidden');
 }
 function selectPlayer(id, name) {
