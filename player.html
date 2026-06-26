@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jugador - Alliance Hub V2</title>
+    <title>Jugador - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js"></script>
-    <script src="assets/js/base.js"></script>
-    <script src="assets/js/auth.js"></script>
-    <script src="assets/js/pwa-utils.js"></script>
+    <script src="assets/js/config.js?v=3"></script>
+    <script src="assets/js/base.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/pwa-utils.js?v=3"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="public">
@@ -63,15 +63,18 @@
         var allHistory = [];
 
         async function loadPlayer() {
-            var { data: player } = await supabase
-                .from('players')
-                .select('*, alliances(name, tag)')
-                .eq('id', playerId)
-                .single();
-
+            // Cargar player sin nested relation
+            var { data: player } = await supabase.from('players').select('*').eq('id', playerId).single();
             if (!player) {
                 document.getElementById('player-header').innerHTML = '<div class="text-red-500">Jugador no encontrado</div>';
                 return;
+            }
+
+            // Cargar alliance manualmente
+            var alliance = null;
+            if (player.current_alliance_id) {
+                var { data: alli } = await supabase.from('alliances').select('name, tag').eq('id', player.current_alliance_id).single();
+                alliance = alli;
             }
 
             var kd = player.total_deaths > 0 ? (player.total_kills / player.total_deaths).toFixed(2) : player.total_kills;
@@ -82,8 +85,8 @@
                     '<div class="text-5xl mb-4">🎖️</div>' +
                     '<h1 class="text-3xl font-bold text-slate-800">' + player.current_username + '</h1>' +
                     '<p class="text-slate-500 mt-2">ID: ' + player.id +
-                        (player.alliances ? ' • ' + player.alliances.name + ' [' + player.alliances.tag + ']' : '') +
-                        (player.status !== 'active' ? ' • ' + getStatusBadge(player.status) : '') +
+                        (alliance ? ' • ' + alliance.name + ' [' + alliance.tag + ']' : '') +
+                        (player.status !== 'active' ? ' • ' + getStatusBadgePlayer(player.status) : '') +
                     '</p>' +
                 '</div>';
 
@@ -100,15 +103,19 @@
         }
 
         async function loadHistory() {
-            // FIX: Eliminar alliances(name, tag) anidado en matches - causa ambiguedad de FK
-            // Solo traer datos de matches sin el join a alliances
-            var { data: history } = await supabase
-                .from('match_results')
-                .select('*, matches(name, match_type, game_id, created_at)')
-                .eq('player_id', playerId)
-                .order('imported_at', { ascending: false });
-
+            // Cargar resultados sin nested relation
+            var { data: history } = await supabase.from('match_results').select('*').eq('player_id', playerId).order('created_at', { ascending: false });
             allHistory = history || [];
+            
+            // Cargar matches relacionados manualmente
+            var matchIds = allHistory.map(function(h) { return h.match_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+            if (matchIds.length > 0) {
+                var { data: matches } = await supabase.from('matches').select('id, name, match_type, game_id, created_at').in('id', matchIds);
+                var matchesMap = {};
+                (matches || []).forEach(function(m) { matchesMap[m.id] = m; });
+                allHistory.forEach(function(h) { h.match = matchesMap[h.match_id] || null; });
+            }
+            
             renderHistory(allHistory);
         }
 
@@ -120,15 +127,16 @@
             }
 
             container.innerHTML = history.map(function(h) {
-                var typeLabel = getTypeBadge(h.matches.match_type);
+                var match = h.match || {};
+                var typeLabel = getTypeBadge(match.match_type);
                 return '<div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">' +
                     '<div>' +
-                        '<a href="game.html?id=' + h.match_id + '" class="font-bold text-slate-800 hover:text-amber-600">' + h.matches.name + '</a>' +
-                        '<div class="flex gap-2 mt-1">' + typeLabel + '<span class="text-xs text-slate-500">' + h.nation + ' • ' + formatDate(h.matches.created_at) + '</span></div>' +
+                        '<a href="game.html?id=' + h.match_id + '" class="font-bold text-slate-800 hover:text-amber-600">' + (match.name || 'Partida ' + h.match_id) + '</a>' +
+                        '<div class="flex gap-2 mt-1">' + typeLabel + '<span class="text-xs text-slate-500">' + (h.nation || '-') + ' • ' + formatDate(match.created_at) + '</span></div>' +
                     '</div>' +
                     '<div class="text-right">' +
-                        '<div class="font-bold ' + (h.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + h.kd_ratio + ' KD</div>' +
-                        '<div class="text-xs text-slate-500">' + h.kills.toLocaleString() + ' / ' + h.deaths.toLocaleString() + '</div>' +
+                        '<div class="font-bold ' + ((h.kd_ratio || 0) >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + (h.kd_ratio || 0) + ' KD</div>' +
+                        '<div class="text-xs text-slate-500">' + (h.kills || 0).toLocaleString() + ' / ' + (h.deaths || 0).toLocaleString() + '</div>' +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -140,7 +148,7 @@
                     ? 'hist-filter px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
                     : 'hist-filter px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
             });
-            renderHistory(type === 'all' ? allHistory : allHistory.filter(function(h) { return h.matches.match_type === type; }));
+            renderHistory(type === 'all' ? allHistory : allHistory.filter(function(h) { return h.match && h.match.match_type === type; }));
         }
 
         loadPlayer();
