@@ -6,14 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v6-force-refresh: cache bust 2026-06-26T22:00:00Z -->
+<!-- v7: UUID fix in onclick + global fallback functions in base.js -->
 <title>Detalle Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=6"></script>
-<script src="../assets/js/base.js?v=6"></script>
-<script src="../assets/js/auth.js?v=6"></script>
-<script src="../assets/js/pwa-utils.js?v=6"></script>
+<script src="../assets/js/config.js?v=7"></script>
+<script src="../assets/js/base.js?v=7"></script>
+<script src="../assets/js/auth.js?v=7"></script>
+<script src="../assets/js/pwa-utils.js?v=7"></script>
 <style>
 .modal{display:none}.modal.active{display:flex}
 .reg-card{transition:background .15s}.reg-card:hover{background:#f8fafc}
@@ -293,7 +293,7 @@ async function loadRegistrations() {
                               '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600">' + (r.status || '?') + '</span>';
             var playerStatusBadge = isSuspended ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold ml-1">SUSPENDIDO</span>' : '';
             
-            // Controles con CSS classes propias para mejor contraste
+            // v7 FIX: UUID en onclick necesita comillas para no ser interpretado como resta aritmetica
             var controls = '';
             controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="action-btn btn-strike" title="Strike">⚡</button>';
             if (!isSuspended) {
@@ -301,9 +301,8 @@ async function loadRegistrations() {
             } else {
                 controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="action-btn btn-unsuspend" title="Reactivar">✓</button>';
             }
-            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="action-btn btn-remove" title="Quitar">🗑️</button>';
+            controls += '<button onclick="removeRegistration(\'' + r.id + '\', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="action-btn btn-remove" title="Quitar">🗑️</button>';
             
-            // FIX: Usar CSS propio .player-name con color #111827 (negro puro) en vez de text-slate-800
             return '<div class="p-3 reg-card">' +
                 '<div class="flex flex-col sm:flex-row sm:items-center gap-2">' +
                     '<div class="flex items-center gap-3 flex-1 min-w-0">' +
@@ -324,25 +323,25 @@ async function loadRegistrations() {
     } catch(e) { console.error('Error en loadRegistrations:', e); document.getElementById('reg-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + e.message + '</div>'; }
 }
 
+// Funciones locales - si el HTML se carga correctamente, estas sobreescriben las de base.js
 async function removeRegistration(regId, playerName) {
     if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return;
     try {
-        console.log('Removing registration ID:', regId);
+        console.log('[LOCAL] removeRegistration ID:', regId);
         var { error } = await supabase.from('match_registrations').delete().eq('id', regId);
         if (error) {
-            console.error('removeRegistration error:', error);
+            console.error('[LOCAL] removeRegistration error:', error);
             showToast('Error: ' + error.message, 'error');
             return;
         }
         showToast('Jugador quitado de la partida', 'success');
         loadRegistrations();
     } catch(e) {
-        console.error('removeRegistration catch:', e);
+        console.error('[LOCAL] removeRegistration catch:', e);
         showToast('Error: ' + e.message, 'error');
     }
 }
 
-// ===== SUSPENDER JUGADOR =====
 function openSuspendModal(playerId, playerName) {
     document.getElementById('su-player-id').value = playerId;
     document.getElementById('su-player-name').textContent = playerName || 'Jugador ' + playerId;
@@ -377,7 +376,6 @@ async function unsuspendPlayer(playerId) {
         loadRegistrations();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
-// ===== FIN SUSPENDER =====
 
 async function loadResults() {
     try {
