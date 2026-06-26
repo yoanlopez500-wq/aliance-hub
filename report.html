@@ -36,7 +36,6 @@
 
         <!-- Formulario -->
         <form id="report-form" class="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-            <!-- Partida (auto) -->
             <input type="hidden" id="match-id">
 
             <!-- Buscador de jugador reportado -->
@@ -216,6 +215,11 @@
                 if (!type) { showToast('Selecciona un tipo de reporte', 'warning'); btn.disabled = false; btn.textContent = '🚨 Enviar Reporte'; return; }
                 if (!description) { showToast('Escribe una descripcion', 'warning'); btn.disabled = false; btn.textContent = '🚨 Enviar Reporte'; return; }
 
+                // Buscar el nombre del jugador reportado
+                var reportedName = '';
+                var found = registeredPlayersCache.find(function(p) { return p.id === reportedId; });
+                if (found) reportedName = found.current_username;
+
                 // Subir imagenes a Supabase Storage
                 var evidenceUrls = [];
                 for (var i = 0; i < evidenceFiles.length; i++) {
@@ -232,12 +236,13 @@
                     evidenceUrls.push(urlData.publicUrl);
                 }
 
-                // Insertar reporte
+                // Insertar reporte usando los nombres CORRECTOS de columnas
                 var { error } = await supabase.from('player_reports').insert({
                     match_id: matchId,
-                    reporter_id: parseInt(playerData.playerId),
-                    reporter_name: playerData.displayName,
-                    reported_id: reportedId,
+                    player_id: parseInt(playerData.playerId),
+                    player_name: playerData.displayName,
+                    reported_player_id: reportedId,
+                    reported_player_name: reportedName,
                     report_type: type,
                     description: description,
                     evidence_urls: evidenceUrls.length > 0 ? evidenceUrls : null,
