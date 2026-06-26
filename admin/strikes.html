@@ -25,22 +25,22 @@
 
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h2 class="text-xl font-bold text-slate-800 mb-3">&#128220; Reglas Base de Alliance Hub</h2>
+            <h2 class="text-xl font-bold text-slate-800 mb-3">📜 Reglas Base de Alliance Hub</h2>
             <p class="text-sm text-slate-500 mb-3">Este enlace aparecera en TODAS las partidas como reglas base. Los admins pueden anadir reglas adicionales en la descripcion de cada partida.</p>
             <div class="flex gap-3 flex-wrap">
                 <input type="url" id="rules-url-input" placeholder="https://docs.google.com/... o enlace a PDF" class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
                 <button onclick="saveRulesUrl()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
-                <a id="rules-url-preview" href="#" target="_blank" class="hidden px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">&#128196; Ver PDF</a>
+                <a id="rules-url-preview" href="#" target="_blank" class="hidden px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">📄 Ver PDF</a>
             </div>
             <p id="rules-save-status" class="text-xs mt-2 h-4"></p>
         </div>
 
         <div class="flex items-center justify-between mb-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">&#9889; Tipos de Strikes</h1>
+                <h1 class="text-2xl font-bold text-slate-800">⚡ Tipos de Strikes</h1>
                 <p class="text-slate-500 text-sm">Solo el superadmin puede crear o editar tipos de strikes. Todos los admins pueden aplicarlos.</p>
             </div>
-            <button id="btn-new-strike-type" onclick="openStrikeTypeModal()" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-400 transition">&#10133; Nuevo Tipo</button>
+            <button id="btn-new-strike-type" onclick="openStrikeTypeModal()" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-400 transition">➕ Nuevo Tipo</button>
         </div>
 
         <div id="strike-types-list" class="space-y-3 mb-8">
@@ -48,7 +48,7 @@
         </div>
 
         <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h2 class="text-xl font-bold text-slate-800 mb-3">&#9889; Aplicar Strike</h2>
+            <h2 class="text-xl font-bold text-slate-800 mb-3">⚡ Aplicar Strike</h2>
             <form id="apply-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -78,12 +78,12 @@
                     <label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label>
                     <textarea id="ap-notes" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea>
                 </div>
-                <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-500">&#9889; Aplicar Strike</button>
+                <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-500">⚡ Aplicar Strike</button>
             </form>
         </div>
 
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-slate-800">&#128221; Historial de Strikes</h2>
+            <h2 class="text-xl font-bold text-slate-800">📝 Historial de Strikes</h2>
             <div class="flex gap-2">
                 <select id="filter-strike-status" onchange="loadStrikeHistory()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm">
                     <option value="all">Todos</option>
@@ -101,7 +101,7 @@
         <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex items-center justify-between">
                 <h2 class="text-xl font-bold" id="st-modal-title">Nuevo Tipo de Strike</h2>
-                <button onclick="closeStrikeTypeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+                <button onclick="closeStrikeTypeModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             <form id="strike-type-form" class="p-6 space-y-4">
                 <input type="hidden" id="st-id">
@@ -120,9 +120,9 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Severidad *</label>
                     <select id="st-severity" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none">
-                        <option value="1">&#9888;&#65039; Leve (-5 rep)</option>
-                        <option value="2">&#128721; Medio (-20 rep)</option>
-                        <option value="3">&#9940; Grave (-50 rep)</option>
+                        <option value="1">⚠️ Leve (-5 rep)</option>
+                        <option value="2">🛑 Medio (-20 rep)</option>
+                        <option value="3">🚫 Grave (-50 rep)</option>
                     </select>
                 </div>
                 <div>
@@ -140,8 +140,8 @@
     <div id="edit-strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex items-center justify-between">
-                <h2 class="text-xl font-bold">&#9999;&#65039; Editar Strike</h2>
-                <button onclick="closeEditStrikeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+                <h2 class="text-xl font-bold">✏️ Editar Strike</h2>
+                <button onclick="closeEditStrikeModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             <form id="edit-strike-form" class="p-6 space-y-4">
                 <input type="hidden" id="es-id">
@@ -165,7 +165,7 @@
                     <textarea id="es-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea>
                 </div>
                 <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">&#128190; Guardar Cambios</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">💾 Guardar Cambios</button>
                     <button type="button" onclick="closeEditStrikeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
                 </div>
             </form>
@@ -175,7 +175,6 @@
     <script>
         requireAdmin();
         var isSuperAdmin = false, strikeTypes = [], matches = [], currentAdminId = null;
-        var playersMap = {}, adminsMap = {}, matchesMap = {};
 
         async function init() {
             var sessionData = await supabase.auth.getSession();
@@ -209,7 +208,7 @@
             strikeTypes = data || [];
             var container = document.getElementById('strike-types-list');
             if (strikeTypes.length === 0) container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">No hay tipos de strikes configurados</div>';
-            else container.innerHTML = strikeTypes.map(function(t) { var sevClass = t.severity === 1 ? 'sev-1' : t.severity === 2 ? 'sev-2' : 'sev-3'; var sevLabel = t.severity === 1 ? '&#9888;&#65039; Leve' : t.severity === 2 ? '&#128721; Medio' : '&#9940; Grave'; return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between"><div><span class="font-bold text-slate-800">' + t.code + ': ' + t.name + '</span> <span class="text-xs text-slate-500">(' + sevLabel + ')</span></div><div class="flex gap-2">' + (isSuperAdmin ? '<button onclick="editStrikeType(\'' + t.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">Editar</button>' : '') + (isSuperAdmin ? '<button onclick="toggleStrikeType(\'' + t.id + '\', ' + (t.is_active ? 'false' : 'true') + ')" class="text-xs ' + (t.is_active ? 'text-slate-400' : 'text-green-600') + ' font-bold hover:text-green-700">' + (t.is_active ? 'Desactivar' : 'Activar') + '</button>' : '') + '</div></div>' + (t.description ? '<p class="text-sm text-slate-600 mt-1">' + t.description + '</p>' : '') + (t.legend ? '<p class="text-xs text-slate-400 italic mt-1">&#8505;&#65039; ' + t.legend + '</p>' : '') + '</div>'; }).join('');
+            else container.innerHTML = strikeTypes.map(function(t) { var sevClass = t.severity === 1 ? 'sev-1' : t.severity === 2 ? 'sev-2' : 'sev-3'; var sevLabel = t.severity === 1 ? '⚠️ Leve' : t.severity === 2 ? '🛑 Medio' : '🚫 Grave'; return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between"><div><span class="font-bold text-slate-800">' + t.code + ': ' + t.name + '</span> <span class="text-xs text-slate-500">(' + sevLabel + ')</span></div><div class="flex gap-2">' + (isSuperAdmin ? '<button onclick="editStrikeType(\'' + t.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">Editar</button>' : '') + (isSuperAdmin ? '<button onclick="toggleStrikeType(\'' + t.id + '\', ' + (t.is_active ? 'false' : 'true') + ')" class="text-xs ' + (t.is_active ? 'text-slate-400' : 'text-green-600') + ' font-bold hover:text-green-700">' + (t.is_active ? 'Desactivar' : 'Activar') + '</button>' : '') + '</div></div>' + (t.description ? '<p class="text-sm text-slate-600 mt-1">' + t.description + '</p>' : '') + (t.legend ? '<p class="text-xs text-slate-400 italic mt-1">ℹ️ ' + t.legend + '</p>' : '') + '</div>'; }).join('');
             var options = strikeTypes.filter(function(t) { return t.is_active !== false; }).map(function(t) { var sevLabel = t.severity === 1 ? 'Leve' : t.severity === 2 ? 'Medio' : 'Grave'; return '<option value="' + t.id + '">' + t.code + ' - ' + t.name + ' (' + sevLabel + ')</option>'; }).join('');
             document.getElementById('ap-strike-type').innerHTML = '<option value="">-- Seleccionar --</option>' + options;
         }
@@ -264,7 +263,7 @@
                 var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
                 var { error } = await supabase.from('player_strikes').insert({ player_id: playerId, match_id: matchId, strike_type_id: strikeTypeId, reason: reason, notes: notes || null, applied_by: adminId });
                 if (error) { showToast('Error: ' + error.message, 'error'); return; }
-                showToast('&#9889; Strike aplicado correctamente', 'success');
+                showToast('⚡ Strike aplicado correctamente', 'success');
                 document.getElementById('apply-form').reset();
                 loadStrikeHistory();
             } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -295,15 +294,14 @@
             if (!strikeTypeId) { showToast('Selecciona un tipo de strike', 'warning'); return; }
             var { error } = await supabase.from('player_strikes').update({ strike_type_id: strikeTypeId, reason: reason, notes: notes || null }).eq('id', id);
             if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('&#9999;&#65039; Strike actualizado correctamente', 'success');
+            showToast('✏️ Strike actualizado correctamente', 'success');
             closeEditStrikeModal();
             loadStrikeHistory();
         });
 
         async function loadStrikeHistory() {
             var statusFilter = document.getElementById('filter-strike-status').value;
-            // FIX: Consulta simple sin relaciones anidadas
-            var query = supabase.from('player_strikes').select('*').order('applied_at', { ascending: false }).limit(100);
+            var query = supabase.from('player_strikes').select('*, player:players!player_strikes_player_id_fkey(id, current_username), strike_type:strike_types(*), match:matches(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)').order('applied_at', { ascending: false }).limit(100);
             if (statusFilter === 'active') query = query.eq('is_active', true);
             else if (statusFilter === 'removed') query = query.eq('is_active', false);
             var { data, error } = await query;
@@ -311,57 +309,21 @@
             if (error) { container.innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
             var strikes = data || [];
             if (strikes.length === 0) { container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin strikes en el historial</div>'; return; }
-
-            // Cargar datos relacionados por separado (evitar relaciones anidadas)
-            var playerIds = strikes.map(function(s) { return s.player_id; }).filter(function(id) { return !!id; });
-            var typeIds = strikes.map(function(s) { return s.strike_type_id; }).filter(function(id) { return !!id; });
-            var matchIds = strikes.map(function(s) { return s.match_id; }).filter(function(id) { return !!id; });
-            var adminIds = strikes.map(function(s) { return s.applied_by; }).filter(function(id) { return !!id; });
-
-            var uniquePids = playerIds.filter(function(id, i, arr) { return arr.indexOf(id) === i; });
-            var uniqueTids = typeIds.filter(function(id, i, arr) { return arr.indexOf(id) === i; });
-            var uniqueMids = matchIds.filter(function(id, i, arr) { return arr.indexOf(id) === i; });
-            var uniqueAids = adminIds.filter(function(id, i, arr) { return arr.indexOf(id) === i; });
-
-            var promises = [];
-            if (uniquePids.length > 0) promises.push(supabase.from('players').select('id, current_username').in('id', uniquePids));
-            else promises.push(Promise.resolve({ data: [] }));
-            if (uniqueTids.length > 0) promises.push(supabase.from('strike_types').select('id, code, name, severity').in('id', uniqueTids));
-            else promises.push(Promise.resolve({ data: [] }));
-            if (uniqueMids.length > 0) promises.push(supabase.from('matches').select('id, name').in('id', uniqueMids));
-            else promises.push(Promise.resolve({ data: [] }));
-            if (uniqueAids.length > 0) promises.push(supabase.from('admin_users').select('id, display_name').in('id', uniqueAids));
-            else promises.push(Promise.resolve({ data: [] }));
-
-            var [{ data: playersData }, { data: typesData }, { data: matchesData }, { data: adminsData }] = await Promise.all(promises);
-
-            playersMap = {}; (playersData || []).forEach(function(p) { playersMap[p.id] = p; });
-            var typesMap = {}; (typesData || []).forEach(function(t) { typesMap[t.id] = t; });
-            matchesMap = {}; (matchesData || []).forEach(function(m) { matchesMap[m.id] = m; });
-            adminsMap = {}; (adminsData || []).forEach(function(a) { adminsMap[a.id] = a; });
-
             container.innerHTML = strikes.map(function(s) {
-                var typeObj = typesMap[s.strike_type_id] || {};
+                var typeObj = s.strike_type || {};
                 var sevClass = typeObj.severity === 1 ? 'sev-1' : typeObj.severity === 2 ? 'sev-2' : 'sev-3';
                 var isActive = s.is_active !== false;
-                var playerName = playersMap[s.player_id] ? playersMap[s.player_id].current_username : 'Jugador ' + s.player_id;
-                var adminName = adminsMap[s.applied_by] ? adminsMap[s.applied_by].display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
-                var matchName = matchesMap[s.match_id] ? matchesMap[s.match_id].name : 'General';
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800">' + playerName + '</span><span class="text-xs text-slate-500">ID: ' + s.player_id + '</span><span class="px-2 py-0.5 rounded text-xs ' + (isActive ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500') + ' font-bold">' + (isActive ? 'ACTIVO' : 'REMOVIDO') + '</span></div><span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span></div><p class="text-sm text-slate-600"><span class="font-bold">' + (typeObj.code || '?') + ':</span> ' + (s.reason || 'Sin razon') + '</p><p class="text-xs text-slate-500 mt-1">&#127918; Partida: ' + matchName + '</p><p class="text-xs text-slate-400 mt-1">&#128100; Aplicado por: <span class="font-medium text-slate-500">' + adminName + '</span></p>' + (s.notes ? '<p class="text-xs text-slate-400 mt-1 italic">&#128221; ' + s.notes + '</p>' : '') + '<div class="flex gap-3 mt-3">' + (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="text-xs text-red-500 font-bold hover:text-red-700">&#10060; Remover strike</button>' : '') + (isActive ? '<button onclick="editStrike(\'' + s.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">&#9999;&#65039; Editar strike</button>' : '') + '</div></div>';
+                var playerName = s.player ? s.player.current_username : 'Jugador ' + s.player_id;
+                var adminName = s.applied_by_admin ? s.applied_by_admin.display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
+                var matchName = s.match ? s.match.name : 'General';
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800">' + playerName + '</span><span class="text-xs text-slate-500">ID: ' + s.player_id + '</span><span class="px-2 py-0.5 rounded text-xs ' + (isActive ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500') + ' font-bold">' + (isActive ? 'ACTIVO' : 'REMOVIDO') + '</span></div><span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span></div><p class="text-sm text-slate-600"><span class="font-bold">' + (typeObj.code || '?') + ':</span> ' + (s.reason || 'Sin razon') + '</p><p class="text-xs text-slate-500 mt-1">🎮 Partida: ' + matchName + '</p><p class="text-xs text-slate-400 mt-1">👤 Aplicado por: <span class="font-medium text-slate-500">' + adminName + '</span></p>' + (s.notes ? '<p class="text-xs text-slate-400 mt-1 italic">📝 ' + s.notes + '</p>' : '') + '<div class="flex gap-3 mt-3">' + (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="text-xs text-red-500 font-bold hover:text-red-700">❌ Remover strike</button>' : '') + (isActive ? '<button onclick="editStrike(\'' + s.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">✏️ Editar strike</button>' : '') + '</div></div>';
             }).join('');
         }
 
         async function editStrike(strikeId) {
-            var { data, error } = await supabase.from('player_strikes').select('*').eq('id', strikeId).single();
+            var { data, error } = await supabase.from('player_strikes').select('*, player:players!player_strikes_player_id_fkey(id, current_username), strike_type:strike_types(*), match:matches(name), applied_by_admin:admin_users!player_strikes_applied_by_fkey(display_name)').eq('id', strikeId).single();
             if (error || !data) { showToast('Error cargando strike: ' + (error ? error.message : 'No encontrado'), 'error'); return; }
             if (data.is_active === false) { showToast('No se puede editar un strike removido', 'warning'); return; }
-            // Cargar player y admin info por separado
-            var [{ data: playerData }, { data: adminData }] = await Promise.all([
-                supabase.from('players').select('id, current_username').eq('id', data.player_id).single(),
-                data.applied_by ? supabase.from('admin_users').select('id, display_name').eq('id', data.applied_by).single() : Promise.resolve({ data: null })
-            ]);
-            data.player = playerData || { current_username: 'Jugador ' + data.player_id };
-            data.applied_by_admin = adminData || null;
             openEditStrikeModal(data);
         }
 
