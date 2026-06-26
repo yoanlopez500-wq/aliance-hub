@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard V2 - Alliance Hub</title>
+    <title>Dashboard - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js?v=3"></script>
@@ -17,7 +17,7 @@
 
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">Dashboard V2</h1>
+            <h1 class="text-3xl font-bold text-slate-800">Dashboard</h1>
             <p class="text-slate-500" id="welcome-text">Cargando...</p>
         </div>
 
@@ -113,10 +113,25 @@
             document.getElementById('d-alliances').textContent = ac || 0;
             document.getElementById('d-reports').textContent = rc || 0;
 
-            var { data: recentMatches } = await supabase.from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)').order('created_at', { ascending: false }).limit(5);
+            // Cargar ultimas partidas sin nested relation
+            var { data: recentMatches } = await supabase.from('matches').select('*').order('created_at', { ascending: false }).limit(5);
             var container = document.getElementById('recent-matches');
-            if (!recentMatches || recentMatches.length === 0) container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin partidas</div>';
-            else container.innerHTML = recentMatches.map(function(m) { var allianceInfo = m.alliance ? ' [' + m.alliance.tag + ']' : ''; return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><div><p class="font-medium text-slate-800">' + m.name + allianceInfo + '</p><p class="text-xs text-slate-500">' + getStatusBadge(m.status) + ' ' + formatDate(m.created_at) + '</p></div><a href="match-detail.html?id=' + m.id + '" class="text-amber-600 text-sm font-bold hover:text-amber-700">Ver</a></div>'; }).join('');
+            if (!recentMatches || recentMatches.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin partidas</div>';
+            } else {
+                // Cargar alliances relacionadas
+                var allianceIds = recentMatches.map(function(m) { return m.alliance_id; }).filter(function(v) { return v !== null; });
+                var alliancesMap = {};
+                if (allianceIds.length > 0) {
+                    var { data: alliances } = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
+                    (alliances || []).forEach(function(a) { alliancesMap[a.id] = a; });
+                }
+                container.innerHTML = recentMatches.map(function(m) {
+                    var alliance = m.alliance_id ? alliancesMap[m.alliance_id] : null;
+                    var allianceInfo = alliance ? ' [' + alliance.tag + ']' : '';
+                    return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><div><p class="font-medium text-slate-800">' + m.name + allianceInfo + '</p><p class="text-xs text-slate-500">' + getStatusBadge(m.status) + ' ' + formatDate(m.created_at) + '</p></div><a href="match-detail.html?id=' + m.id + '" class="text-amber-600 text-sm font-bold hover:text-amber-700">Ver</a></div>';
+                }).join('');
+            }
 
             var { data: reports } = await supabase.from('chat_reports').select('*').eq('status', 'pending').order('reported_at', { ascending: false }).limit(5);
             var rContainer = document.getElementById('pending-reports');
