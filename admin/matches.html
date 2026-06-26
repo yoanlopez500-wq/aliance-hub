@@ -177,13 +177,32 @@
             var typeFilter = document.getElementById('filter-type').value;
             var statusFilter = document.getElementById('filter-status').value;
             var allianceFilter = document.getElementById('filter-alliance').value;
-            var query = supabase.from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').order('created_at', { ascending: false });
+            var query = supabase.from('matches').select('*').order('created_at', { ascending: false });
             if (typeFilter) query = query.eq('match_type', typeFilter);
             if (statusFilter) query = query.eq('status', statusFilter);
             if (allianceFilter) query = query.eq('alliance_id', allianceFilter);
             var { data, error } = await query;
             if (error) { document.getElementById('matches-list').innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
             allMatches = data || [];
+            
+            // Cargar alliances relacionadas para mostrar nombres
+            var allianceIds = [];
+            allMatches.forEach(function(m) {
+                if (m.alliance_id && allianceIds.indexOf(m.alliance_id) === -1) allianceIds.push(m.alliance_id);
+                if (m.alliance_a_id && allianceIds.indexOf(m.alliance_a_id) === -1) allianceIds.push(m.alliance_a_id);
+                if (m.alliance_b_id && allianceIds.indexOf(m.alliance_b_id) === -1) allianceIds.push(m.alliance_b_id);
+            });
+            if (allianceIds.length > 0) {
+                var { data: alliData } = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
+                var alliMap = {};
+                (alliData || []).forEach(function(a) { alliMap[a.id] = a; });
+                allMatches.forEach(function(m) {
+                    m.alliance = m.alliance_id ? alliMap[m.alliance_id] : null;
+                    m.alliance_a = m.alliance_a_id ? alliMap[m.alliance_a_id] : null;
+                    m.alliance_b = m.alliance_b_id ? alliMap[m.alliance_b_id] : null;
+                });
+            }
+            
             renderMatches(allMatches);
         }
 
