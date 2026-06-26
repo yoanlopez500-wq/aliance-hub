@@ -15,7 +15,7 @@
     <div id="admin-nav"></div>
     <div class="max-w-7xl mx-auto px-4 py-8">
         <h1 class="text-2xl font-bold text-slate-800 mb-6">👥 Administradores</h1>
-        <div id="admins-list" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div id="admins-list" class="space-y-3">
             <div class="text-center py-8 text-slate-400">Cargando...</div>
         </div>
     </div>
@@ -34,7 +34,7 @@
             var container = document.getElementById('admins-list');
             if (error) { container.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; return; }
             var admins = admins || [];
-            if (admins.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>'; return; }
+            if (admins.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin admins</div>'; return; }
             
             // Cargar alliances relacionadas
             var allianceIds = admins.map(function(a) { return a.alliance_id; }).filter(function(v) { return v !== null; });
@@ -44,32 +44,38 @@
                 (alliances || []).forEach(function(a) { alliancesMap[a.id] = a; });
             }
             
-            container.innerHTML = '<div class="space-y-3 p-4">' +
-                admins.map(function(a) {
-                    var roleBadge = getRoleBadge(a.role);
-                    var statusBadge = a.status === 'active' ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-bold">ACTIVO</span>' : a.status === 'suspended' ? '<span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 font-bold">SUSPENDIDO</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600">' + (a.status || '?') + '</span>';
-                    var alliance = a.alliance_id ? alliancesMap[a.alliance_id] : null;
-                    // Solo superadmin puede suspender/reactivar otros admins, y no puede suspenderse a si mismo
-                    var canSuspend = isSuperAdmin && a.role !== 'superadmin';
-                    var suspendBtn = '';
-                    if (canSuspend) {
-                        if (a.status === 'active') {
-                            suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'suspended\')" class="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-bold hover:bg-yellow-200">Suspender</button>';
-                        } else if (a.status === 'suspended') {
-                            suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'active\')" class="ml-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200">Reactivar</button>';
-                        }
+            container.innerHTML = admins.map(function(a) {
+                var roleBadge = a.role === 'superadmin' ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold whitespace-nowrap">SUPERADMIN</span>' : a.role === 'leader' ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 font-bold whitespace-nowrap">LIDER</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-bold whitespace-nowrap">ADMIN</span>';
+                var statusBadge = a.status === 'active' ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-bold whitespace-nowrap">ACTIVO</span>' : a.status === 'suspended' ? '<span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 font-bold whitespace-nowrap">SUSPENDIDO</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600 whitespace-nowrap">' + (a.status || '?') + '</span>';
+                var alliance = a.alliance_id ? alliancesMap[a.alliance_id] : null;
+                var canSuspend = isSuperAdmin && a.role !== 'superadmin';
+                var suspendBtn = '';
+                if (canSuspend) {
+                    if (a.status === 'active') {
+                        suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'suspended\')" class="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-200 whitespace-nowrap w-full md:w-auto">Suspender</button>';
+                    } else if (a.status === 'suspended') {
+                        suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'active\')" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold hover:bg-green-200 whitespace-nowrap w-full md:w-auto">Reactivar</button>';
                     }
-                    return '<div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">' +
-                        '<div class="flex items-center gap-3">' +
-                            '<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-lg font-bold text-amber-700">' + (a.display_name ? a.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
-                            '<div>' +
-                                '<div class="font-bold text-slate-800">' + (a.display_name || 'Admin') + '</div>' +
-                                '<div class="text-xs text-slate-500">' + (a.email || '') + (alliance ? ' | ' + alliance.name : '') + '</div>' +
+                }
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
+                    // Layout: vertical en movil, horizontal en desktop
+                    '<div class="flex flex-col md:flex-row md:items-center gap-3">' +
+                        // Info del admin
+                        '<div class="flex items-center gap-3 flex-1 min-w-0">' +
+                            '<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-lg font-bold text-amber-700 flex-shrink-0">' + (a.display_name ? a.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
+                            '<div class="min-w-0 flex-1">' +
+                                '<div class="font-bold text-slate-800 text-sm md:text-base truncate">' + (a.display_name || 'Admin') + '</div>' +
+                                '<div class="text-xs text-slate-500 truncate">' + (a.email || '') + (alliance ? ' | ' + alliance.name : '') + '</div>' +
                             '</div>' +
                         '</div>' +
-                        '<div class="flex items-center gap-2">' + roleBadge + statusBadge + suspendBtn + '</div>' +
-                    '</div>';
-                }).join('') + '</div>';
+                        // Badges + botones: apilados vertical en movil, horizontal en desktop
+                        '<div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">' +
+                            '<div class="flex items-center gap-1 flex-wrap">' + roleBadge + statusBadge + '</div>' +
+                            (suspendBtn ? '<div class="w-full sm:w-auto">' + suspendBtn + '</div>' : '') +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         async function toggleAdminStatus(adminId, newStatus) {
