@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reportar Jugador - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script src="assets/js/config.js?v=3"></script>
+    <script src="assets/js/base.js?v=3"></script>
+    <style>
+        .preview-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0; }
+        .preview-wrap { position: relative; display: inline-block; }
+        .preview-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; }
+        .report-type-btn { transition: all 0.15s; }
+        .report-type-btn.selected { background: #f59e0b; color: #1e293b; border-color: #f59e0b; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen">
+    <div id="admin-nav"></div>
+
+    <div class="max-w-lg mx-auto px-4 py-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="text-center mb-5">
+                <div class="text-3xl mb-2">🚨</div>
+                <h1 class="text-xl font-bold text-slate-800">Reportar Jugador</h1>
+                <p class="text-xs text-slate-500 mt-1" id="match-info">Cargando...</p>
+            </div>
+
+            <form id="report-form" class="space-y-4">
+                <input type="hidden" id="r-match-id">
+
+                <!-- Jugador reportado -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Jugador que quieres reportar *</label>
+                    <input type="text" id="r-reported-search" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Escribe el nombre del jugador..." oninput="searchReportedPlayer(this.value)">
+                    <input type="hidden" id="r-reported-id" required>
+                    <input type="hidden" id="r-reported-name">
+                    <div id="r-reported-results" class="mt-1 max-h-40 overflow-y-auto bg-slate-50 rounded-lg border border-slate-200 hidden"></div>
+                    <p id="r-reported-selected" class="text-xs text-green-600 mt-1 font-bold hidden"></p>
+                </div>
+
+                <!-- Tipo de reporte -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-2">Motivo del reporte *</label>
+                    <div class="grid grid-cols-2 gap-2" id="report-types">
+                        <button type="button" onclick="selectReportType(this, 'multis')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">👥 Multi-cuentas</button>
+                        <button type="button" onclick="selectReportType(this, 'team_kill')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">⚔️ Team Kill</button>
+                        <button type="button" onclick="selectReportType(this, 'abandono')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🏳️ Abandono</button>
+                        <button type="button" onclick="selectReportType(this, 'toxico')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">💬 Comportamiento toxico</button>
+                        <button type="button" onclick="selectReportType(this, 'bugs')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🐛 Bugs / Exploits</button>
+                        <button type="button" onclick="selectReportType(this, 'colusion')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🤝 Colusion</button>
+                        <button type="button" onclick="selectReportType(this, 'spam')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">📢 Spam / Flood</button>
+                        <button type="button" onclick="selectReportType(this, 'otro')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">❓ Otro</button>
+                    </div>
+                    <input type="hidden" id="r-report-type" required>
+                </div>
+
+                <!-- Descripcion -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Descripcion del incidente *</label>
+                    <textarea id="r-description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm resize-none" placeholder="Describe lo que viste con el mayor detalle posible: que paso, cuando, en que momento de la partida..."></textarea>
+                </div>
+
+                <!-- Evidencias (capturas) -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-2">Evidencias (capturas de pantalla) <span class="text-slate-400">- max 5</span></label>
+                    <div class="flex flex-wrap gap-2 mb-2" id="preview-container"></div>
+                    <div id="upload-btn-wrap">
+                        <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-amber-500 transition text-sm text-slate-500">
+                            <span>📷</span> <span>Seleccionar capturas</span>
+                            <input type="file" id="r-files" accept="image/*" multiple class="hidden" onchange="handleFiles(this)">
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Las imagenes se comprimen automaticamente para cargar mas rapido. Max 5MB cada una.</p>
+                </div>
+
+                <!-- Info del reportero -->
+                <div class="bg-slate-50 rounded-lg p-3">
+                    <p class="text-xs text-slate-500">Reportando como: <span id="r-reporter-name" class="font-bold text-slate-700">-</span></p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Tu nombre se guardara con el reporte para que los admins puedan contactarte si necesitan mas informacion.</p>
+                </div>
+
+                <!-- Boton enviar -->
+                <button type="submit" id="r-submit-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-500 transition flex items-center justify-center gap-2">
+                    <span>🚨 Enviar Reporte</span>
+                </button>
+
+                <div id="r-error" class="hidden text-center text-red-500 text-xs"></div>
+                <div id="r-success" class="hidden text-center text-green-600 text-sm font-bold"></div>
+            </form>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="#" id="back-link" class="text-sm text-slate-400 hover:text-slate-300">← Volver a la partida</a>
+        </div>
+    </div>
+
+    <script>
+        var urlParams = new URLSearchParams(window.location.search);
+        var matchId = urlParams.get('match_id');
+        var playerData = getPlayerData();
+        var selectedFiles = [];
+        var maxFiles = 5;
+        var registeredPlayers = [];
+
+        if (!matchId) {
+            document.querySelector('.max-w-lg').innerHTML = '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center"><div class="text-4xl mb-3">❌</div><h1 class="font-bold text-slate-800">Error</h1><p class="text-slate-500 text-sm mt-2">No se especifico una partida.</p><a href="index.html" class="text-amber-600 font-bold text-sm mt-4 inline-block">← Volver al inicio</a></div>';
+        }
+
+        document.getElementById('r-match-id').value = matchId;
+        document.getElementById('back-link').href = 'game.html?id=' + matchId;
+
+        // Mostrar nombre del reportero
+        if (playerData.displayName) {
+            document.getElementById('r-reporter-name').textContent = playerData.displayName;
+        } else {
+            document.getElementById('r-reporter-name').textContent = 'Jugador ' + (playerData.playerId || 'anonimo');
+        }
+
+        // Cargar info de la partida
+        async function loadMatchInfo() {
+            var { data: match } = await supabase.from('matches').select('name').eq('id', matchId).single();
+            if (match) {
+                document.getElementById('match-info').textContent = 'Partida: ' + match.name;
+            }
+        }
+
+        // Cargar jugadores registrados para busqueda
+        async function loadRegisteredPlayers() {
+            var { data: regs } = await supabase.from('match_registrations').select('player_id').eq('match_id', matchId);
+            if (!regs || regs.length === 0) return;
+            var playerIds = regs.map(function(r) { return r.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+            var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds).order('current_username');
+            registeredPlayers = players || [];
+        }
+
+        function selectReportType(btn, type) {
+            document.querySelectorAll('.report-type-btn').forEach(function(b) { b.classList.remove('selected'); });
+            btn.classList.add('selected');
+            document.getElementById('r-report-type').value = type;
+        }
+
+        function searchReportedPlayer(query) {
+            var resultsDiv = document.getElementById('r-reported-results');
+            var selectedP = document.getElementById('r-reported-selected');
+            if (!query || query.trim().length < 2) { resultsDiv.classList.add('hidden'); return; }
+            var cleanQuery = query.trim().toLowerCase();
+            var matches = registeredPlayers.filter(function(p) {
+                return p.current_username && p.current_username.toLowerCase().indexOf(cleanQuery) !== -1;
+            }).slice(0, 10);
+            if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">Jugador no encontrado entre los registrados</div>'; resultsDiv.classList.remove('hidden'); return; }
+            resultsDiv.innerHTML = matches.map(function(p) {
+                return '<div class="p-2.5 border-b border-slate-100 cursor-pointer hover:bg-slate-100 text-sm" onclick="selectReportedPlayer(' + p.id + ', \'' + p.current_username.replace(/\\'/g, "\\\\'") + '\')">' + p.current_username + ' <span class="text-slate-400 text-xs">(ID: ' + p.id + ')</span></div>';
+            }).join('');
+            resultsDiv.classList.remove('hidden');
+        }
+
+        function selectReportedPlayer(id, name) {
+            document.getElementById('r-reported-id').value = id;
+            document.getElementById('r-reported-name').value = name;
+            document.getElementById('r-reported-search').value = name;
+            document.getElementById('r-reported-results').classList.add('hidden');
+            document.getElementById('r-reported-selected').textContent = 'Seleccionado: ' + name;
+            document.getElementById('r-reported-selected').classList.remove('hidden');
+        }
+
+        async function handleFiles(input) {
+            var files = Array.from(input.files);
+            if (selectedFiles.length + files.length > maxFiles) {
+                showToast('Maximo ' + maxFiles + ' imagenes', 'warning');
+                files = files.slice(0, maxFiles - selectedFiles.length);
+            }
+            for (var i = 0; i < files.length; i++) {
+                if (selectedFiles.length >= maxFiles) break;
+                try {
+                    var compressed = await imageCompression(files[i], {
+                        maxWidthOrHeight: 1280,
+                        maxSizeMB: 0.8,
+                        useWebWorker: true,
+                        fileType: 'image/jpeg'
+                    });
+                    selectedFiles.push(compressed);
+                    renderPreviews();
+                } catch(e) {
+                    console.error('Compression error:', e);
+                    showToast('Error comprimiendo imagen', 'error');
+                }
+            }
+            input.value = '';
+            updateUploadVisibility();
+        }
+
+        function renderPreviews() {
+            var container = document.getElementById('preview-container');
+            container.innerHTML = selectedFiles.map(function(file, i) {
+                var url = URL.createObjectURL(file);
+                return '<div class="preview-wrap"><img src="' + url + '" class="preview-img"><span class="preview-remove" onclick="removeFile(' + i + ')">✕</span></div>';
+            }).join('');
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderPreviews();
+            updateUploadVisibility();
+        }
+
+        function updateUploadVisibility() {
+            document.getElementById('upload-btn-wrap').style.display = selectedFiles.length >= maxFiles ? 'none' : 'block';
+        }
+
+        document.getElementById('report-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var reportedId = document.getElementById('r-reported-id').value;
+            var reportedName = document.getElementById('r-reported-name').value;
+            var reportType = document.getElementById('r-report-type').value;
+            var description = document.getElementById('r-description').value.trim();
+            var reporterId = playerData.playerId ? parseInt(playerData.playerId) : null;
+            var reporterName = playerData.displayName || 'Jugador anonimo';
+
+            if (!reportedId) { showError('Selecciona un jugador para reportar'); return; }
+            if (!reportType) { showError('Selecciona un motivo'); return; }
+            if (!description) { showError('Escribe una descripcion'); return; }
+
+            var btn = document.getElementById('r-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner">⏳</span> Subiendo evidencias...';
+
+            try {
+                // Subir imagenes a storage
+                var evidenceUrls = [];
+                for (var i = 0; i < selectedFiles.length; i++) {
+                    var file = selectedFiles[i];
+                    var fileName = matchId + '/' + Date.now() + '_' + i + '.jpg';
+                    var { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('report-evidence')
+                        .upload(fileName, file, { contentType: 'image/jpeg', upsert: false });
+                    if (uploadError) { console.error('Upload error:', uploadError); continue; }
+                    var { data: urlData } = supabase.storage.from('report-evidence').getPublicUrl(fileName);
+                    evidenceUrls.push(urlData.publicUrl);
+                }
+
+                // Insertar reporte
+                var { error } = await supabase.from('player_reports').insert({
+                    match_id: matchId,
+                    player_id: reporterId,
+                    player_name: reporterName,
+                    reported_player_id: parseInt(reportedId),
+                    reported_player_name: reportedName,
+                    report_type: reportType,
+                    description: description,
+                    evidence_urls: evidenceUrls
+                });
+                if (error) throw error;
+
+                btn.innerHTML = '✅ Reporte Enviado';
+                btn.className = 'w-full bg-green-600 text-white font-bold py-3 rounded-lg cursor-default';
+                document.getElementById('r-success').textContent = 'Tu reporte ha sido enviado. Los admins lo revisaran pronto.';
+                document.getElementById('r-success').classList.remove('hidden');
+                document.getElementById('r-error').classList.add('hidden');
+                setTimeout(function() { window.location.href = 'game.html?id=' + matchId; }, 2500);
+            } catch(err) {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚨 Enviar Reporte</span>';
+                showError('Error: ' + err.message);
+            }
+        });
+
+        function showError(msg) {
+            document.getElementById('r-error').textContent = msg;
+            document.getElementById('r-error').classList.remove('hidden');
+        }
+
+        loadMatchInfo();
+        loadRegisteredPlayers();
+    </script>
+</body>
+</html>
