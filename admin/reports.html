@@ -236,8 +236,8 @@ async function loadReports() {
         var playerIds = [];
         var matchIds = [];
         allReports.forEach(function(r) {
-            if (r.reporter_id) playerIds.push(r.reporter_id);
-            if (r.reported_id) playerIds.push(r.reported_id);
+            if (r.player_id) playerIds.push(r.player_id);
+            if (r.reported_player_id) playerIds.push(r.reported_player_id);
             if (r.match_id) matchIds.push(r.match_id);
         });
         playerIds = playerIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
@@ -256,8 +256,8 @@ async function loadReports() {
         }
 
         container.innerHTML = allReports.map(function(r) {
-            var reporter = playersMap[r.reporter_id] || {};
-            var reported = playersMap[r.reported_id] || {};
+            var reporter = playersMap[r.player_id] || {};
+            var reported = playersMap[r.reported_player_id] || {};
             var match = matchesMap[r.match_id] || {};
             var typeLabel = typeLabels[r.report_type] || r.report_type;
             var typeColor = typeColors[r.report_type] || 'bg-slate-100 text-slate-600';
@@ -274,7 +274,7 @@ async function loadReports() {
                             '<span class="px-2 py-0.5 rounded text-xs font-bold ' + statusClass + '">' + statusLabel + '</span>' +
                             evidenceCount +
                         '</div>' +
-                        '<p class="text-sm font-medium text-slate-800 truncate">' + (reported.current_username || 'Jugador ' + r.reported_id) + ' reportado por ' + (reporter.current_username || 'Jugador ' + r.reporter_id) + '</p>' +
+                        '<p class="text-sm font-medium text-slate-800 truncate">' + (reported.current_username || r.reported_player_name || 'Jugador ' + r.reported_player_id) + ' reportado por ' + (reporter.current_username || r.player_name || 'Jugador ' + r.player_id) + '</p>' +
                         '<p class="text-xs text-slate-500 truncate">' + (match.name || 'Partida ' + r.match_id) + ' | ' + formatDateTime(r.created_at) + '</p>' +
                     '</div>' +
                     '<div class="flex-shrink-0 self-end sm:self-center">' +
@@ -297,8 +297,16 @@ async function openDetail(reportId) {
     currentReportData = report;
 
     // Cargar datos relacionados
-    var { data: reporter } = await supabase.from('players').select('id, current_username').eq('id', report.reporter_id).single();
-    var { data: reported } = await supabase.from('players').select('id, current_username').eq('id', report.reported_id).single();
+    var reporter = {};
+    var reported = {};
+    if (report.player_id) {
+        var { data: r } = await supabase.from('players').select('id, current_username').eq('id', report.player_id).single();
+        if (r) reporter = r;
+    }
+    if (report.reported_player_id) {
+        var { data: p } = await supabase.from('players').select('id, current_username').eq('id', report.reported_player_id).single();
+        if (p) reported = p;
+    }
     var { data: match } = await supabase.from('matches').select('id, name').eq('id', report.match_id).single();
 
     var typeLabel = typeLabels[report.report_type] || report.report_type;
@@ -311,8 +319,8 @@ async function openDetail(reportId) {
             '<span class="px-2 py-0.5 rounded text-xs font-bold status-' + report.status + '">' + statusLabel + '</span>' +
         '</div>' +
         '<div class="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">' +
-            '<p><span class="text-slate-500">Reportado:</span> <span class="font-bold">' + (reported?.current_username || 'Jugador ' + report.reported_id) + '</span> (ID: ' + report.reported_id + ')</p>' +
-            '<p><span class="text-slate-500">Reportero:</span> <span class="font-bold">' + (reporter?.current_username || 'Jugador ' + report.reporter_id) + '</span> (ID: ' + report.reporter_id + ')</p>' +
+            '<p><span class="text-slate-500">Reportado:</span> <span class="font-bold">' + (reported.current_username || report.reported_player_name || 'Jugador ' + report.reported_player_id) + '</span> (ID: ' + report.reported_player_id + ')</p>' +
+            '<p><span class="text-slate-500">Reportero:</span> <span class="font-bold">' + (reporter.current_username || report.player_name || 'Jugador ' + report.player_id) + '</span> (ID: ' + report.player_id + ')</p>' +
             '<p><span class="text-slate-500">Partida:</span> <a href="match-detail.html?id=' + report.match_id + '" class="font-bold text-amber-600 hover:underline">' + (match?.name || 'Partida ' + report.match_id) + '</a></p>' +
             '<p><span class="text-slate-500">Fecha:</span> ' + formatDateTime(report.created_at) + '</p>' +
         '</div>' +
@@ -328,7 +336,7 @@ async function openDetail(reportId) {
         evidenceDiv.innerHTML = '';
     }
 
-    document.getElementById('detail-response').value = report.admin_notes || '';
+    document.getElementById('detail-response').value = report.admin_response || '';
     document.getElementById('report-detail-modal').classList.add('active');
 }
 
@@ -342,7 +350,7 @@ async function updateReportStatus(status) {
     if (!currentReportId) return;
     var notes = document.getElementById('detail-response').value.trim() || null;
     try {
-        var { error } = await supabase.from('player_reports').update({ status: status, admin_notes: notes }).eq('id', currentReportId);
+        var { error } = await supabase.from('player_reports').update({ status: status, admin_response: notes }).eq('id', currentReportId);
         if (error) throw error;
         showToast('Reporte actualizado a: ' + statusLabels[status], 'success');
         closeDetailModal();
@@ -353,9 +361,9 @@ async function updateReportStatus(status) {
 
 function openStrikeFromReport() {
     if (!currentReportData) return;
-    document.getElementById('st-player-id').value = currentReportData.reported_id;
+    document.getElementById('st-player-id').value = currentReportData.reported_player_id;
     document.getElementById('st-match-id').value = currentReportData.match_id;
-    document.getElementById('st-player-name').textContent = currentReportData.reported_id;
+    document.getElementById('st-player-name').textContent = currentReportData.reported_player_name || currentReportData.reported_player_id;
     document.getElementById('st-match-name').textContent = currentReportData.match_id;
     document.getElementById('st-reason').value = '';
     document.getElementById('st-notes').value = '';
