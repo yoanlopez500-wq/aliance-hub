@@ -23,15 +23,15 @@
 <div id="admin-nav"></div>
 <div class="max-w-7xl mx-auto px-4 py-8">
 <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-<div><h1 class="text-2xl font-bold text-slate-800">&#128100; Gestion de Jugadores</h1><p class="text-slate-500 text-sm">Ver perfiles sociales, reputacion, strikes activos y editar datos</p></div>
-<button onclick="openPlayerModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">&#10133; Nuevo Jugador</button>
+<div><h1 class="text-2xl font-bold text-slate-800">👤 Gestion de Jugadores</h1><p class="text-slate-500 text-sm">Ver perfiles sociales, reputacion, strikes activos y editar datos</p></div>
+<button onclick="openPlayerModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nuevo Jugador</button>
 </div>
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
 <div class="flex gap-3 flex-wrap">
 <input type="text" id="search" placeholder="Buscar por username o ID..." class="flex-1 min-w-[200px] px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" onkeyup="searchPlayers()">
 <select id="filter-alliance" onchange="searchPlayers()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Todas las alianzas</option></select>
 <select id="filter-status" onchange="searchPlayers()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Todos los estados</option><option value="active">Activos</option><option value="banned">Baneados</option><option value="suspended">Suspendidos</option></select>
-<select id="filter-reputation" onchange="searchPlayers()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Toda reputacion</option><option value="clean">&#9989; Limpio (90-100)</option><option value="warn">&#9888;&#65039; Advertencia (70-89)</option><option value="bad">&#9940; Critico (&lt;70)</option></select>
+<select id="filter-reputation" onchange="searchPlayers()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Toda reputacion</option><option value="clean">✅ Limpio (90-100)</option><option value="warn">⚠️ Advertencia (70-89)</option><option value="bad">🚫 Critico (&lt;70)</option></select>
 </div></div>
 <div id="players-desktop" class="hidden md:block overflow-x-auto"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
 <div id="players-mobile" class="md:hidden space-y-3"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
@@ -39,7 +39,7 @@
 
 <div id="player-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold" id="modal-title">Nuevo Jugador</h2><button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button></div>
+<div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold" id="modal-title">Nuevo Jugador</h2><button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button></div>
 <form id="player-form" class="p-6 space-y-4">
 <input type="hidden" id="player-id">
 <div><label class="block text-sm font-medium text-slate-700 mb-1">ID del jugador *</label><input type="number" id="edit-id" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Ej: 99702975"></div>
@@ -50,7 +50,7 @@
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Muertes</label><input type="number" id="edit-deaths" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Partidas</label><input type="number" id="edit-games" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
 </div>
-<div class="bg-amber-50 border border-amber-200 rounded-lg p-3"><p class="text-xs text-amber-700">&#9889; Los strikes se gestionan desde la pestana <a href="strikes.html" class="font-bold underline">Strikes</a>. No se pueden editar manualmente aqui.</p></div>
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-3"><p class="text-xs text-amber-700">⚡ Los strikes se gestionan desde la pestana <a href="strikes.html" class="font-bold underline">Strikes</a>. No se pueden editar manualmente aqui.</p></div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Estado</label><select id="edit-status" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="active">Activo</option><option value="banned">Baneado</option><option value="suspended">Suspendido</option></select></div>
 <div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button><button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button></div>
 </form>
@@ -58,7 +58,7 @@
 
 <div id="profile-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-900 rounded-t-2xl"><h2 class="text-lg font-bold text-white" id="prof-title">&#128100; Perfil</h2><button onclick="closeProfileModal()" class="text-slate-400 hover:text-white text-xl">&#10005;</button></div>
+<div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-900 rounded-t-2xl"><h2 class="text-lg font-bold text-white" id="prof-title">👤 Perfil</h2><button onclick="closeProfileModal()" class="text-slate-400 hover:text-white text-xl">✕</button></div>
 <div class="p-5 space-y-4" id="prof-content"><div class="text-center py-4 text-slate-400">Cargando...</div></div>
 </div></div>
 
@@ -108,26 +108,26 @@ function renderStrikeBadges(playerId){
 var strikes=getPlayerStrikes(playerId);if(!strikes.length)return'';
 return'<div class="flex gap-1 mt-1 flex-wrap">'+strikes.map(function(s){
 var sev=s.type?s.type.severity:1;var cls=sev===1?'strike-l':sev===2?'strike-m':'strike-g';
-var icon=sev===1?'&#9888;&#65039;':sev===2?'&#128721;':'&#9940;';var code=s.type?s.type.code:'?';
+var icon=sev===1?'⚠️':sev===2?'🛑':'🚫';var code=s.type?s.type.code:'?';
 return'<span class="strike-badge '+cls+'">'+icon+' '+code+'</span>';}).join('')+'</div>';}
 function renderReputationBadge(rp){
-rp=rp||100;if(rp>=90)return'<span class="rep-clean">&#9989; Limpio ('+rp+'/100)</span>';
-if(rp>=70)return'<span class="rep-warn">&#9888;&#65039; '+rp+'/100</span>';
-return'<span class="rep-bad">&#9940; '+rp+'/100</span>';}
+rp=rp||100;if(rp>=90)return'<span class="rep-clean">✅ Limpio ('+rp+'/100)</span>';
+if(rp>=70)return'<span class="rep-warn">⚠️ '+rp+'/100</span>';
+return'<span class="rep-bad">🚫 '+rp+'/100</span>';}
 
 function renderDesktop(players){
 var c=document.getElementById('players-desktop');if(players.length===0){c.innerHTML='<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin jugadores</div>';return;}
 c.innerHTML='<table class="w-full text-sm bg-white rounded-xl border border-slate-200 overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">ID</th><th class="text-left p-3">Username</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-left p-3">Reputacion</th><th class="text-left p-3">Strikes</th><th class="text-left p-3">Estado</th><th class="p-3">Acciones</th></tr></thead><tbody>'+players.map(function(p){
 var kd=p.total_deaths>0?(p.total_kills/p.total_deaths).toFixed(2):p.total_kills;var statusClass=p.status==='active'?'':'bg-red-50';
 var strikes=getPlayerStrikes(p.id);
-return'<tr class="border-b hover:bg-slate-50 '+statusClass+'"><td class="p-3 text-slate-500">'+p.id+'</td><td class="p-3"><span class="font-medium">'+p.current_username+'</span>'+renderStrikeBadges(p.id)+'</td><td class="p-3">'+(p.alliance?p.alliance.tag:'-')+'</td><td class="p-3 text-right text-green-600">'+(p.total_kills?.toLocaleString()||0)+'</td><td class="p-3 text-right text-red-500">'+(p.total_deaths?.toLocaleString()||0)+'</td><td class="p-3 text-right font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">'+kd+'</td><td class="p-3">'+renderReputationBadge(p.reputation_score)+'</td><td class="p-3"><span class="text-xs font-bold '+(strikes.length>0?'text-red-600':'text-slate-400')+'">'+strikes.length+' activos</span></td><td class="p-3">'+getStatusBadgePlayer(p.status)+'</td><td class="p-3"><button onclick="openProfile('+p.id+')" class="text-blue-600 hover:text-blue-700 font-bold text-xs mr-2">&#128100; Perfil</button><button onclick="editPlayer('+p.id+')" class="text-amber-600 hover:text-amber-700 font-bold text-xs mr-2">Editar</button></td></tr>';
+return'<tr class="border-b hover:bg-slate-50 '+statusClass+'"><td class="p-3 text-slate-500">'+p.id+'</td><td class="p-3"><span class="font-medium">'+p.current_username+'</span>'+renderStrikeBadges(p.id)+'</td><td class="p-3">'+(p.alliance?p.alliance.tag:'-')+'</td><td class="p-3 text-right text-green-600">'+(p.total_kills?.toLocaleString()||0)+'</td><td class="p-3 text-right text-red-500">'+(p.total_deaths?.toLocaleString()||0)+'</td><td class="p-3 text-right font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">'+kd+'</td><td class="p-3">'+renderReputationBadge(p.reputation_score)+'</td><td class="p-3"><span class="text-xs font-bold '+(strikes.length>0?'text-red-600':'text-slate-400')+'">'+strikes.length+' activos</span></td><td class="p-3">'+getStatusBadgePlayer(p.status)+'</td><td class="p-3"><button onclick="openProfile('+p.id+')" class="text-blue-600 hover:text-blue-700 font-bold text-xs mr-2">👤 Perfil</button><button onclick="editPlayer('+p.id+')" class="text-amber-600 hover:text-amber-700 font-bold text-xs mr-2">Editar</button></td></tr>';
 }).join('')+'</tbody></table>';}
 
 function renderMobile(players){
 var c=document.getElementById('players-mobile');if(players.length===0){c.innerHTML='<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin jugadores</div>';return;}
 c.innerHTML=players.map(function(p){
 var kd=p.total_deaths>0?(p.total_kills/p.total_deaths).toFixed(2):p.total_kills;
-return'<div class="bg-white rounded-xl border border-slate-200 p-4 player-card"><div class="flex items-center justify-between mb-2"><div><span class="font-bold text-slate-800">'+p.current_username+'</span><div class="text-xs text-slate-400">ID: '+p.id+'</div></div>'+getStatusBadgePlayer(p.status)+'</div>'+renderStrikeBadges(p.id)+'<div class="grid grid-cols-2 gap-2 text-sm text-slate-500 mt-2"><p>Alianza: '+(p.alliance?p.alliance.tag:'-')+'</p><p class="text-green-600">Bajas: '+(p.total_kills||0)+'</p><p class="text-red-500">Muertes: '+(p.total_deaths||0)+'</p><p class="font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">KD: '+kd+'</p></div><div class="mt-2 pt-2 border-t border-slate-100">'+renderReputationBadge(p.reputation_score)+'</div><div class="flex gap-2 mt-2"><button onclick="openProfile('+p.id+')" class="flex-1 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">&#128100; Perfil</button><button onclick="editPlayer('+p.id+')" class="flex-1 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">Editar</button></div></div>';
+return'<div class="bg-white rounded-xl border border-slate-200 p-4 player-card"><div class="flex items-center justify-between mb-2"><div><span class="font-bold text-slate-800">'+p.current_username+'</span><div class="text-xs text-slate-400">ID: '+p.id+'</div></div>'+getStatusBadgePlayer(p.status)+'</div>'+renderStrikeBadges(p.id)+'<div class="grid grid-cols-2 gap-2 text-sm text-slate-500 mt-2"><p>Alianza: '+(p.alliance?p.alliance.tag:'-')+'</p><p class="text-green-600">Bajas: '+(p.total_kills||0)+'</p><p class="text-red-500">Muertes: '+(p.total_deaths||0)+'</p><p class="font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">KD: '+kd+'</p></div><div class="mt-2 pt-2 border-t border-slate-100">'+renderReputationBadge(p.reputation_score)+'</div><div class="flex gap-2 mt-2"><button onclick="openProfile('+p.id+')" class="flex-1 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">👤 Perfil</button><button onclick="editPlayer('+p.id+')" class="flex-1 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">Editar</button></div></div>';
 }).join('');}
 
 function renderPlayers(players){renderDesktop(players);renderMobile(players);}
@@ -193,14 +193,14 @@ var kd=player.total_deaths>0?(player.total_kills/player.total_deaths).toFixed(2)
 var strikesHtml='';if(strikes.length===0){strikesHtml='<p class="text-sm text-slate-400 italic">Sin strikes registrados</p>';}else{
 strikesHtml='<div class="space-y-2">'+strikes.map(function(s){
 var sev=s.type?s.type.severity:1;var cls=sev===1?'border-l-4 border-yellow-400 bg-yellow-50':sev===2?'border-l-4 border-orange-400 bg-orange-50':'border-l-4 border-red-500 bg-red-50';
-var icon=sev===1?'&#9888;&#65039;':sev===2?'&#128721;':'&#9940;';var code=s.type?s.type.code:'?';var name=s.type?s.type.name:'Desconocido';
+var icon=sev===1?'⚠️':sev===2?'🛑':'🚫';var code=s.type?s.type.code:'?';var name=s.type?s.type.name:'Desconocido';
 var legend=s.type&&s.type.legend?s.type.legend:'';var matchName=s.match_id?matchMap[s.match_id]:'General';var date=formatDateTime(s.applied_at);
 return'<div class="'+cls+' rounded p-2 text-xs"><div class="flex items-center justify-between"><span class="font-bold">'+icon+' '+code+': '+name+'</span><span class="text-slate-400">'+date+'</span></div><p class="text-slate-600 mt-1">'+(s.reason||'Sin motivo')+'</p>'+(legend?'<p class="text-slate-400 italic mt-0.5">'+legend+'</p>':'')+'<p class="text-slate-400 mt-0.5">Partida: '+(matchName||'General')+'</p></div>';
 }).join('')+'</div>';}
 var resultsHtml='';if(!results||results.length===0){resultsHtml='<p class="text-sm text-slate-400 italic">Sin resultados recientes</p>';}else{
 resultsHtml='<div class="space-y-1">'+results.map(function(r){return'<div class="flex items-center justify-between text-xs py-1 border-b border-slate-100"><span>'+(matchMap[r.match_id]||'?')+'</span><span class="text-green-600 font-bold">'+(r.kills||0)+'</span><span class="text-red-500">'+(r.deaths||0)+'</span></div>';}).join('')+'</div>';}
-document.getElementById('prof-title').textContent='&#128100; '+player.current_username;
-document.getElementById('prof-content').innerHTML='<div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-white text-xl font-bold">'+player.current_username.charAt(0).toUpperCase()+'</div><div><h3 class="font-bold text-slate-800">'+player.current_username+'</h3><p class="text-xs text-slate-500">ID: '+player.id+(player.alliance?' | '+player.alliance.name+' ['+player.alliance.tag+']':'')+'</p></div></div><div class="grid grid-cols-4 gap-2 mb-3"><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold text-green-600">'+(player.total_kills||0)+'</div><div class="text-[10px] text-slate-500">Bajas</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold text-red-500">'+(player.total_deaths||0)+'</div><div class="text-[10px] text-slate-500">Muertes</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">'+kd+'</div><div class="text-[10px] text-slate-500">KD</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold">'+(player.games_played||0)+'</div><div class="text-[10px] text-slate-500">Partidas</div></div></div><div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg mb-3"><span class="text-sm font-medium text-slate-700">Reputacion:</span>'+renderReputationBadge(player.reputation_score)+'</div><div class="mb-3"><h4 class="font-bold text-slate-800 text-sm mb-2">&#9889; Historial de Strikes ('+strikes.length+')</h4>'+strikesHtml+'</div><div><h4 class="font-bold text-slate-800 text-sm mb-2">&#127942; Resultados Recientes</h4>'+resultsHtml+'</div>';
+document.getElementById('prof-title').textContent='👤 '+player.current_username;
+document.getElementById('prof-content').innerHTML='<div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-white text-xl font-bold">'+player.current_username.charAt(0).toUpperCase()+'</div><div><h3 class="font-bold text-slate-800">'+player.current_username+'</h3><p class="text-xs text-slate-500">ID: '+player.id+(player.alliance?' | '+player.alliance.name+' ['+player.alliance.tag+']':'')+'</p></div></div><div class="grid grid-cols-4 gap-2 mb-3"><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold text-green-600">'+(player.total_kills||0)+'</div><div class="text-[10px] text-slate-500">Bajas</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold text-red-500">'+(player.total_deaths||0)+'</div><div class="text-[10px] text-slate-500">Muertes</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold '+(kd>=1?'text-green-600':'text-orange-500')+'">'+kd+'</div><div class="text-[10px] text-slate-500">KD</div></div><div class="bg-slate-50 rounded-lg p-2 text-center"><div class="text-lg font-bold">'+(player.games_played||0)+'</div><div class="text-[10px] text-slate-500">Partidas</div></div></div><div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg mb-3"><span class="text-sm font-medium text-slate-700">Reputacion:</span>'+renderReputationBadge(player.reputation_score)+'</div><div class="mb-3"><h4 class="font-bold text-slate-800 text-sm mb-2">⚡ Historial de Strikes ('+strikes.length+')</h4>'+strikesHtml+'</div><div><h4 class="font-bold text-slate-800 text-sm mb-2">🏆 Resultados Recientes</h4>'+resultsHtml+'</div>';
 }catch(e){document.getElementById('prof-content').innerHTML='<div class="text-center py-4 text-red-400">Error cargando perfil: '+e.message+'</div>';}}
 
 function closeProfileModal(){document.getElementById('profile-modal').classList.remove('active');}
