@@ -1,4 +1,4 @@
-// Base utilities
+// Base utilities - V2
 // __AH_BASE_PATH: detecta el subdirectorio del repo en GitHub Pages
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
@@ -115,59 +115,6 @@ function isLazyLoggedIn() {
     return !!localStorage.getItem('ah_v2_player_id');
 }
 
-async function lazyLogin(playerId, username) {
-    try {
-        var pid = parseInt(playerId);
-        if (!pid || pid <= 0) return { success: false, message: 'ID de jugador invalido' };
-        if (!username || username.trim().length === 0) return { success: false, message: 'Username requerido' };
-        var cleanName = username.trim();
-
-        // Buscar si el jugador ya existe
-        var { data: existing } = await supabase.from('players').select('id, current_username').eq('id', pid).single();
-        if (existing) {
-            // Actualizar username si cambio
-            if (existing.current_username !== cleanName) {
-                await supabase.from('players').update({ current_username: cleanName, last_seen: new Date().toISOString() }).eq('id', pid);
-            } else {
-                await supabase.from('players').update({ last_seen: new Date().toISOString() }).eq('id', pid);
-            }
-        } else {
-            // Crear nuevo jugador
-            var { error: insertErr } = await supabase.from('players').insert({
-                id: pid,
-                current_username: cleanName,
-                status: 'active',
-                last_seen: new Date().toISOString(),
-                games_played: 0,
-                total_kills: 0,
-                total_deaths: 0,
-                reputation_score: 100
-            });
-            if (insertErr) return { success: false, message: 'Error creando jugador: ' + insertErr.message };
-        }
-
-        setPlayerData(pid.toString(), cleanName);
-        return { success: true, message: 'Bienvenido, ' + cleanName };
-    } catch (e) {
-        return { success: false, message: 'Error: ' + e.message };
-    }
-}
-
-async function getLastRegisteredMatch() {
-    var playerData = getPlayerData();
-    if (!playerData.playerId) return null;
-    try {
-        var { data } = await supabase
-            .from('match_registrations')
-            .select('match_id')
-            .eq('player_id', parseInt(playerData.playerId))
-            .order('registered_at', { ascending: false })
-            .limit(1)
-            .single();
-        return data ? data.match_id : null;
-    } catch (e) { return null; }
-}
-
 // ===================== APP CACHE CONTROL =====================
 function clearAppCache() {
     if ('caches' in window) {
@@ -201,15 +148,13 @@ async function subscribeToPush() {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY)
         });
-        var subJson = sub.toJSON();
+        var subJson = JSON.stringify(sub.toJSON());
         var playerData = getPlayerData();
-        // La tabla push_subscriptions tiene columnas separadas: endpoint, p256dh, auth, player_id, alliance_id
         var { error } = await supabase.from('push_subscriptions').upsert({
-            endpoint: subJson.endpoint,
-            p256dh: subJson.keys ? subJson.keys.p256dh : null,
-            auth: subJson.keys ? subJson.keys.auth : null,
-            player_id: playerData.playerId ? parseInt(playerData.playerId) : null
-        }, { onConflict: 'endpoint' });
+            subscription: sub.toJSON(),
+            player_id: playerData.playerId || null,
+            admin_id: null
+        }, { onConflict: 'player_id,admin_id' });
         if (error) console.error('Error guardando sub:', error);
         localStorage.setItem('ah_v2_push_subscribed', 'true');
         showToast('Notificaciones activadas', 'success');
@@ -225,11 +170,7 @@ async function unsubscribeFromPush() {
     try {
         var reg = await navigator.serviceWorker.ready;
         var sub = await reg.pushManager.getSubscription();
-        if (sub) {
-            var subJson = sub.toJSON();
-            await supabase.from('push_subscriptions').delete().eq('endpoint', subJson.endpoint);
-            await sub.unsubscribe();
-        }
+        if (sub) await sub.unsubscribe();
         localStorage.removeItem('ah_v2_push_subscribed');
         showToast('Notificaciones desactivadas', 'info');
         return true;
