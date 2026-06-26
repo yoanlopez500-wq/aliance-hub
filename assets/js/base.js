@@ -88,6 +88,52 @@ function getTypeBadge(type) {
     return badges[type] || '<span class="px-2 py-0.5 rounded text-xs bg-slate-100">' + (type || '?') + '</span>';
 }
 
+// ===================== GLOBAL MATCH ADMIN FUNCTIONS =====================
+// Estas funciones estan aqui como fallback global porque GitHub Pages
+// a veces sirve versiones cacheadas de match-detail.html sin ellas.
+
+async function removeRegistration(regId, playerName) {
+    if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return;
+    try {
+        console.log('[GLOBAL] removeRegistration ID:', regId);
+        var { error } = await supabase.from('match_registrations').delete().eq('id', regId);
+        if (error) {
+            console.error('[GLOBAL] removeRegistration error:', error);
+            showToast('Error: ' + error.message, 'error');
+            return;
+        }
+        showToast('Jugador quitado de la partida', 'success');
+        setTimeout(function() { location.reload(); }, 500);
+    } catch(e) {
+        console.error('[GLOBAL] removeRegistration catch:', e);
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+function openSuspendModal(playerId, playerName) {
+    var modal = document.getElementById('suspend-modal');
+    if (!modal) { showToast('Modal no encontrado. Recarga la pagina.', 'error'); return; }
+    document.getElementById('su-player-id').value = playerId;
+    document.getElementById('su-player-name').textContent = playerName || 'Jugador ' + playerId;
+    document.getElementById('su-reason').value = '';
+    modal.classList.add('active');
+}
+
+function closeSuspendModal() {
+    var modal = document.getElementById('suspend-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function unsuspendPlayer(playerId) {
+    if (!confirm('Reactivar este jugador?')) return;
+    try {
+        var { error } = await supabase.from('players').update({ status: 'active', suspension_reason: null }).eq('id', playerId);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('Jugador reactivado', 'success');
+        setTimeout(function() { location.reload(); }, 500);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
 // ===================== PLAYER SESSION (Lazy Login) =====================
 function getPlayerData() {
     return {
