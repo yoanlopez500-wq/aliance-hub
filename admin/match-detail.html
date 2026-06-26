@@ -3,13 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v6-force-refresh: cache bust 2026-06-26T22:00:00Z -->
 <title>Detalle Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=5"></script>
-<script src="../assets/js/base.js?v=5"></script>
-<script src="../assets/js/auth.js?v=5"></script>
-<script src="../assets/js/pwa-utils.js?v=5"></script>
+<script src="../assets/js/config.js?v=6"></script>
+<script src="../assets/js/base.js?v=6"></script>
+<script src="../assets/js/auth.js?v=6"></script>
+<script src="../assets/js/pwa-utils.js?v=6"></script>
 <style>
 .modal{display:none}.modal.active{display:flex}
 .reg-card{transition:background .15s}.reg-card:hover{background:#f8fafc}
@@ -291,13 +295,13 @@ async function loadRegistrations() {
             
             // Controles con CSS classes propias para mejor contraste
             var controls = '';
-            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-strike" title="Strike">⚡</button>';
+            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="action-btn btn-strike" title="Strike">⚡</button>';
             if (!isSuspended) {
-                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-suspend" title="Suspender">🚫</button>';
+                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="action-btn btn-suspend" title="Suspender">🚫</button>';
             } else {
                 controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="action-btn btn-unsuspend" title="Reactivar">✓</button>';
             }
-            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\\'/g, "\\\\'") + '\')" class="action-btn btn-remove" title="Quitar">🗑️</button>';
+            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="action-btn btn-remove" title="Quitar">🗑️</button>';
             
             // FIX: Usar CSS propio .player-name con color #111827 (negro puro) en vez de text-slate-800
             return '<div class="p-3 reg-card">' +
