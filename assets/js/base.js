@@ -1,4 +1,4 @@
-// Base utilities - V2
+// Base utilities
 // __AH_BASE_PATH: detecta el subdirectorio del repo en GitHub Pages
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
@@ -113,6 +113,59 @@ function clearPlayerData() {
 
 function isLazyLoggedIn() {
     return !!localStorage.getItem('ah_v2_player_id');
+}
+
+async function lazyLogin(playerId, username) {
+    try {
+        var pid = parseInt(playerId);
+        if (!pid || pid <= 0) return { success: false, message: 'ID de jugador invalido' };
+        if (!username || username.trim().length === 0) return { success: false, message: 'Username requerido' };
+        var cleanName = username.trim();
+
+        // Buscar si el jugador ya existe
+        var { data: existing } = await supabase.from('players').select('id, current_username').eq('id', pid).single();
+        if (existing) {
+            // Actualizar username si cambio
+            if (existing.current_username !== cleanName) {
+                await supabase.from('players').update({ current_username: cleanName, last_seen: new Date().toISOString() }).eq('id', pid);
+            } else {
+                await supabase.from('players').update({ last_seen: new Date().toISOString() }).eq('id', pid);
+            }
+        } else {
+            // Crear nuevo jugador
+            var { error: insertErr } = await supabase.from('players').insert({
+                id: pid,
+                current_username: cleanName,
+                status: 'active',
+                last_seen: new Date().toISOString(),
+                games_played: 0,
+                total_kills: 0,
+                total_deaths: 0,
+                reputation_score: 100
+            });
+            if (insertErr) return { success: false, message: 'Error creando jugador: ' + insertErr.message };
+        }
+
+        setPlayerData(pid.toString(), cleanName);
+        return { success: true, message: 'Bienvenido, ' + cleanName };
+    } catch (e) {
+        return { success: false, message: 'Error: ' + e.message };
+    }
+}
+
+async function getLastRegisteredMatch() {
+    var playerData = getPlayerData();
+    if (!playerData.playerId) return null;
+    try {
+        var { data } = await supabase
+            .from('match_registrations')
+            .select('match_id')
+            .eq('player_id', parseInt(playerData.playerId))
+            .order('registered_at', { ascending: false })
+            .limit(1)
+            .single();
+        return data ? data.match_id : null;
+    } catch (e) { return null; }
 }
 
 // ===================== APP CACHE CONTROL =====================
