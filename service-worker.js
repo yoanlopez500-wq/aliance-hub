@@ -1,5 +1,6 @@
-// service-worker.js v3 - Schema public
-const CACHE_NAME = 'alliance-hub-v3';
+// service-worker.js v4 - Schema public
+// FIX v4: cache no-cache para evitar stale content, skip admin pages
+const CACHE_NAME = 'alliance-hub-v4';
 
 const SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
 const SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
@@ -47,7 +48,7 @@ function getHeaders() {
 
 async function checkKillSwitch() {
     try {
-        var response = await fetch(KILL_SWITCH_URL, { headers: getHeaders() });
+        var response = await fetch(KILL_SWITCH_URL, { headers: getHeaders(), cache: 'no-cache' });
         var data = await response.json();
         if (data && data.length > 0 && data[0].value === 'true') {
             console.log('SW: Kill switch activado - limpiando cache');
@@ -63,7 +64,7 @@ async function checkKillSwitch() {
 
 async function checkCacheVersion() {
     try {
-        var response = await fetch(CACHE_VERSION_URL, { headers: getHeaders() });
+        var response = await fetch(CACHE_VERSION_URL, { headers: getHeaders(), cache: 'no-cache' });
         var data = await response.json();
         if (data && data.length > 0) {
             var serverVersion = data[0].value;
@@ -89,7 +90,7 @@ self.addEventListener('install', function(event) {
         checkKillSwitch().then(function(cleared) {
             if (!cleared) {
                 return caches.open(CACHE_NAME).then(function(cache) {
-                    console.log('SW: Caching v3...');
+                    console.log('SW: Caching v4...');
                     return Promise.all(
                         urlsToCache.map(function(url) {
                             return cache.add(url).catch(function(err) {
@@ -125,9 +126,14 @@ self.addEventListener('fetch', function(event) {
     var url = new URL(event.request.url);
     if (url.hostname !== self.location.hostname) return;
     if (url.search.includes('?p=') || url.search.includes('&q=')) return;
+    // FIX v4: No cachear paginas de admin - siempre fresh del servidor
+    if (url.pathname.includes('/admin/')) {
+        event.respondWith(fetch(event.request, { cache: 'no-cache' }));
+        return;
+    }
 
     event.respondWith(
-        fetch(event.request).then(function(response) {
+        fetch(event.request, { cache: 'no-cache' }).then(function(response) {
             if (response && response.status === 200 && response.type === 'basic') {
                 var responseClone = response.clone();
                 caches.open(CACHE_NAME).then(function(cache) {
