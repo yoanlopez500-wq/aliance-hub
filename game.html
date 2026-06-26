@@ -48,6 +48,17 @@
             </div>
         </div>
 
+        <!-- 🚨 Boton Reportar -->
+        <div id="report-section" class="hidden mb-6">
+            <a href="#" id="report-link" class="block bg-red-50 border border-red-200 rounded-xl p-4 text-center hover:bg-red-100 transition">
+                <div class="flex items-center justify-center gap-2">
+                    <span class="text-xl">🚨</span>
+                    <span class="font-bold text-red-700">Reportar jugador</span>
+                </div>
+                <p class="text-xs text-red-500 mt-1">¿Viste a alguien haciendo trampa? Reportalo aqui con evidencia.</p>
+            </a>
+        </div>
+
         <!-- Chat -->
         <div id="chat-section" class="hidden mb-6">
             <h2 class="font-bold text-slate-800 mb-3">💬 Chat entre Alianzas</h2>
@@ -138,6 +149,12 @@
                     .select('status').eq('match_id', matchId).eq('player_id', playerData.playerId).single();
                 isRegistered = !!reg;
                 regStatus = reg ? reg.status : null;
+            }
+
+            // 🚨 Mostrar boton reportar si esta registrado confirmado/aprobado
+            if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) {
+                document.getElementById('report-section').classList.remove('hidden');
+                document.getElementById('report-link').href = 'report.html?match_id=' + matchId;
             }
 
             var showCredentials = false;
