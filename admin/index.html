@@ -148,6 +148,7 @@
 
         async function loadCacheControlStatus() {
             try {
+                // FIX: usar upsert para crear la fila si no existe
                 var { data: killData } = await supabase.from('app_settings').select('value').eq('key', 'force_clear_cache').maybeSingle();
                 killSwitchActive = killData && killData.value === 'true';
                 var killStatus = document.getElementById('kill-switch-status');
@@ -162,14 +163,16 @@
 
         async function toggleKillSwitch() {
             var newValue = killSwitchActive ? 'false' : 'true';
-            var { error } = await supabase.from('app_settings').update({ value: newValue }).eq('key', 'force_clear_cache');
+            // FIX: usar upsert para crear/actualizar la fila
+            var { error } = await supabase.from('app_settings').upsert({ key: 'force_clear_cache', value: newValue }, { onConflict: 'key' });
             if (error) showToast('Error: ' + error.message, 'error');
             else { killSwitchActive = !killSwitchActive; showToast(killSwitchActive ? 'Kill Switch ACTIVADO' : 'Kill Switch desactivado', 'success'); loadCacheControlStatus(); }
         }
 
         async function bumpCacheVersion() {
             var newVersion = 'v2.' + Date.now();
-            var { error } = await supabase.from('app_settings').update({ value: newVersion }).eq('key', 'cache_version');
+            // FIX: usar upsert para crear/actualizar la fila
+            var { error } = await supabase.from('app_settings').upsert({ key: 'cache_version', value: newVersion }, { onConflict: 'key' });
             if (error) showToast('Error: ' + error.message, 'error');
             else { currentCacheVersion = newVersion; showToast('Version actualizada a ' + newVersion, 'success'); loadCacheControlStatus(); }
         }
