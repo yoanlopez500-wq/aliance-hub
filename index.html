@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alliance Hub V2 - Supremacy 1914</title>
+    <title>Alliance Hub - Supremacy 1914</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js?v=3"></script>
@@ -55,7 +55,7 @@
     <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
         <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
             <div class="text-center">
-                <h1 class="text-3xl md:text-5xl font-bold mb-4">Alliance Hub V2</h1>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4">Alliance Hub</h1>
                 <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
                     Plataforma de rankings, ligas y gestion para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
                 </p>
@@ -105,7 +105,7 @@
 
     <!-- Stats -->
     <div class="max-w-7xl mx-auto px-4 -mt-6">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
                 <div class="text-2xl font-bold text-amber-600" id="stat-matches">-</div>
                 <div class="text-xs text-slate-500 uppercase tracking-wide">Partidas</div>
@@ -117,10 +117,6 @@
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
                 <div class="text-2xl font-bold text-green-600" id="stat-alliances">-</div>
                 <div class="text-xs text-slate-500 uppercase tracking-wide">Alianzas</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-purple-600" id="stat-leagues">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Ligas</div>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
                 <div class="text-2xl font-bold text-red-600" id="stat-kills">-</div>
@@ -148,7 +144,7 @@
 
     <footer class="bg-slate-900 text-slate-400 py-8 mt-12">
         <div class="max-w-7xl mx-auto px-4 text-center text-sm">
-            <p>Alliance Hub V2 - Plataforma para comunidades de Supremacy 1914</p>
+            <p>Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
             <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">Forzar actualizacion</button>
         </div>
     </footer>
@@ -158,19 +154,14 @@
         var playerData = getPlayerData();
 
         async function checkAlliance() {
+            // Usar players.current_alliance_id en lugar de alliance_memberships (tabla eliminada)
             if (!playerData.playerId) return;
             try {
-                var { data: membership } = await supabase
-                    .from('alliance_memberships')
-                    .select('status')
-                    .eq('player_id', playerData.playerId)
-                    .eq('status', 'approved')
-                    .single();
-
-                if (membership) {
+                var { data: player } = await supabase.from('players').select('current_alliance_id').eq('id', playerData.playerId).single();
+                if (player && player.current_alliance_id) {
                     document.getElementById('btn-alliance-panel').classList.remove('hidden');
                 }
-            } catch (e) { /* no membership */ }
+            } catch (e) { /* no alliance */ }
         }
 
         async function loadStats() {
@@ -178,14 +169,12 @@
                 var { count: mc } = await supabase.from('matches').select('*', { count: 'exact', head: true });
                 var { count: pc } = await supabase.from('players').select('*', { count: 'exact', head: true });
                 var { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
-                var { count: lc } = await supabase.from('leagues').select('*', { count: 'exact', head: true });
                 var { data: kd } = await supabase.from('players').select('total_kills');
                 var tk = kd ? kd.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) : 0;
 
                 document.getElementById('stat-matches').textContent = mc || 0;
                 document.getElementById('stat-players').textContent = pc || 0;
                 document.getElementById('stat-alliances').textContent = ac || 0;
-                document.getElementById('stat-leagues').textContent = lc || 0;
                 document.getElementById('stat-kills').textContent = tk.toLocaleString();
             } catch (e) { console.error('loadStats error:', e); }
         }
@@ -193,14 +182,19 @@
         async function loadMatches() {
             showLoading('matches-list');
             try {
-                var { data, error } = await supabase
-                    .from('matches')
-                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
-                    .eq('is_private', false)
-                    .order('created_at', { ascending: false });
-
+                var { data, error } = await supabase.from('matches').select('*').eq('is_private', false).order('created_at', { ascending: false });
                 if (error) throw error;
                 allMatches = data || [];
+                
+                // Cargar alliances relacionadas manualmente
+                var allianceIds = allMatches.map(function(m) { return m.alliance_id; }).filter(function(v) { return v !== null; });
+                var alliMap = {};
+                if (allianceIds.length > 0) {
+                    var { data: alliances } = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
+                    (alliances || []).forEach(function(a) { alliMap[a.id] = a; });
+                }
+                allMatches.forEach(function(m) { m.alliance = m.alliance_id ? alliMap[m.alliance_id] : null; });
+                
                 renderMatches(allMatches);
             } catch (e) {
                 document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>';
