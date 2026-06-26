@@ -201,13 +201,15 @@ async function subscribeToPush() {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY)
         });
-        var subJson = JSON.stringify(sub.toJSON());
+        var subJson = sub.toJSON();
         var playerData = getPlayerData();
+        // La tabla push_subscriptions tiene columnas separadas: endpoint, p256dh, auth, player_id, alliance_id
         var { error } = await supabase.from('push_subscriptions').upsert({
-            subscription: sub.toJSON(),
-            player_id: playerData.playerId || null,
-            admin_id: null
-        }, { onConflict: 'player_id,admin_id' });
+            endpoint: subJson.endpoint,
+            p256dh: subJson.keys ? subJson.keys.p256dh : null,
+            auth: subJson.keys ? subJson.keys.auth : null,
+            player_id: playerData.playerId ? parseInt(playerData.playerId) : null
+        }, { onConflict: 'endpoint' });
         if (error) console.error('Error guardando sub:', error);
         localStorage.setItem('ah_v2_push_subscribed', 'true');
         showToast('Notificaciones activadas', 'success');
@@ -223,7 +225,11 @@ async function unsubscribeFromPush() {
     try {
         var reg = await navigator.serviceWorker.ready;
         var sub = await reg.pushManager.getSubscription();
-        if (sub) await sub.unsubscribe();
+        if (sub) {
+            var subJson = sub.toJSON();
+            await supabase.from('push_subscriptions').delete().eq('endpoint', subJson.endpoint);
+            await sub.unsubscribe();
+        }
         localStorage.removeItem('ah_v2_push_subscribed');
         showToast('Notificaciones desactivadas', 'info');
         return true;
