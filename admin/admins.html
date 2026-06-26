@@ -22,21 +22,31 @@
     <script>
         requireAdmin();
         async function loadAdmins() {
-            var { data, error } = await supabase.from('admin_users').select('*, alliance:alliances(name, tag)').order('approved_at', { ascending: false });
+            var { data: admins, error } = await supabase.from('admin_users').select('*').order('approved_at', { ascending: false });
             var container = document.getElementById('admins-list');
             if (error) { container.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; return; }
-            var admins = data || [];
+            var admins = admins || [];
             if (admins.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin admins</div>'; return; }
+            
+            // Cargar alliances relacionadas
+            var allianceIds = admins.map(function(a) { return a.alliance_id; }).filter(function(v) { return v !== null; });
+            var alliancesMap = {};
+            if (allianceIds.length > 0) {
+                var { data: alliances } = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
+                (alliances || []).forEach(function(a) { alliancesMap[a.id] = a; });
+            }
+            
             container.innerHTML = '<div class="space-y-3 p-4">' +
                 admins.map(function(a) {
                     var roleBadge = getRoleBadge(a.role);
                     var statusBadge = a.status === 'active' ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-bold">ACTIVO</span>' : a.status === 'suspended' ? '<span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 font-bold">SUSPENDIDO</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600">' + (a.status || '?') + '</span>';
+                    var alliance = a.alliance_id ? alliancesMap[a.alliance_id] : null;
                     return '<div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">' +
                         '<div class="flex items-center gap-3">' +
                             '<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-lg font-bold text-amber-700">' + (a.display_name ? a.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
                             '<div>' +
                                 '<div class="font-bold text-slate-800">' + (a.display_name || 'Admin') + '</div>' +
-                                '<div class="text-xs text-slate-500">' + (a.email || '') + (a.alliance ? ' | ' + a.alliance.name : '') + '</div>' +
+                                '<div class="text-xs text-slate-500">' + (a.email || '') + (alliance ? ' | ' + alliance.name : '') + '</div>' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex items-center gap-2">' + roleBadge + statusBadge + '</div>' +
