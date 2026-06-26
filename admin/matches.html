@@ -19,15 +19,15 @@
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">🎮 Partidas V2</h1>
+                <h1 class="text-2xl font-bold text-slate-800">&#127918; Partidas V2</h1>
                 <p class="text-slate-500">Crear, gestionar y editar partidas</p>
             </div>
-            <button onclick="openMatchModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">➕ Nueva</button>
+            <button onclick="openMatchModal()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-amber-400 transition">&#10133; Nueva</button>
         </div>
 
         <div id="global-rules-section" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div class="flex items-center gap-3">
-                <span class="text-xl">📜</span>
+                <span class="text-xl">&#128220;</span>
                 <div class="flex-1">
                     <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
                     <p class="text-xs text-blue-600">Estas reglas aplican a TODAS las partidas. Los admins pueden anadir reglas adicionales en la descripcion de cada partida.</p>
@@ -69,7 +69,7 @@
         <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex items-center justify-between">
                 <h2 class="text-xl font-bold" id="modal-title">Nueva Partida</h2>
-                <button onclick="closeMatchModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+                <button onclick="closeMatchModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
             </div>
             <form id="match-form" class="p-6 space-y-4">
                 <input type="hidden" id="match-id">
@@ -177,13 +177,22 @@
             var typeFilter = document.getElementById('filter-type').value;
             var statusFilter = document.getElementById('filter-status').value;
             var allianceFilter = document.getElementById('filter-alliance').value;
-            var query = supabase.from('matches').select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').order('created_at', { ascending: false });
+            // FIX: Consulta simple sin relaciones anidadas (evita error schema cache)
+            var query = supabase.from('matches').select('*').order('created_at', { ascending: false });
             if (typeFilter) query = query.eq('match_type', typeFilter);
             if (statusFilter) query = query.eq('status', statusFilter);
             if (allianceFilter) query = query.eq('alliance_id', allianceFilter);
             var { data, error } = await query;
             if (error) { document.getElementById('matches-list').innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
             allMatches = data || [];
+            // Unir con alianzas manualmente
+            var alliMap = {};
+            alliances.forEach(function(a) { alliMap[a.id] = a; });
+            allMatches.forEach(function(m) {
+                m.alliance = alliMap[m.alliance_id] || null;
+                m.alliance_a = alliMap[m.alliance_a_id] || null;
+                m.alliance_b = alliMap[m.alliance_b_id] || null;
+            });
             renderMatches(allMatches);
         }
 
@@ -192,21 +201,21 @@
             if (matches.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin partidas</div>'; return; }
             container.innerHTML = matches.map(function(m) {
                 var allianceLabel = '';
-                if (m.match_type === 'internal' && m.alliance) allianceLabel = '🏴 ' + m.alliance.name;
-                else if (m.match_type === 'duel' && m.alliance_a && m.alliance_b) allianceLabel = '⚔️ ' + m.alliance_a.name + ' vs ' + m.alliance_b.name;
-                var approvalBadge = m.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">👀</span>' : '';
-                var privateBadge = m.is_private ? '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">🔒</span>' : '';
-                var winnerBadge = m.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">🏆</span>' : '';
+                if (m.match_type === 'internal' && m.alliance) allianceLabel = '&#127988; ' + m.alliance.name;
+                else if (m.match_type === 'duel' && m.alliance_a && m.alliance_b) allianceLabel = '&#9876;&#65039; ' + m.alliance_a.name + ' vs ' + m.alliance_b.name;
+                var approvalBadge = m.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">&#128064;</span>' : '';
+                var privateBadge = m.is_private ? '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">&#128274;</span>' : '';
+                var winnerBadge = m.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">&#127942;</span>' : '';
                 return '<div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition">' +
                     '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
                         '<div class="flex-1"><div class="flex items-center gap-2 mb-1 flex-wrap">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + approvalBadge + privateBadge + winnerBadge + '</div>' +
                         '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
-                        '<p class="text-sm text-slate-500">' + (m.description || '') + (allianceLabel ? ' • ' + allianceLabel : '') + '</p>' +
-                        '<p class="text-xs text-slate-400 mt-1">👥 ' + m.max_players + ' max • ' + formatDate(m.created_at) + (m.game_id ? ' • 🎮 ID: ' + m.game_id : '') + '</p></div>' +
+                        '<p class="text-sm text-slate-500">' + (m.description || '') + (allianceLabel ? ' &bull; ' + allianceLabel : '') + '</p>' +
+                        '<p class="text-xs text-slate-400 mt-1">&#128101; ' + m.max_players + ' max &bull; ' + formatDate(m.created_at) + (m.game_id ? ' &bull; &#127918; ID: ' + m.game_id : '') + '</p></div>' +
                         '<div class="flex gap-2 flex-wrap">' +
-                            '<button onclick="editMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold hover:bg-blue-400">✏️ Editar</button>' +
+                            '<button onclick="editMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold hover:bg-blue-400">&#9999;&#65039; Editar</button>' +
                             '<a href="match-detail.html?id=' + m.id + '" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded text-sm font-bold hover:bg-amber-400 inline-block">Gestionar</a>' +
-                            '<button onclick="deleteMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">🗑️</button>' +
+                            '<button onclick="deleteMatch(\'' + m.id + '\')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">&#128465;&#65039;</button>' +
                         '</div></div></div>';
             }).join('');
         }
@@ -230,7 +239,7 @@
             document.getElementById('m-alliance-b').value = match.alliance_b_id || '';
             document.getElementById('duel-fields').style.display = match.match_type === 'duel' ? 'grid' : 'none';
             document.getElementById('quick-fields').style.display = match.match_type === 'public_quick' ? 'block' : 'none';
-            document.getElementById('modal-title').textContent = '✏️ Editar Partida';
+            document.getElementById('modal-title').textContent = '&#9999;&#65039; Editar Partida';
             document.getElementById('match-modal').classList.add('active');
         }
 
@@ -239,7 +248,6 @@
         document.getElementById('match-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             var id = document.getElementById('match-id').value;
-            var oldData = id ? allMatches.find(function(m) { return m.id === id; }) : null;
             var data = {
                 name: document.getElementById('m-name').value,
                 match_type: document.getElementById('m-type').value,
