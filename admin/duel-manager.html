@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gestionar Duelos - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=10"></script>
+<script src="../assets/js/base.js?v=10"></script>
+<script src="../assets/js/auth.js?v=10"></script>
+<script src="../assets/js/pwa-utils.js?v=10"></script>
+<style>
+.modal{display:none}
+.modal.active{display:flex}
+</style>
+<meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+
+<div class="max-w-5xl mx-auto px-4 py-6">
+    <div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+        <h1 class="text-2xl font-bold text-slate-800">&#9876;&#65039; Duelos de Alianzas</h1>
+        <p class="text-sm text-slate-500 mt-1">Selecciona 5 jugadores de tu alianza para formar un equipo de duelo. Cuando otra alianza tambien tenga su equipo listo, se hara el matchmaking automatico.</p>
+    </div>
+
+    <!-- Estado del equipo -->
+    <div id="team-status-section" class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold text-slate-800 text-sm">&#128204; Estado de tu Equipo</h2>
+            <span id="team-status-badge" class="px-2 py-1 rounded text-xs font-bold">Cargando...</span>
+        </div>
+        <div id="team-players-list" class="space-y-2"></div>
+        <div id="team-actions" class="flex gap-2 mt-4"></div>
+    </div>
+
+    <!-- Seleccionar jugadores (solo si equipo esta en formacion) -->
+    <div id="select-section" class="hidden">
+        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-slate-800 text-sm">&#128100; Seleccionar 5 Jugadores</h2>
+                <span id="selection-count" class="text-xs text-slate-500">0 / 5 seleccionados</span>
+            </div>
+            <div id="members-list" class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-80 overflow-y-auto">
+                <div class="text-center py-4 text-slate-400 text-sm">Cargando miembros...</div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="saveTeam()" id="save-team-btn" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>💾 Guardar Equipo</button>
+                <button onclick="resetSelection()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300">Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encontrar oponente -->
+    <div id="matchmaking-section" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 mb-4 text-center">
+        <div class="text-4xl mb-3">&#127942;</div>
+        <h2 class="font-bold text-slate-800 text-lg">Tu equipo esta listo</h2>
+        <p class="text-sm text-slate-600 mt-1">Haz clic para buscar un oponente aleatorio entre las alianzas que tambien tengan su equipo listo.</p>
+        <button onclick="findOpponent()" class="mt-4 px-6 py-3 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition">&#9876;&#65039; Buscar Oponente</button>
+    </div>
+
+    <!-- Duelos activos -->
+    <div id="active-duels-section" class="hidden mb-4">
+        <h2 class="font-bold text-slate-800 text-sm mb-3">&#127918; Duelos Activos</h2>
+        <div id="active-duels-list" class="space-y-2"></div>
+    </div>
+</div>
+
+<script>
+requireMinRole('alliance_leader');
+
+var myAllianceId = null;
+var myTeam = null;
+var selectedPlayerIds = [];
+var allMembers = [];
+var currentAdmin = null;
+
+async function init() {
+    var admin = await getAdminRole();
+    currentAdmin = admin;
+    if (!admin || !admin.alliance_id) {
+        document.querySelector('.max-w-5xl').innerHTML = '<div class="text-center py-12 text-red-400">No tienes una alianza asignada. Contacta al superadmin.</div>';
+        return;
+    }
+    myAllianceId = admin.alliance_id;
+    await Promise.all([loadTeam(), loadMembers(), loadActiveDuels()]);
+}
+
+async function loadTeam() {
+    try {
+        var { data: team } = await supabase
+            .from('alliance_duel_teams')
+            .select('*')
+            .eq('alliance_id', myAllianceId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        myTeam = team;
+        renderTeamStatus();
+    } catch (e) { console.error('loadTeam error:', e); }
+}
+
+function renderTeamStatus() {
+    var badge = document.getElementById('team-status-badge');
+    var list = document.getElementById('team-players-list');
+    var actions = document.getElementById('team-actions');
+    var selectSection = document.getElementById('select-section');
+    var mmSection = document.getElementById('matchmaking-section');
+
+    if (!myTeam || myTeam.status === 'forming' || myTeam.player_ids.length === 0) {
+        badge.textContent = 'EN FORMACION';
+        badge.className = 'px-2 py-1 rounded text-xs font-bold bg-yellow-100 text-yellow-700';
+        list.innerHTML = '<div class="text-sm text-slate-400 py-2">Aun no has seleccionado jugadores para tu equipo de duelo.</div>';
+        actions.innerHTML = '<button onclick="showSelection()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">+ Crear Equipo</button>';
+        selectSection.classList.remove('hidden');
+        mmSection.classList.add('hidden');
+    } else {
+        var statusLabels = { forming: 'EN FORMACION', ready: 'LISTO', matched: 'EMPAREJADO', active: 'EN CURSO', completed: 'COMPLETADO' };
+        var statusClasses = { forming: 'bg-yellow-100 text-yellow-700', ready: 'bg-green-100 text-green-700', matched: 'bg-blue-100 text-blue-700', active: 'bg-purple-100 text-purple-700', completed: 'bg-slate-100 text-slate-600' };
+        badge.textContent = statusLabels[myTeam.status] || myTeam.status.toUpperCase();
+        badge.className = 'px-2 py-1 rounded text-xs font-bold ' + (statusClasses[myTeam.status] || 'bg-slate-100 text-slate-600');
+
+        loadTeamPlayerNames(myTeam.player_ids);
+
+        if (myTeam.status === 'forming' || myTeam.status === 'ready') {
+            actions.innerHTML = '<button onclick="editTeam()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">✏️ Editar Equipo</button>' +
+                               '<button onclick="dissolveTeam()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-bold text-sm hover:bg-red-400">🗑️ Disolver</button>';
+        } else {
+            actions.innerHTML = '<a href="match-detail.html?id=' + myTeam.match_id + '" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-bold text-sm hover:bg-purple-400">&#127918; Ver Partida</a>';
+        }
+
+        if (myTeam.status === 'ready') {
+            selectSection.classList.add('hidden');
+            mmSection.classList.remove('hidden');
+        } else if (myTeam.status === 'forming') {
+            selectSection.classList.remove('hidden');
+            mmSection.classList.add('hidden');
+        } else {
+            selectSection.classList.add('hidden');
+            mmSection.classList.add('hidden');
+        }
+    }
+}
+
+async function loadTeamPlayerNames(playerIds) {
+    if (!playerIds || playerIds.length === 0) return;
+    var list = document.getElementById('team-players-list');
+    try {
+        var { data: players } = await supabase.from('players').select('id, current_username, total_kills, games_played').in('id', playerIds);
+        var playersMap = {};
+        (players || []).forEach(function(p) { playersMap[p.id] = p; });
+
+        list.innerHTML = playerIds.map(function(pid, i) {
+            var p = playersMap[pid] || {};
+            return '<div class="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">' +
+                '<span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">' + (i + 1) + '</span>' +
+                '<span class="font-bold text-sm text-slate-800">' + (p.current_username || 'Jugador ' + pid) + '</span>' +
+                '<span class="text-xs text-slate-500 ml-auto">' + (p.total_kills || 0) + ' bajas | ' + (p.games_played || 0) + ' partidas</span>' +
+            '</div>';
+        }).join('');
+    } catch (e) { list.innerHTML = '<div class="text-sm text-slate-400">Jugadores: ' + playerIds.join(', ') + '</div>'; }
+}
+
+async function loadMembers() {
+    try {
+        var { data: members } = await supabase
+            .from('alliance_memberships')
+            .select('*, players(id, current_username, total_kills, total_deaths, games_played, reputation_score, status)')
+            .eq('alliance_id', myAllianceId)
+            .eq('status', 'approved');
+        allMembers = members || [];
+        renderMembers();
+    } catch (e) { console.error('loadMembers error:', e); }
+}
+
+function renderMembers() {
+    var container = document.getElementById('members-list');
+    if (allMembers.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-4 text-slate-400 text-sm">No hay miembros en tu alianza</div>';
+        return;
+    }
+    container.innerHTML = allMembers.map(function(m) {
+        var p = m.players || {};
+        var isSuspended = p.status === 'suspended' || p.status === 'banned';
+        var isSelected = selectedPlayerIds.indexOf(p.id) !== -1;
+        var isOnTeam = myTeam && myTeam.player_ids.indexOf(p.id) !== -1;
+        var disabled = isSuspended || (selectedPlayerIds.length >= 5 && !isSelected);
+        var cardClass = isSelected ? 'border-amber-400 bg-amber-50' : (isOnTeam ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white');
+        return '<div class="rounded-lg border p-3 cursor-pointer transition hover:shadow-md ' + cardClass + '" onclick="togglePlayerSelection(' + p.id + ')" ' + (disabled ? 'style="opacity:0.4;pointer-events:none;"' : '') + '>' +
+            '<div class="flex items-center gap-2">' +
+                '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' class="w-4 h-4 text-amber-500 rounded" onclick="event.stopPropagation();togglePlayerSelection(' + p.id + ')" ' + (disabled ? 'disabled' : '') + '>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="font-bold text-sm text-slate-800 truncate">' + (p.current_username || '?') + '</p>' +
+                    '<p class="text-xs text-slate-500">' + (p.total_kills || 0) + ' bajas | KD ' + (p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills || 0) + '</p>' +
+                '</div>' +
+            '</div>' +
+            (isSuspended ? '<p class="text-xs text-red-500 mt-1">Suspendido</p>' : '') +
+            (isOnTeam ? '<p class="text-xs text-blue-600 mt-1">En equipo actual</p>' : '') +
+        '</div>';
+    }).join('');
+    updateSelectionCount();
+}
+
+function togglePlayerSelection(playerId) {
+    var idx = selectedPlayerIds.indexOf(playerId);
+    if (idx !== -1) {
+        selectedPlayerIds.splice(idx, 1);
+    } else {
+        if (selectedPlayerIds.length >= 5) { showToast('Solo puedes seleccionar 5 jugadores', 'warning'); return; }
+        selectedPlayerIds.push(playerId);
+    }
+    renderMembers();
+}
+
+function updateSelectionCount() {
+    document.getElementById('selection-count').textContent = selectedPlayerIds.length + ' / 5 seleccionados';
+    document.getElementById('save-team-btn').disabled = selectedPlayerIds.length !== 5;
+}
+
+function showSelection() {
+    selectedPlayerIds = [];
+    if (myTeam && myTeam.player_ids) {
+        selectedPlayerIds = myTeam.player_ids.slice();
+    }
+    renderMembers();
+    document.getElementById('select-section').classList.remove('hidden');
+}
+
+function editTeam() {
+    showSelection();
+    document.getElementById('matchmaking-section').classList.add('hidden');
+}
+
+function resetSelection() {
+    selectedPlayerIds = [];
+    renderMembers();
+}
+
+async function saveTeam() {
+    if (selectedPlayerIds.length !== 5) { showToast('Debes seleccionar exactamente 5 jugadores', 'warning'); return; }
+    try {
+        var status = 'ready';
+        var payload = {
+            alliance_id: myAllianceId,
+            player_ids: selectedPlayerIds,
+            status: status
+        };
+        if (myTeam && myTeam.id) {
+            payload.id = myTeam.id;
+        }
+        var { data, error } = await supabase.from('alliance_duel_teams').upsert(payload).select().single();
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        myTeam = data;
+        showToast('Equipo guardado: ' + selectedPlayerIds.length + ' jugadores', 'success');
+        renderTeamStatus();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function dissolveTeam() {
+    if (!confirm('Disolver el equipo actual? Los jugadores quedaran libres.')) return;
+    try {
+        if (myTeam && myTeam.id) {
+            var { error } = await supabase.from('alliance_duel_teams').delete().eq('id', myTeam.id);
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        }
+        myTeam = null;
+        selectedPlayerIds = [];
+        showToast('Equipo disuelto', 'success');
+        renderTeamStatus();
+        showSelection();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function findOpponent() {
+    try {
+        showToast('Buscando oponente...', 'info');
+        var { data: opponents } = await supabase
+            .from('alliance_duel_teams')
+            .select('*, alliances(name, tag)')
+            .eq('status', 'ready')
+            .neq('alliance_id', myAllianceId);
+
+        if (!opponents || opponents.length === 0) {
+            showToast('No hay alianzas con equipo listo. Intenta mas tarde.', 'warning');
+            return;
+        }
+
+        var opponent = opponents[Math.floor(Math.random() * opponents.length)];
+        if (!confirm('&#9876;&#65039; Oponente encontrado: ' + (opponent.alliances ? opponent.alliances.name : 'Alianza') + '\n\nCrear la partida de duelo?')) return;
+
+        var { data: myAlliance } = await supabase.from('alliances').select('name, tag').eq('id', myAllianceId).single();
+        var matchName = 'Duelo: ' + (myAlliance ? myAlliance.name : 'Alianza A') + ' vs ' + (opponent.alliances ? opponent.alliances.name : 'Alianza B');
+
+        var { data: newMatch, error: matchError } = await supabase.from('matches').insert({
+            name: matchName,
+            match_type: 'duel',
+            status: 'open',
+            max_players: 10,
+            alliance_id: null,
+            description: 'Duelo de alianzas entre ' + (myAlliance ? myAlliance.name : '?') + ' y ' + (opponent.alliances ? opponent.alliances.name : '?')
+        }).select().single();
+
+        if (matchError) { showToast('Error creando partida: ' + matchError.message, 'error'); return; }
+
+        await supabase.from('alliance_duel_teams').update({ status: 'matched', match_id: newMatch.id }).eq('id', myTeam.id);
+        await supabase.from('alliance_duel_teams').update({ status: 'matched', match_id: newMatch.id }).eq('id', opponent.id);
+
+        for (var i = 0; i < myTeam.player_ids.length; i++) {
+            await supabase.from('match_registrations').insert({ match_id: newMatch.id, player_id: myTeam.player_ids[i], status: 'confirmed' }).catch(function(){});
+        }
+        for (var i = 0; i < opponent.player_ids.length; i++) {
+            await supabase.from('match_registrations').insert({ match_id: newMatch.id, player_id: opponent.player_ids[i], status: 'confirmed' }).catch(function(){});
+        }
+
+        showToast('&#9876;&#65039; Duelo creado: ' + matchName, 'success');
+        window.location.href = 'match-detail.html?id=' + newMatch.id;
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function loadActiveDuels() {
+    try {
+        var { data: duels } = await supabase
+            .from('alliance_duel_teams')
+            .select('*, alliances(name, tag), match:matches(id, name, status)')
+            .eq('alliance_id', myAllianceId)
+            .in('status', ['matched', 'active']);
+
+        var section = document.getElementById('active-duels-section');
+        var list = document.getElementById('active-duels-list');
+
+        if (!duels || duels.length === 0) { section.classList.add('hidden'); return; }
+        section.classList.remove('hidden');
+
+        list.innerHTML = duels.map(function(d) {
+            return '<div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">' +
+                '<div>' +
+                    '<p class="font-bold text-slate-800">' + (d.match ? d.match.name : 'Duelo sin partida') + '</p>' +
+                    '<p class="text-xs text-slate-500">' + (d.match ? getStatusBadge(d.match.status) : '') + '</p>' +
+                '</div>' +
+                (d.match ? '<a href="match-detail.html?id=' + d.match.id + '" class="px-3 py-1.5 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-400 transition">Ver</a>' : '') +
+            '</div>';
+        }).join('');
+    } catch (e) { console.error('loadActiveDuels error:', e); }
+}
+
+init();
+</script>
+</body>
+</html>
