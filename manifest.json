@@ -1,7 +1,7 @@
 {
-  "name": "Alliance Hub V2 - Supremacy 1914",
-  "short_name": "Alliance Hub V2",
-  "description": "Plataforma de rankings, ligas y gestión para comunidades de Supremacy 1914",
+  "name": "Alliance Hub - Supremacy 1914",
+  "short_name": "Alliance Hub",
+  "description": "Plataforma de rankings, ligas y gestion para comunidades de Supremacy 1914",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
