@@ -6,10 +6,10 @@
     <title>Dashboard - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=5"></script>
-    <script src="../assets/js/base.js?v=5"></script>
-    <script src="../assets/js/auth.js?v=5"></script>
-    <script src="../assets/js/pwa-utils.js?v=5"></script>
+    <script src="../assets/js/config.js?v=10"></script>
+    <script src="../assets/js/base.js?v=10"></script>
+    <script src="../assets/js/auth.js?v=10"></script>
+    <script src="../assets/js/pwa-utils.js?v=10"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
@@ -113,13 +113,11 @@
             document.getElementById('d-alliances').textContent = ac || 0;
             document.getElementById('d-reports').textContent = rc || 0;
 
-            // Cargar ultimas partidas sin nested relation
             var { data: recentMatches } = await supabase.from('matches').select('*').order('created_at', { ascending: false }).limit(5);
             var container = document.getElementById('recent-matches');
             if (!recentMatches || recentMatches.length === 0) {
                 container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin partidas</div>';
             } else {
-                // Cargar alliances relacionadas
                 var allianceIds = recentMatches.map(function(m) { return m.alliance_id; }).filter(function(v) { return v !== null; });
                 var alliancesMap = {};
                 if (allianceIds.length > 0) {
@@ -148,7 +146,6 @@
 
         async function loadCacheControlStatus() {
             try {
-                // FIX: usar upsert para crear la fila si no existe
                 var { data: killData } = await supabase.from('app_settings').select('value').eq('key', 'force_clear_cache').maybeSingle();
                 killSwitchActive = killData && killData.value === 'true';
                 var killStatus = document.getElementById('kill-switch-status');
@@ -163,7 +160,6 @@
 
         async function toggleKillSwitch() {
             var newValue = killSwitchActive ? 'false' : 'true';
-            // FIX: usar upsert para crear/actualizar la fila
             var { error } = await supabase.from('app_settings').upsert({ key: 'force_clear_cache', value: newValue }, { onConflict: 'key' });
             if (error) showToast('Error: ' + error.message, 'error');
             else { killSwitchActive = !killSwitchActive; showToast(killSwitchActive ? 'Kill Switch ACTIVADO' : 'Kill Switch desactivado', 'success'); loadCacheControlStatus(); }
@@ -171,7 +167,6 @@
 
         async function bumpCacheVersion() {
             var newVersion = 'v2.' + Date.now();
-            // FIX: usar upsert para crear/actualizar la fila
             var { error } = await supabase.from('app_settings').upsert({ key: 'cache_version', value: newVersion }, { onConflict: 'key' });
             if (error) showToast('Error: ' + error.message, 'error');
             else { currentCacheVersion = newVersion; showToast('Version actualizada a ' + newVersion, 'success'); loadCacheControlStatus(); }
