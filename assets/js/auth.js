@@ -145,14 +145,20 @@ async function logout() {
     window.location.href = ahPath('login.html');
 }
 
-async function logoutToPlayerMode() {
-    // FIX: Cerrar solo sesion de admin y redirigir a login de jugador
-    if (window.__ahNotifInterval) {
-        clearInterval(window.__ahNotifInterval);
-        window.__ahNotifInterval = null;
+// FIX: Modo dual - ya no cierra sesion de admin, solo redirige a la vista de jugador
+async function switchToPlayerMode() {
+    // Si no tiene sesion de jugador, ir al login de jugador
+    if (!hasPlayerSession()) {
+        window.location.href = ahPath('login-player.html');
+        return;
     }
-    await supabase.auth.signOut();
-    window.location.href = ahPath('login-player.html');
+    // Redirigir a la pagina principal (vista de jugador) sin cerrar sesion de admin
+    window.location.href = ahPath('index.html');
+}
+
+// FIX: Logout legacy (mantener para compatibilidad)
+async function logoutToPlayerMode() {
+    await switchToPlayerMode();
 }
 
 async function requireAdmin() {
@@ -208,6 +214,7 @@ function hasAdminSession() {
 // ===================== NOTIFICACIONES INTERNAS =====================
 var __ahNotifCount = 0;
 var __ahNotifMessages = [];
+var __ahNotifInitError = false;
 
 function buildNotificationBell() {
     return '<div class="relative" id="ah-notif-wrapper">' +
@@ -277,28 +284,39 @@ async function markVisibleNotifsAsRead() {
     setTimeout(refreshNotifBadge, 500);
 }
 
+// FIX: Mejor manejo de errores en notificaciones para evitar "notification error"
 async function refreshNotifBadge() {
-    var count = await countUnreadDirectMessages();
-    __ahNotifCount = count;
-    var badge = document.getElementById('ah-notif-badge');
-    var label = document.getElementById('ah-notif-count-label');
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
+    try {
+        var count = await countUnreadDirectMessages();
+        __ahNotifCount = count;
+        var badge = document.getElementById('ah-notif-badge');
+        var label = document.getElementById('ah-notif-count-label');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
+        if (label) label.textContent = count + ' sin leer';
+        var messages = await fetchRecentDirectMessages(10);
+        __ahNotifMessages = messages || [];
+    } catch (e) {
+        console.error('[Notif] Error en refreshNotifBadge:', e);
+        // No propagar el error al usuario - silenciar
     }
-    if (label) label.textContent = count + ' sin leer';
-    var messages = await fetchRecentDirectMessages(10);
-    __ahNotifMessages = messages || [];
 }
 
 function startNotifPolling() {
     if (window.__ahNotifInterval) clearInterval(window.__ahNotifInterval);
-    refreshNotifBadge();
-    window.__ahNotifInterval = setInterval(refreshNotifBadge, 60000);
+    // FIX: Inicializar con delay para asegurar que la sesion este lista
+    setTimeout(function() {
+        refreshNotifBadge().catch(function(e) { console.error('[Notif] Init error:', e); });
+    }, 2000);
+    window.__ahNotifInterval = setInterval(function() {
+        refreshNotifBadge().catch(function(e) { console.error('[Notif] Polling error:', e); });
+    }, 60000);
 }
 
 document.addEventListener('click', function(e) {
@@ -346,10 +364,10 @@ async function initAdminNav() {
             if (l.requiresAlliance && !hasAlliance) return false;
             return true;
         });
-        // FIX: Boton Modo Jugador ahora cierra sesion de admin y redirige a login de jugador
-        var switchBtn = '<button onclick="logoutToPlayerMode()" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold">&#127918; Modo Jugador</button>';
+        // FIX: Boton Modo Jugador - ahora usa switchToPlayerMode() sin logout
+        var switchBtn = '<button onclick="switchToPlayerMode()" class="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 transition text-white text-sm font-bold">&#127918; Modo Jugador</button>';
         var notifBell = buildNotificationBell();
-        nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + notifBell + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
+        nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('admin/index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub</a><span class="text-xs bg-amber-500 text-slate-900 px-2 py-1 rounded font-bold">ADMIN</span>' + getRoleBadge(role) + '</div><div class="flex flex-wrap gap-2 text-sm items-center">' + allowedLinks.map(function(l) { return '<a href="' + l.href + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">' + l.label + '</a>'; }).join('') + notifBell + switchBtn + '<span class="text-slate-400 text-xs px-2">' + displayName + '</span><button onclick="logout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
         startNotifPolling();
     } else if (isPlayer) {
         // Jugador logeado, no admin
@@ -365,8 +383,9 @@ async function initAdminNav() {
 // FIX: Nueva funcion para renderizar barra de navegacion de jugador
 function renderPlayerNav(nav, playerData, adminSession) {
     var name = playerData.displayName || 'Jugador ' + playerData.playerId;
+    // FIX: Si hay sesion de admin, mostrar boton "Modo Admin" que redirige sin cerrar sesion de jugador
     var adminLink = adminSession ? '<a href="' + ahPath('admin/index.html') + '" class="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 transition text-white text-sm font-bold">&#128202; Admin</a>' : '';
-    nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub</a><span class="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">JUGADOR</span></div><div class="flex flex-wrap gap-2 text-sm items-center"><a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#127918; Partidas</a><a href="' + ahPath('rankings.html') + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#127942; Rankings</a><a href="' + ahPath('player.html?id=' + playerData.playerId) + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#128100; Mi Perfil</a>' + adminLink + '<span class="text-slate-400 text-xs px-2">' + name + '</span><button onclick="playerLogout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
+    nav.innerHTML = '<div class="bg-slate-900 text-white p-4"><div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"><div class="flex items-center gap-3"><a href="' + ahPath('index.html') + '" class="text-xl font-bold text-amber-400">&#9876;&#65039; Alliance Hub</a><span class="text-xs bg-green-500 text-white px-2 py-1 rounded font-bold">JUGADOR</span></div><div class="flex flex-wrap gap-2 text-sm items-center"><a href="' + ahPath('index.html') + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#127918; Partidas</a><a href="' + ahPath('rankings.html') + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#127942; Rankings</a><a href="' + ahPath('player.html?id=' + playerData.playerId) + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#128100; Mi Perfil</a><a href="' + ahPath('alliance-panel.html') + '" class="px-3 py-1.5 rounded hover:bg-slate-700 transition">&#127988; Mi Alianza</a>' + adminLink + '<span class="text-slate-400 text-xs px-2">' + name + '</span><button onclick="playerLogout()" class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 transition">Salir</button></div></div></div>';
 }
 
 // FIX: Logout solo de jugador (sin tocar sesion de admin)
