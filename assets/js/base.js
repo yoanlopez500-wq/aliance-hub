@@ -14,26 +14,6 @@ window.__AH_BASE_PATH = (function() {
     return '/';
 })();
 
-// ===================== EMERGENCY CSS INJECTION =====================
-// Inyecta CSS critico para que los nombres de jugadores sean visibles
-// sin depender de la version cacheada del HTML
-(function() {
-    var style = document.createElement('style');
-    style.textContent =
-        '.player-name{color:#111827!important;font-weight:700!important;font-size:0.875rem!important}' +
-        '.player-stats{color:#64748B!important;font-size:0.75rem!important}' +
-        '.reg-card{background:#fff!important}' +
-        '.action-btn{padding:4px 8px!important;border-radius:6px!important;font-size:0.75rem!important;font-weight:700!important;border:1px solid transparent!important;cursor:pointer!important}' +
-        '.btn-strike{background:#FEF3C7!important;color:#92400E!important;border-color:#FCD34D!important}' +
-        '.btn-suspend{background:#FFEDD5!important;color:#9A3412!important;border-color:#FDBA74!important}' +
-        '.btn-remove{background:#FEE2E2!important;color:#991B1B!important;border-color:#FCA5A5!important}' +
-        '.btn-unsuspend{background:#DCFCE7!important;color:#166534!important;border-color:#86EFAC!important}' +
-        '.modal{display:none!important}' +
-        '.modal.active{display:flex!important}';
-    document.head.appendChild(style);
-    console.log('[AH] Emergency CSS injected for player name visibility');
-})();
-
 function ahPath(relative) {
     var base = window.__AH_BASE_PATH;
     if (!base.endsWith('/')) base += '/';
@@ -109,9 +89,6 @@ function getTypeBadge(type) {
 }
 
 // ===================== GLOBAL MATCH ADMIN FUNCTIONS =====================
-// Estas funciones estan aqui como fallback global porque GitHub Pages
-// a veces sirve versiones cacheadas de match-detail.html sin ellas.
-
 async function removeRegistration(regId, playerName) {
     if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return;
     try {
@@ -219,9 +196,14 @@ async function getLastRegisteredMatch() {
             .eq('player_id', parseInt(playerData.playerId))
             .order('registered_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
         return data ? data.match_id : null;
     } catch (e) { return null; }
+}
+
+// FIX: saveLastRegisteredMatch was missing - used by register/index.html
+function saveLastRegisteredMatch(matchId) {
+    if (matchId) localStorage.setItem('ah_v2_last_match', matchId);
 }
 
 // ===================== APP CACHE CONTROL =====================
