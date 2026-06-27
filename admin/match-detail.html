@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v10: Fix updateStatus + add manual player register -->
+<!-- v10: Fix match_results imported_at column -->
 <title>Detalle Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -68,7 +68,7 @@
 <div id="results-mobile" class="md:hidden space-y-2"></div></div>
 </div>
 
-<!-- Modal: Strike (UNIFICADO con strikes.html) -->
+<!-- Modal: Strike -->
 <div id="apply-strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 <div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-red-700 to-red-900 rounded-t-2xl">
@@ -162,7 +162,7 @@
 </form>
 </div></div>
 
-<!-- Modal: Manual Result (con buscador) -->
+<!-- Modal: Manual Result -->
 <div id="manual-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 <div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-600 rounded-t-2xl">
@@ -397,7 +397,7 @@ async function unsuspendPlayer(playerId) {
 
 async function loadResults() {
     try {
-        var { data: results, error } = await supabase.from('match_results').select('*').eq('match_id', matchId).order('created_at', { ascending: false });
+        var { data: results, error } = await supabase.from('match_results').select('*').eq('match_id', matchId).order('imported_at', { ascending: false });
         if (error) { console.error('Error cargando resultados:', error); document.getElementById('results-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + error.message + '</div>'; return; }
         var res = results || [];
         if (res.length === 0) { document.getElementById('results-desktop').innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Sin resultados. Importa un CSV o anade manualmente.</div>'; document.getElementById('results-mobile').innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Sin resultados</div>'; return; }
