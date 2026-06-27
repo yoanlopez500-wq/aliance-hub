@@ -212,7 +212,7 @@
     </select>
 </div>
 <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-    <p class="text-xs text-blue-600">El jugador se registrara en esta partida con el estado seleccionado. Si el jugador no existe en la base de datos, primero se creara su perfil.</p>
+    <p class="text-xs text-blue-600">El jugador se registrara en esta partida con el estado seleccionado.</p>
 </div>
 <div class="flex gap-3 pt-2">
 <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500 text-sm">➕ Registrar Jugador</button>
@@ -253,6 +253,7 @@ var currentMatch = null;
 var allStrikeTypes = [];
 var allPlayersCache = [];
 var currentAdminId = null;
+var allPlayersCacheRegister = [];
 
 async function loadMatch() {
     if (!matchId) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">No se especifico ID de partida</div>'; return; }
@@ -274,10 +275,10 @@ async function loadMatch() {
         var allianceInfo = alliance ? ' [' + alliance.tag + ']' : '';
         var statusBadge = getStatusBadge(match.status);
         var typeBadge = getTypeBadge(match.match_type);
-        var csvBadge = match.csv_imported ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">✓ CSV Importado</span>' : '';
+        var csvBadge = match.csv_imported ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">&#10003; CSV Importado</span>' : '';
 
         document.getElementById('match-header').innerHTML = '<div class="bg-white rounded-xl border border-slate-200 p-5">' +
-            '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold text-slate-800">' + match.name + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + typeBadge + csvBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300 self-start">← Volver</a></div>' +
+            '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold text-slate-800">' + match.name + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + typeBadge + csvBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300 self-start">&larr; Volver</a></div>' +
             '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm"><div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">ID Juego</p><p class="font-bold text-slate-900">' + (match.game_id || '-') + '</p></div><div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Max Jugadores</p><p class="font-bold text-slate-900">' + (match.max_players || '-') + '</p></div><div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Creada</p><p class="font-bold text-slate-900">' + formatDate(match.created_at) + '</p></div><div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Alianza</p><p class="font-bold text-slate-900">' + (alliance ? alliance.name : 'Ninguna') + '</p></div></div>' +
             (match.description ? '<div class="mt-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">' + match.description + '</div>' : '') +
         '</div>';
@@ -313,13 +314,13 @@ async function loadRegistrations() {
             var playerStatusBadge = isSuspended ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold ml-1">SUSPENDIDO</span>' : '';
             
             var controls = '';
-            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-300 transition-all hover:-translate-y-0.5" title="Strike">⚡</button>';
+            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-300 transition-all hover:-translate-y-0.5" title="Strike">&#9889;</button>';
             if (!isSuspended) {
-                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300 transition-all hover:-translate-y-0.5" title="Suspender">🚫</button>';
+                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300 transition-all hover:-translate-y-0.5" title="Suspender">&#128721;</button>';
             } else {
-                controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800 hover:bg-green-200 border border-green-300 transition-all hover:-translate-y-0.5" title="Reactivar">✓</button>';
+                controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800 hover:bg-green-200 border border-green-300 transition-all hover:-translate-y-0.5" title="Reactivar">&#10003;</button>';
             }
-            controls += '<button onclick="removeRegistration(\'' + r.id + '\', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800 hover:bg-red-200 border border-red-300 transition-all hover:-translate-y-0.5" title="Quitar">🗑️</button>';
+            controls += '<button onclick="removeRegistration(\'' + r.id + '\', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800 hover:bg-red-200 border border-red-300 transition-all hover:-translate-y-0.5" title="Quitar">&#128465;&#65039;</button>';
             
             return '<div class="p-3 bg-white hover:bg-slate-50 transition-colors">' +
                 '<div class="flex flex-col sm:flex-row sm:items-center gap-2">' +
@@ -423,7 +424,7 @@ async function loadPending() {
         (players || []).forEach(function(p) { playersMap[p.id] = p; });
         
         document.getElementById('pending-section').classList.remove('hidden');
-        document.getElementById('pending-list').innerHTML = pending.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-xs font-bold text-yellow-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm text-slate-900">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">Solicitud pendiente</p></div></div><div class="flex gap-1"><button onclick="updateRegStatus(\'' + r.id + '\', \'confirmed\')" class="px-2 py-1 bg-green-500 text-white rounded text-xs font-bold">✓</button><button onclick="updateRegStatus(\'' + r.id + '\', \'rejected\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs font-bold">✕</button></div></div>'; }).join('');
+        document.getElementById('pending-list').innerHTML = pending.map(function(r) { var p = playersMap[r.player_id] || {}; return '<div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-xs font-bold text-yellow-700">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm text-slate-900">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs text-slate-500">Solicitud pendiente</p></div></div><div class="flex gap-1"><button onclick="updateRegStatus(\'' + r.id + '\', \'confirmed\')" class="px-2 py-1 bg-green-500 text-white rounded text-xs font-bold">&#10003;</button><button onclick="updateRegStatus(\'' + r.id + '\', \'rejected\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs font-bold">&#10005;</button></div></div>'; }).join('');
     } catch(e) { console.error('Error en loadPending:', e); document.getElementById('pending-section').classList.add('hidden'); }
 }
 
@@ -473,7 +474,7 @@ document.getElementById('apply-strike-form').addEventListener('submit', async fu
             applied_by: currentAdminId
         });
         if (error) throw error;
-        showToast('⚡ Strike aplicado correctamente', 'success');
+        showToast('&#9889; Strike aplicado correctamente', 'success');
         closeApplyStrikeModal();
         loadRegistrations();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
@@ -628,7 +629,7 @@ function selectPlayer(id, name) {
     document.getElementById('mr-player').value = id;
     document.getElementById('mr-player-search').value = name;
     document.getElementById('mr-player-results').classList.add('hidden');
-    document.getElementById('mr-player-selected').textContent = '✓ Seleccionado: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('mr-player-selected').textContent = '\u2713 Seleccionado: ' + name + ' (ID: ' + id + ')';
     document.getElementById('mr-player-selected').classList.remove('hidden');
 }
 
@@ -647,8 +648,6 @@ document.getElementById('manual-form').addEventListener('submit', async function
         loadResults();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 });
-
-var allPlayersCacheRegister = [];
 
 async function openManualRegisterModal() {
     var { data: players } = await supabase.from('players').select('id, current_username').order('current_username').limit(500);
@@ -678,7 +677,7 @@ function selectPlayerForRegister(id, name) {
     document.getElementById('mreg-player-id').value = id;
     document.getElementById('mreg-player-search').value = name;
     document.getElementById('mreg-player-results').classList.add('hidden');
-    document.getElementById('mreg-player-selected').textContent = '✓ Seleccionado: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('mreg-player-selected').textContent = '\u2713 Seleccionado: ' + name + ' (ID: ' + id + ')';
     document.getElementById('mreg-player-selected').classList.remove('hidden');
 }
 
@@ -701,3 +700,13 @@ document.getElementById('manual-register-form').addEventListener('submit', async
 });
 
 function copyShareLink() {
+    var input = document.getElementById('share-link');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    showToast('Enlace copiado', 'success');
+}
+
+loadMatch();
+</script>
+</body>
+</html>
