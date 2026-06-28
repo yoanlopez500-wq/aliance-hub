@@ -1,1 +1,51 @@
-Ly8gYXNzZXRzL2pzL3RoZW1lLmpzIC0gQWxsaWFuY2UgSHViIFRoZW1lIFN5c3RlbQovLyBQYWxldGEgZGUgY29sb3JlcyBpbnNwaXJhZGEgZW4gQWxsaWFuY2VIdWIgQWNhZGVteQovLyBJbmNsdWlyIEVTVEUgYXJjaGl2byBBTlRFUyBkZSBjYXJnYXIgVGFpbHdpbmQgQ0ROIHBhcmEgYWN0aXZhciBsYSBwYWxldGEgYWgtKgoKKGZ1bmN0aW9uKCkgewogICAgd2luZG93Ll9fQUhfVEhFTUUgPSB7CiAgICAgICAgY29sb3JzOiB7CiAgICAgICAgICAgIGJnOiAnIzBhMGUyNycsCiAgICAgICAgICAgIGNhcmQ6ICcjMTExODNhJywKICAgICAgICAgICAgJ2NhcmQtaG92ZXInOiAnIzFhMjM0NycsCiAgICAgICAgICAgIHByaW1hcnk6ICcjMWEyMzdlJywKICAgICAgICAgICAgJ3ByaW1hcnktbGlnaHQnOiAnIzI4MzU5MycsCiAgICAgICAgICAgIGFjY2VudDogJyNmZjZmMDAnLAogICAgICAgICAgICAnYWNjZW50LWxpZ2h0JzogJyNmZjhmMDAnLAogICAgICAgICAgICBnb2xkOiAnI2ZmZDcwMCcsCiAgICAgICAgICAgIHRleHQ6ICcjZThlYWY2JywKICAgICAgICAgICAgJ3RleHQtbGlnaHQnOiAnIzlmYThkYScsCiAgICAgICAgICAgIGJvcmRlcjogJyMxYTIzN2UnLAogICAgICAgICAgICBzdWNjZXNzOiAnIzJlN2QzMicsCiAgICAgICAgICAgIGRhbmdlcjogJyNjNjI4MjgnLAogICAgICAgIH0KICAgIH07CgogICAgLy8gQ29uZmlndXJhciBUYWlsd2luZCBDRE4gY29uIG51ZXN0cmEgcGFsZXRhIGFudGVzIGRlIHF1ZSBjYXJndWUKICAgIHdpbmRvdy50YWlsd2luZCA9IHdpbmRvdy50YWlsd2luZCB8fCB7fTsKICAgIHdpbmRvdy50YWlsd2luZC5jb25maWcgPSB7CiAgICAgICAgdGhlbWU6IHsKICAgICAgICAgICAgZXh0ZW5kOiB7CiAgICAgICAgICAgICAgICBjb2xvcnM6IHsKICAgICAgICAgICAgICAgICAgICBhaDogd2luZG93Ll9fQUhfVEhFTUUuY29sb3JzCiAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgZm9udEZhbWlseTogewogICAgICAgICAgICAgICAgICAgIHNhbnM6IFsnSW50ZXInLCAnc3lzdGVtLXVpJywgJ3NhbnMtc2VyaWYnXSwKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICBhbmltYXRpb246IHsKICAgICAgICAgICAgICAgICAgICAnZmFkZS1pbic6ICdmYWRlSW4gMC40cyBlYXNlLW91dCcsCiAgICAgICAgICAgICAgICAgICAgJ3NsaWRlLXVwJzogJ3NsaWRlVXAgMC4zcyBlYXNlLW91dCcsCiAgICAgICAgICAgICAgICAgICAgJ3B1bHNlLXNsb3cnOiAncHVsc2UgM3MgY3ViaWMtYmV6aWVyKDAuNCwgMCwgMC42LCAxKSBpbmZpbml0ZScsCiAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAga2V5ZnJhbWVzOiB7CiAgICAgICAgICAgICAgICAgICAgZmFkZUluOiB7CiAgICAgICAgICAgICAgICAgICAgICAgICcwJSc6IHsgb3BhY2l0eTogJzAnLCB0cmFuc2Zvcm06ICd0cmFuc2xhdGVZKDEycHgpJyB9LAogICAgICAgICAgICAgICAgICAgICAgICAnMTAwJSc6IHsgb3BhY2l0eTogJzEnLCB0cmFuc2Zvcm06ICd0cmFuc2xhdGVZKDEycHgpJyB9LAogICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgc2xpZGVVcDogewogICAgICAgICAgICAgICAgICAgICAgICAnMCUnOiB7IG9wYWNpdHk6ICcwJywgdHJhbnNmb3JtOiAndHJhbnNsYXRlWSgyMHB4KScgfSwKICAgICAgICAgICAgICAgICAgICAgICAgJzEwMCUnOiB7IG9wYWNpdHk6ICcxJywgdHJhbnNmb3JtOiAndHJhbnNsYXRlWSgwKScgfQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH07Cn0pKCk7Cg==
+// assets/js/theme.js - Alliance Hub Theme System
+// Paleta de colores inspirada en AllianceHub Academy
+// Incluir ESTE archivo ANTES de cargar Tailwind CDN para activar la paleta ah-*
+
+(function() {
+    window.__AH_THEME = {
+        colors: {
+            bg: '#0a0e27',
+            card: '#11183a',
+            'card-hover': '#1a2347',
+            primary: '#1a237e',
+            'primary-light': '#283593',
+            accent: '#ff6f00',
+            'accent-light': '#ff8f00',
+            gold: '#ffd700',
+            text: '#e8eaf6',
+            'text-light': '#9fa8da',
+            border: '#1a237e',
+            success: '#2e7d32',
+            danger: '#c62828',
+        }
+    };
+
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    ah: window.__AH_THEME.colors
+                },
+                fontFamily: {
+                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                },
+                animation: {
+                    'fade-in': 'fadeIn 0.4s ease-out',
+                    'slide-up': 'slideUp 0.3s ease-out',
+                },
+                keyframes: {
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(12px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                    slideUp: {
+                        '0%': { opacity: '0', transform: 'translateY(20px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    }
+                }
+            }
+        }
+    };
+})();
