@@ -44,7 +44,7 @@
                             <th class="text-right p-3 text-ah-muted">Bajas</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
                             <th class="text-right p-3 text-ah-muted">KD Efectivo</th>
-                            <th class="text-right p-3 text-ah-muted text-xs" title="Strikes activos">&#9888;&#65039;</th>
+                            <th class="text-right p-3 text-ah-muted text-xs" title="Kills anuladas">&#9889;</th>
                         </tr>
                     </thead>
                     <tbody id="players-tbody">
@@ -65,7 +65,7 @@
                             <th class="text-right p-3 text-ah-muted">Jugadores</th>
                             <th class="text-right p-3 text-ah-muted">Bajas Efectivas</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
-                            <th class="text-right p-3 text-ah-muted">KD Efectivo</th>
+                            <th class="text-right p-3 text-ah-muted">KD</th>
                             <th class="text-right p-3 text-ah-muted">Partidas</th>
                         </tr>
                     </thead>
@@ -105,13 +105,32 @@
         </div>
     </div>
     <script>
+        // Cache global de kills anuladas: { player_id: total_nullified }
+        var nullifiedCache = {};
+
         function showError(msg) {
             var el = document.getElementById('error-banner');
             el.textContent = msg;
             el.classList.remove('hidden');
         }
 
+        async function loadNullifiedCache() {
+            // Cargar todas las kills anuladas una sola vez
+            try {
+                var res = await supabase.from('match_nullified_kills').select('player_id, kills_nullified');
+                if (res.error) throw res.error;
+                nullifiedCache = {};
+                (res.data || []).forEach(function(row) {
+                    nullifiedCache[row.player_id] = (nullifiedCache[row.player_id] || 0) + row.kills_nullified;
+                });
+            } catch(e) {
+                console.error('[Rankings] Error cargando kills anuladas:', e);
+                nullifiedCache = {};
+            }
+        }
+
         async function loadData() {
+            // Cargar kills anuladas primero (en paralelo con alianzas)
             var alliances = [];
             try {
                 var res = await supabase.from('alliances').select('id, name').order('name');
@@ -125,31 +144,46 @@
                 return '<option value="' + a.id + '">' + a.name + '</option>';
             }).join('');
 
+            // Cargar cache de kills anuladas antes de rankings
+            await loadNullifiedCache();
+
             try { await loadRankings(); } catch(e) { console.error('[Rankings] loadRankings:', e); }
             try { await loadLeagues(); } catch(e) { console.error('[Rankings] loadLeagues:', e); }
             try { await loadDuels(); } catch(e) { console.error('[Rankings] loadDuels:', e); }
             try { await loadStrikes(); } catch(e) { console.error('[Rankings] loadStrikes:', e); }
         }
 
+        function effectiveKills(player) {
+            var total = player.total_kills || 0;
+            var nullified = nullifiedCache[player.id] || 0;
+            return Math.max(0, total - nullified);
+        }
+
         async function loadRankings() {
             try {
                 var allianceFilter = document.getElementById('filter-alliance').value;
-                // Usar vista player_ranking_stats que calcula effective_kills por partida
-                var query = supabase.from('player_ranking_stats').select('*, alliance:alliances!player_ranking_stats_current_alliance_id_fkey(name, tag)');
+                var query = supabase.from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)');
                 if (allianceFilter) query = query.eq('current_alliance_id', allianceFilter);
-                var res = await query.order('effective_kills', { ascending: false }).limit(100);
+                var res = await query.order('total_kills', { ascending: false }).limit(100);
                 if (res.error) throw res.error;
-                var players = res.data;
+                var players = res.data || [];
+
+                // Ordenar por effective_kills en el cliente
+                players.sort(function(a, b) {
+                    return effectiveKills(b) - effectiveKills(a);
+                });
+
                 var tbody = document.getElementById('players-tbody');
-                if (!players || players.length === 0) {
+                if (players.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
                 } else {
                     tbody.innerHTML = players.map(function(p, i) {
-                        var effectiveKills = p.effective_kills || 0;
-                        var kd = p.total_deaths > 0 ? (effectiveKills / p.total_deaths).toFixed(2) : effectiveKills;
-                        var hasNullified = (p.total_nullified_kills || 0) > 0;
+                        var effKills = effectiveKills(p);
+                        var nullified = nullifiedCache[p.id] || 0;
+                        var kd = p.total_deaths > 0 ? (effKills / p.total_deaths).toFixed(2) : effKills;
+                        var hasNullified = nullified > 0;
                         var killsDisplay = hasNullified
-                            ? '<span class="kill-nullified" title="Kills anuladas por strike Kill Nullifier">' + (p.total_kills?.toLocaleString() || 0) + '</span> <span class="text-orange-400 text-xs">(' + effectiveKills + ')</span>'
+                            ? '<span class="kill-nullified" title="Kills anuladas por strike Kill Nullifier">' + (p.total_kills?.toLocaleString() || 0) + '</span> <span class="text-orange-400 text-xs">(' + effKills + ')</span>'
                             : (p.total_kills?.toLocaleString() || 0);
                         return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
                             '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
@@ -159,7 +193,7 @@
                             '<td class="p-3 text-right text-green-400 font-bold">' + killsDisplay + '</td>' +
                             '<td class="p-3 text-right text-red-400">' + (p.total_deaths?.toLocaleString() || 0) + '</td>' +
                             '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td>' +
-                            '<td class="p-3 text-right">' + (p.total_nullified_kills || 0) + '</td>' +
+                            '<td class="p-3 text-right text-orange-400 text-xs">' + (nullified > 0 ? '-' + nullified : '') + '</td>' +
                         '</tr>';
                     }).join('');
                 }
@@ -168,20 +202,22 @@
                 document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error cargando jugadores</td></tr>';
             }
 
-            // Alianzas: usar player_ranking_stats para effective_kills por jugador
+            // Alianzas
             try {
-                var res2 = await supabase.from('player_ranking_stats').select('current_alliance_id, alliance:alliances!player_ranking_stats_current_alliance_id_fkey(name, tag), effective_kills, total_deaths, games_played, total_nullified_kills').not('current_alliance_id', 'is', null);
+                var res2 = await supabase.from('players').select('current_alliance_id, alliance:alliances!players_current_alliance_id_fkey(name, tag), total_kills, total_deaths, games_played').not('current_alliance_id', 'is', null);
                 if (res2.error) throw res2.error;
                 var allianceStats = res2.data || [];
                 var grouped = {};
                 allianceStats.forEach(function(p) {
                     var id = p.current_alliance_id;
                     if (!grouped[id]) grouped[id] = { name: p.alliance.name, tag: p.alliance.tag, effKills: 0, deaths: 0, players: 0, games: 0, nullified: 0 };
-                    grouped[id].effKills += p.effective_kills || 0;
+                    var eff = effectiveKills(p);
+                    var n = nullifiedCache[p.id] || 0;
+                    grouped[id].effKills += eff;
                     grouped[id].deaths += p.total_deaths || 0;
                     grouped[id].players++;
                     grouped[id].games += p.games_played || 0;
-                    grouped[id].nullified += p.total_nullified_kills || 0;
+                    grouped[id].nullified += n;
                 });
                 var sorted = Object.values(grouped).sort(function(a, b) {
                     var kda = a.deaths > 0 ? a.effKills / a.deaths : a.effKills;
