@@ -110,13 +110,13 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <div class="text-center mb-4">
 <div class="text-4xl mb-3">&#128293;</div>
 <h3 class="text-lg font-bold text-white">Recuperar Acceso</h3>
-<p class="text-sm" style="color:#9fa8da">Esto eliminara el vinculo con tu dispositivo anterior y creara uno nuevo.</p>
+<p class="text-sm" style="color:#9fa8da">Se generara un nuevo token para tu cuenta. El token anterior dejara de funcionar.</p>
 </div>
 <div class="rounded-xl p-4 mb-4" style="background:rgba(239,83,80,0.05);border:1px solid rgba(239,83,80,0.15)">
-<p class="text-xs" style="color:#ef5350">&#9888;&#65039; Si alguien mas tiene acceso a tu cuenta, contacta a un admin inmediatamente.</p>
+<p class="text-xs" style="color:#ef5350">&#9888;&#65039; Si crees que alguien mas tiene acceso a tu cuenta, contacta a un admin.</p>
 </div>
 <div id="forgot-step-confirm">
-    <button onclick="confirmForgotToken()" class="w-full py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:#ef5350;color:#fff">Si, quiero recuperar mi cuenta</button>
+    <button onclick="confirmForgotToken()" class="w-full py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:#ef5350;color:#fff">Si, generar nuevo token</button>
 </div>
 <div id="forgot-step-success" class="hidden text-center">
     <p class="text-sm" style="color:#4caf50">&#10003; Cuenta recuperada. Redirigiendo...</p>
@@ -214,19 +214,15 @@ async function confirmForgotToken() {
         return;
     }
     try {
-        // 1. Eliminar token antiguo
-        var { error: delErr } = await supabase.from('player_tokens')
-            .delete()
-            .eq('player_id', parseInt(pendingPlayerId));
-        if (delErr) throw delErr;
-
-        // 2. Crear nuevo token
+        // Generar nuevo token
         var newToken = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        var { error: insErr } = await supabase.from('player_tokens')
-            .insert({ player_id: parseInt(pendingPlayerId), token: newToken });
-        if (insErr) throw insErr;
 
-        // 3. Guardar en localStorage y hacer login
+        // Usar upsert: si existe actualiza, si no inserta (nunca da duplicate key)
+        var { error: upsErr } = await supabase.from('player_tokens')
+            .upsert({ player_id: parseInt(pendingPlayerId), token: newToken, last_used: new Date().toISOString() }, { onConflict: 'player_id' });
+        if (upsErr) throw upsErr;
+
+        // Guardar en localStorage y hacer login
         localStorage.setItem('ah_v2_player_token', newToken);
         localStorage.setItem('ah_v2_player_id', pendingPlayerId);
         localStorage.setItem('ah_v2_display_name', pendingUsername);
@@ -235,9 +231,7 @@ async function confirmForgotToken() {
         if (result.success) {
             document.getElementById('forgot-step-confirm').classList.add('hidden');
             document.getElementById('forgot-step-success').classList.remove('hidden');
-            setTimeout(function() {
-                window.location.href = 'dashboard.html';
-            }, 1000);
+            setTimeout(function() { window.location.href = 'dashboard.html'; }, 1000);
         } else {
             showError('forgot-error', result.message || 'Error en login');
         }
@@ -271,7 +265,7 @@ async function checkTokenProtected(playerId, username) {
             return;
         }
 
-        // No token yet
+        // No token yet - first time login
         var result = await lazyLogin(playerId, username);
         if (result.success) {
             var newToken = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
