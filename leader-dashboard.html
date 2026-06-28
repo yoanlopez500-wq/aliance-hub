@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mi Alianza - Alliance Hub</title>
+<title>Panel de Alianza - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -45,6 +45,7 @@ body { font-family: 'Inter', system-ui, sans-serif; }
     <!-- Tabs -->
     <div class="flex gap-6 mb-6 border-b overflow-x-auto scrollbar-hide" style="border-color: #1a237e;">
         <button onclick="switchTab('members')" id="tab-members" class="tab-active pb-3 text-sm font-medium whitespace-nowrap transition">&#128101; Miembros</button>
+        <button onclick="switchTab('requests')" id="tab-requests" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#128233; Solicitudes <span id="req-badge" class="hidden px-1.5 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(239,83,80,0.3);color:#ef5350">0</span></button>
         <button onclick="switchTab('rankings')" id="tab-rankings" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127942; Ranking Interno</button>
         <button onclick="switchTab('duels')" id="tab-duels" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#9876;&#65039; Duelos</button>
         <button onclick="switchTab('global')" id="tab-global" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127758; Ranking Global</button>
@@ -52,7 +53,27 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 
     <!-- TAB: Members -->
     <div id="panel-members" class="fade-in">
+        <!-- Add member directly -->
+        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+            <h3 class="text-sm font-bold text-white mb-2">&#10133; Inscribir Jugador Directamente</h3>
+            <p class="text-xs mb-3" style="color: #9fa8da;">Como lider, puedes agregar jugadores sin que soliciten. Ingresa su ID.</p>
+            <div class="flex gap-2">
+                <input type="number" id="add-player-id" placeholder="ID del jugador" class="flex-1 px-3 py-2 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
+                <button onclick="addMemberDirectly()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Agregar</button>
+            </div>
+            <div id="add-member-error" class="mt-2 text-xs hidden" style="color: #ef5350;"></div>
+            <div id="add-member-success" class="mt-2 text-xs hidden" style="color: #4caf50;"></div>
+        </div>
         <div class="grid gap-3" id="members-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando miembros...</div></div>
+    </div>
+
+    <!-- TAB: Requests -->
+    <div id="panel-requests" class="hidden fade-in">
+        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+            <h3 class="text-sm font-bold text-white mb-1">&#128233; Solicitudes Pendientes</h3>
+            <p class="text-xs" style="color: #9fa8da;">Jugadores que solicitaron unirse a tu alianza. Aprueba o rechaza cada solicitud.</p>
+        </div>
+        <div id="requests-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando solicitudes...</div></div>
     </div>
 
     <!-- TAB: Rankings -->
@@ -105,6 +126,7 @@ async function init() {
     myAllianceId = admin.alliance_id;
     await loadAllianceData();
     loadMembers();
+    loadPendingRequests();
 }
 
 async function loadAllianceData() {
@@ -112,53 +134,178 @@ async function loadAllianceData() {
     if (data) {
         myAllianceData = data;
         document.getElementById('alliance-name').textContent = data.name;
-        document.getElementById('alliance-tag').textContent = '[' + (data.tag || '---') + ']';
+        document.getElementById('alliance-tag').textContent = '[' + (data.tag || '---') + '] ' + (data.description || '');
     }
 }
 
+// ====== ADD MEMBER DIRECTLY (Leader enrolls player) ======
+async function addMemberDirectly() {
+    var input = document.getElementById('add-player-id');
+    var errorEl = document.getElementById('add-member-error');
+    var successEl = document.getElementById('add-member-success');
+    errorEl.classList.add('hidden');
+    successEl.classList.add('hidden');
+
+    var playerId = parseInt(input.value);
+    if (!playerId || playerId <= 0) { errorEl.textContent = 'ID de jugador invalido'; errorEl.classList.remove('hidden'); return; }
+
+    try {
+        // Verify player exists
+        var { data: player, error: pErr } = await supabase.from('players').select('id, current_username').eq('id', playerId).maybeSingle();
+        if (pErr) throw pErr;
+        if (!player) { errorEl.textContent = 'Jugador no encontrado con ID ' + playerId; errorEl.classList.remove('hidden'); return; }
+
+        // Check if already in any alliance
+        var { data: existing } = await supabase.from('alliance_memberships').select('status').eq('player_id', playerId).maybeSingle();
+        if (existing && existing.status === 'approved') { errorEl.textContent = 'Este jugador ya esta en una alianza'; errorEl.classList.remove('hidden'); return; }
+
+        // Upsert membership (approved directly by leader)
+        var { error: mErr } = await supabase.from('alliance_memberships').upsert({
+            player_id: playerId,
+            alliance_id: myAllianceId,
+            status: 'approved',
+            requested_by: 'leader',
+            approved_at: new Date().toISOString()
+        }, { onConflict: 'player_id_alliance_id' });
+        if (mErr) throw mErr;
+
+        // Update player's current_alliance_id
+        await supabase.from('players').update({ current_alliance_id: myAllianceId }).eq('id', playerId);
+
+        successEl.textContent = player.current_username + ' agregado exitosamente!';
+        successEl.classList.remove('hidden');
+        input.value = '';
+        loadMembers();
+        loadPendingRequests();
+    } catch(e) {
+        console.error('[Leader] Add member error:', e);
+        errorEl.textContent = 'Error: ' + (e.message || 'intenta de nuevo');
+        errorEl.classList.remove('hidden');
+    }
+}
+
+// ====== PENDING REQUESTS (Approve/Reject) ======
+async function loadPendingRequests() {
+    try {
+        var { data: requests, error } = await supabase.from('alliance_memberships')
+            .select('*, players(id, current_username, games_played, total_kills, total_deaths)')
+            .eq('alliance_id', myAllianceId)
+            .eq('status', 'pending')
+            .eq('requested_by', 'player')
+            .order('requested_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Update badge
+        var badge = document.getElementById('req-badge');
+        var count = requests ? requests.length : 0;
+        if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+        else badge.classList.add('hidden');
+
+        var container = document.getElementById('requests-list');
+        if (!requests || requests.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e;">' +
+                '<div class="text-4xl mb-2">&#128233;</div><p style="color: #9fa8da;">No hay solicitudes pendientes.</p></div>';
+            return;
+        }
+
+        container.innerHTML = requests.map(function(r) {
+            var p = r.players || {};
+            var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : '0.00';
+            return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
+                '<div class="flex items-center gap-3 mb-3">' +
+                    '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
+                        (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + p.id) + '</p>' +
+                        '<p class="text-xs" style="color: #9fa8da;">ID: ' + p.id + ' &middot; ' + (p.games_played || 0) + ' partidas &middot; KD: ' + kd + '</p>' +
+                        '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Solicitado: ' + formatDate(r.requested_at) + '</p></div></div>' +
+                '<div class="flex gap-2">' +
+                    '<button onclick="approveRequest(\'' + r.id + '\', ' + p.id + ')" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid rgba(76,175,80,0.3);">&#10003; Aprobar</button>' +
+                    '<button onclick="rejectRequest(\'' + r.id + '\')" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background: rgba(239,83,80,0.15); color: #ef5350; border: 1px solid rgba(239,83,80,0.3);">&#10007; Rechazar</button>' +
+                '</div></div>';
+        }).join('');
+    } catch(e) {
+        console.error('[Leader] Requests error:', e);
+        document.getElementById('requests-list').innerHTML = '<div class="text-center py-8" style="color: #ef5350;">Error cargando solicitudes</div>';
+    }
+}
+
+async function approveRequest(membershipId, playerId) {
+    try {
+        var { error } = await supabase.from('alliance_memberships')
+            .update({ status: 'approved', approved_at: new Date().toISOString() })
+            .eq('id', membershipId);
+        if (error) throw error;
+
+        // Update player's current_alliance_id
+        await supabase.from('players').update({ current_alliance_id: myAllianceId }).eq('id', playerId);
+
+        showToast('Solicitud aprobada!', 'success');
+        loadPendingRequests();
+        if (currentTab === 'members') loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function rejectRequest(membershipId) {
+    if (!confirm('Rechazar esta solicitud?')) return;
+    try {
+        var { error } = await supabase.from('alliance_memberships')
+            .update({ status: 'rejected', rejected_at: new Date().toISOString() })
+            .eq('id', membershipId);
+        if (error) throw error;
+        showToast('Solicitud rechazada', 'info');
+        loadPendingRequests();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ====== MEMBERS ======
 async function loadMembers() {
-    var { data: players, error } = await supabase.from('players')
-        .select('*').eq('current_alliance_id', myAllianceId).order('current_username');
+    try {
+        // Get approved members via alliance_memberships
+        var { data: memberships, error: mErr } = await supabase.from('alliance_memberships')
+            .select('player_id, requested_by, approved_at')
+            .eq('alliance_id', myAllianceId)
+            .eq('status', 'approved');
+        if (mErr) throw mErr;
 
-    var container = document.getElementById('members-list');
-    if (error || !players || players.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;">' +
-            '<div class="text-4xl mb-2">&#128101;</div><p>No hay miembros registrados en tu alianza.</p>' +
-            '<p class="text-xs mt-2">Los jugadores deben registrarse con el ID de esta alianza.</p></div>';
-        return;
+        var container = document.getElementById('members-list');
+        if (!memberships || memberships.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;">' +
+                '<div class="text-4xl mb-2">&#128101;</div><p>No hay miembros registrados en tu alianza.</p></div>';
+            return;
+        }
+
+        var playerIds = memberships.map(function(m) { return m.player_id; });
+        var { data: players, error: pErr } = await supabase.from('players')
+            .select('id, current_username, status, games_played, total_kills, total_deaths, last_seen')
+            .in('id', playerIds)
+            .order('current_username');
+        if (pErr) throw pErr;
+
+        allianceMembers = players || [];
+        var memberMap = {};
+        memberships.forEach(function(m) { memberMap[m.player_id] = m; });
+
+        container.innerHTML = players.map(function(p) {
+            var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
+            var statusColor = p.status === 'active' ? '#4caf50' : p.status === 'suspended' ? '#ff8f00' : '#ef5350';
+            var addedBy = memberMap[p.id]?.requested_by === 'leader' ? ' (por lider)' : '';
+            return '<div class="rounded-xl p-4 flex items-center gap-4 transition hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;">' +
+                '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
+                    (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + p.id) + addedBy + '</p>' +
+                    '<p class="text-xs" style="color: #9fa8da;">ID: ' + p.id + ' &middot; ' + (p.games_played || 0) + ' partidas</p></div>' +
+                '<div class="text-right flex-shrink-0">' +
+                    '<p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
+                    '<p class="text-xs" style="color: #9fa8da;">' + (p.total_kills || 0) + 'K / ' + (p.total_deaths || 0) + 'D</p></div>' +
+                '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p.status || 'active') + '</span></div>';
+        }).join('');
+    } catch(e) {
+        console.error('[Leader] Members error:', e);
+        document.getElementById('members-list').innerHTML = '<div class="text-center py-8" style="color: #ef5350;">Error cargando miembros</div>';
     }
-
-    allianceMembers = players;
-    var playerIds = players.map(function(p) { return p.id; });
-    var { data: results } = await supabase.from('match_results')
-        .select('player_id, kills, deaths').in('player_id', playerIds);
-
-    var statsMap = {};
-    if (results) {
-        results.forEach(function(r) {
-            if (!statsMap[r.player_id]) statsMap[r.player_id] = { kills: 0, deaths: 0, games: 0 };
-            statsMap[r.player_id].kills += (r.kills || 0);
-            statsMap[r.player_id].deaths += (r.deaths || 0);
-            statsMap[r.player_id].games++;
-        });
-    }
-
-    container.innerHTML = players.map(function(p) {
-        var s = statsMap[p.id] || { kills: 0, deaths: 0, games: 0 };
-        var kd = s.deaths > 0 ? (s.kills / s.deaths).toFixed(2) : s.kills > 0 ? s.kills.toFixed(2) : '0.00';
-        var statusColor = p.status === 'active' ? '#4caf50' : p.status === 'suspended' ? '#ff8f00' : '#ef5350';
-
-        return '<div class="rounded-xl p-4 flex items-center gap-4 transition hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;">' +
-            '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
-                (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
-            '<div class="flex-1 min-w-0">' +
-                '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + p.id) + '</p>' +
-                '<p class="text-xs" style="color: #9fa8da;">ID: ' + p.id + ' &middot; ' + (s.games || 0) + ' partidas</p></div>' +
-            '<div class="text-right flex-shrink-0">' +
-                '<p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
-                '<p class="text-xs" style="color: #9fa8da;">' + s.kills + 'K / ' + s.deaths + 'D</p></div>' +
-            '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p.status || 'active') + '</span></div>';
-    }).join('');
 }
 
 async function loadRankings() {
@@ -232,8 +379,17 @@ async function loadGlobalRankings() {
     container.innerHTML = '<div class="text-center py-4" style="color: #9fa8da;">Cargando...</div>';
     if (!myAllianceId) return;
 
+    // Get approved members
+    var { data: memberships } = await supabase.from('alliance_memberships')
+        .select('player_id')
+        .eq('alliance_id', myAllianceId)
+        .eq('status', 'approved');
+
+    if (!memberships || memberships.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>'; return; }
+
+    var playerIds = memberships.map(function(m) { return m.player_id; });
     var { data: players } = await supabase.from('players')
-        .select('*').eq('current_alliance_id', myAllianceId).order('total_kills', { ascending: false });
+        .select('*').in('id', playerIds).order('total_kills', { ascending: false });
 
     if (!players || players.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>'; return; }
 
@@ -251,7 +407,7 @@ async function loadGlobalRankings() {
 
 function switchTab(tab) {
     currentTab = tab;
-    ['members', 'rankings', 'duels', 'global'].forEach(function(t) {
+    ['members', 'requests', 'rankings', 'duels', 'global'].forEach(function(t) {
         document.getElementById('panel-' + t).classList.add('hidden');
         document.getElementById('tab-' + t).classList.remove('tab-active');
         document.getElementById('tab-' + t).classList.add('tab-inactive');
@@ -263,6 +419,7 @@ function switchTab(tab) {
     if (tab === 'rankings') loadRankings();
     if (tab === 'duels') loadDuels();
     if (tab === 'global') loadGlobalRankings();
+    if (tab === 'requests') loadPendingRequests();
 }
 
 init();
