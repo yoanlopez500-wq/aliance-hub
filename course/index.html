@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AllianceHub Academy - Certificacion de Lideres</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Inter', sans-serif; background: #0a0e27; color: #e8eaf6; }
+.fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.confetti { position: fixed; width: 10px; height: 10px; top: -10px; z-index: 1000; animation: confetti-fall 3s ease-out forwards; }
+@keyframes confetti-fall { 0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.option-btn { transition: all 0.2s ease; background: rgba(255,255,255,0.05); border: 1px solid #1a237e; }
+.option-btn:hover { border-color: #ff6f00; background: rgba(255,111,0,0.1); }
+.option-btn.correct { border-color: #2e7d32 !important; background: rgba(46,125,50,0.2) !important; }
+.option-btn.wrong { border-color: #c62828 !important; background: rgba(198,40,40,0.2) !important; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6f00 !important; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<header style="background: linear-gradient(135deg, #1a237e, #283593);" class="sticky top-0 z-50 shadow-lg">
+    <div class="max-w-xl mx-auto px-5 py-4 flex justify-between items-center">
+        <h1 class="text-sm font-bold tracking-wide">&#127979; AllianceHub Academy</h1>
+        <span class="text-xl">&#9876;&#65039;</span>
+    </div>
+</header>
+
+<div id="progress-bar-container" class="hidden">
+    <div class="max-w-xl mx-auto px-5 py-3" style="background: #11183a; border-bottom: 1px solid #1a237e;">
+        <div class="flex justify-between text-xs mb-2" style="color: #9fa8da;">
+            <span id="progress-text">Modulo 1 de 6</span><span id="progress-percent">0%</span>
+        </div>
+        <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1);">
+            <div id="progress-fill" class="h-full rounded-full transition-all duration-500" style="width:0%; background: linear-gradient(90deg, #ff6f00, #ff8f00);"></div>
+        </div>
+    </div>
+</div>
+
+<main class="flex-1 max-w-xl mx-auto w-full px-5 py-4 pb-24">
+
+<!-- VIEW: INTRO -->
+<div id="view-intro" class="fade-in">
+    <div style="background: #11183a; border: 1px solid #1a237e;" class="rounded-2xl p-8 text-center">
+        <div class="text-6xl mb-4">&#128737;&#65039;</div>
+        <h2 class="text-2xl font-bold mb-2">Curso de Certificacion</h2>
+        <p style="color: #9fa8da;" class="mb-2">Liderazgo y Administracion de Alianzas</p>
+        <p class="text-xs mb-6" style="color: #9fa8da; opacity: 0.7;">AllianceHub &middot; Liga de Torneos Supremacy 1914</p>
+
+        <div class="rounded-xl p-4 mb-6 text-left text-sm space-y-1" style="background: rgba(255,255,255,0.05);">
+            <p><strong style="color: #ff8f00;">&#9201; Duracion:</strong> ~8 minutos</p>
+            <p><strong style="color: #ff8f00;">&#128221; Evaluacion:</strong> 5 preguntas (80% para aprobar)</p>
+            <p><strong style="color: #ff8f00;">&#127873; Recompensa:</strong> Solicitud de registro como Lider de Alianza</p>
+        </div>
+
+        <div class="rounded-xl p-4 mb-6 text-left text-sm" style="background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2);">
+            <p style="color: #ffd700;" class="font-bold mb-2">&#128203; Requisitos previos:</p>
+            <ul class="space-y-1" style="color: #9fa8da;">
+                <li>&bull; Tener cuenta activa en Supremacy 1914</li>
+                <li>&bull; Ser representante o lider de una alianza</li>
+                <li>&bull; Conocer el ID de tu alianza en el juego</li>
+            </ul>
+        </div>
+
+        <button onclick="showRegistrationForm()" class="w-full font-semibold py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">
+            Comenzar Certificacion &rarr;
+        </button>
+        <div class="mt-4"><a href="../index.html" class="text-xs transition-colors" style="color: #9fa8da; opacity: 0.6;">&larr; Volver a Alliance Hub</a></div>
+    </div>
+</div>
+
+<!-- VIEW: REGISTRATION -->
+<div id="view-registration" class="hidden">
+    <div style="background: #11183a; border: 1px solid #1a237e;" class="rounded-2xl p-6">
+        <div class="text-center mb-6">
+            <div class="text-4xl mb-3">&#128221;</div>
+            <h2 class="text-xl font-bold">Registro de Solicitud</h2>
+            <p style="color: #9fa8da;" class="text-sm">Antes de tomar el curso, completa tus datos</p>
+        </div>
+        <form id="reg-form" class="space-y-4">
+            <div><label class="text-sm font-medium block mb-1" style="color: #9fa8da;">Tu nombre de jugador *</label>
+                <input type="text" id="reg-display-name" required class="w-full rounded-xl px-4 py-3 text-white text-sm" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;" placeholder="Ej: ComandanteX"></div>
+            <div><label class="text-sm font-medium block mb-1" style="color: #9fa8da;">ID de jugador en Supremacy 1914 *</label>
+                <input type="number" id="reg-player-id" required class="w-full rounded-xl px-4 py-3 text-white text-sm" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;" placeholder="Ej: 12345678"></div>
+            <div><label class="text-sm font-medium block mb-1" style="color: #9fa8da;">Nombre de la Alianza a registrar *</label>
+                <input type="text" id="reg-alliance-name" required class="w-full rounded-xl px-4 py-3 text-white text-sm" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;" placeholder="Ej: Los Conquistadores"></div>
+            <div><label class="text-sm font-medium block mb-1" style="color: #9fa8da;">Tag de la Alianza (2-10 caracteres) *</label>
+                <input type="text" id="reg-alliance-tag" required minlength="2" maxlength="10" class="w-full rounded-xl px-4 py-3 text-white text-sm uppercase" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;" placeholder="Ej: LC"></div>
+            <div class="rounded-lg p-3 text-xs" style="background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2); color: #ffd700;">
+                &#8505; Al completar el curso, tu solicitud sera enviada a los administradores de AllianceHub para revision. Si apruebas el curso y tu solicitud es aceptada, recibiras un codigo de invitacion para acceder al panel de lider.
+            </div>
+            <button type="submit" class="w-full font-semibold py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Continuar al Curso &rarr;</button>
+            <button type="button" onclick="goTo('intro')" class="w-full py-3 rounded-xl text-sm font-medium transition" style="background: rgba(255,255,255,0.05); color: #9fa8da;">&larr; Volver</button>
+        </form>
+    </div>
+</div>
+
+<!-- VIEW: MODULE -->
+<div id="view-module" class="hidden">
+    <div id="module-content" style="background: #11183a; border: 1px solid #1a237e;" class="rounded-2xl p-6 mb-4"></div>
+    <div class="fixed bottom-0 left-0 right-0 p-4 flex gap-3 max-w-xl mx-auto z-40" style="background: #11183a; border-top: 1px solid #1a237e;">
+        <button id="btn-prev" onclick="prevModule()" class="hidden flex-1 py-3 rounded-xl font-medium text-sm transition-transform active:scale-[0.98]" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #e8eaf6;">&larr; Anterior</button>
+        <button id="btn-next" onclick="nextModule()" class="flex-[2] font-semibold py-3 rounded-xl text-sm transition-transform active:scale-[0.98] shadow-lg" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Siguiente &rarr;</button>
+    </div>
+</div>
+
+<!-- VIEW: QUIZ -->
+<div id="view-quiz" class="hidden">
+    <div style="background: #11183a; border: 1px solid #1a237e;" class="rounded-2xl p-6">
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color: #9fa8da;">Evaluacion Final</span>
+            <span id="quiz-progress" class="text-xs font-bold" style="color: #ff8f00;">1 / 5</span>
+        </div>
+        <div id="quiz-timer" class="text-2xl font-bold font-mono text-center mb-4" style="color: #ff6f00;">05:00</div>
+        <h3 id="quiz-question" class="text-base font-semibold mb-5 leading-relaxed"></h3>
+        <div id="quiz-options" class="space-y-3"></div>
+        <div id="quiz-feedback" class="hidden mt-4 p-4 rounded-xl text-sm font-semibold text-center"></div>
+    </div>
+</div>
+
+<!-- VIEW: RESULT -->
+<div id="view-result" class="hidden">
+    <div id="result-content" style="background: #11183a; border: 1px solid #1a237e;" class="rounded-2xl p-8 text-center"></div>
+</div>
+
+<!-- VIEW: CERTIFICATE -->
+<div id="view-certificate" class="hidden">
+    <div class="rounded-2xl p-8 text-center relative overflow-hidden" style="background: linear-gradient(135deg, #1a237e, #0d1b4c); border: 2px solid #ffd700;">
+        <div class="absolute top-4 right-4 text-3xl" style="color: rgba(255,215,0,0.3);">&#10022;</div>
+        <div class="absolute bottom-4 left-4 text-3xl" style="color: rgba(255,215,0,0.3);">&#10022;</div>
+        <div class="text-6xl mb-4">&#127942;</div>
+        <h2 class="text-xl font-extrabold mb-1" style="color: #ffd700;">CERTIFICADO DE ADMINISTRADOR</h2>
+        <p class="text-xs mb-4" style="color: #9fa8da;">AllianceHub &middot; Liga de Torneos Supremacy 1914</p>
+        <div class="w-16 h-0.5 mx-auto mb-4 rounded-full" style="background: #ffd700;"></div>
+        <p class="text-sm mb-1" style="color: #9fa8da;">Otorgado a</p>
+        <p id="cert-name" class="text-lg font-bold text-white mb-1">Administrador</p>
+        <p id="cert-alliance" class="text-sm mb-1" style="color: #9fa8da;">--</p>
+        <p id="cert-date" class="text-xs mb-6" style="color: #9fa8da; opacity: 0.6;">--</p>
+        <div class="rounded-xl p-5 mb-4" style="background: rgba(0,0,0,0.3); border: 2px dashed #ffd700;">
+            <p class="text-xs uppercase tracking-widest mb-2" style="color: #9fa8da; opacity: 0.6;">Codigo de Solicitud</p>
+            <p id="cert-code" class="text-2xl font-extrabold font-mono tracking-widest" style="color: #ffd700;">----</p>
+        </div>
+        <div id="cert-status" class="rounded-lg p-3 mb-4 text-sm" style="background: rgba(46,125,50,0.2); border: 1px solid rgba(46,125,50,0.4); color: #4caf50;">
+            &#9989; Solicitud enviada a revision. Los administradores revisaran tu solicitud y te contactaran.
+        </div>
+        <p class="text-xs leading-relaxed mb-6" style="color: #9fa8da; opacity: 0.6;">Este codigo certifica que completaste el curso de AllianceHub Academy.<br>Valido para el registro de: <span id="cert-alliance-tag" class="font-bold" style="color: #ffd700;">--</span></p>
+        <button onclick="copyCode()" class="w-full font-semibold py-3 rounded-xl transition-transform active:scale-[0.98] shadow-lg mb-3" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">&#128203; Copiar Codigo</button>
+        <a href="../index.html" class="block w-full py-3 rounded-xl text-sm font-medium transition" style="background: rgba(255,255,255,0.05); color: #9fa8da;">&larr; Volver a Alliance Hub</a>
+    </div>
+</div>
+
+</main>
+
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/base.js"></script>
+<script>
+// Course data
+var defaultCourse = {
+    modules: [
+        { title: "Modulo 1: No eres policia, eres arbitro", icon: "&#9878;&#65039;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#9878;&#65039; No eres policia, eres arbitro</h2><p class="mb-4 leading-relaxed" style="color: #9fa8da;">Tu rol como lider de alianza no es vigilar cada movimiento en el mapa. Eso es imposible y no es tu trabajo.</p><div class="rounded-r-xl p-4 mb-4" style="background: rgba(255,111,0,0.1); border-left: 4px solid #ff6f00;"><p class="font-medium">"El lider no es un policia, es un organizador y arbitro."</p></div><h3 class="text-lg font-semibold mb-3 text-white">&#127919; Principio clave: Onus Probandi</h3><p class="mb-4 leading-relaxed" style="color: #9fa8da;">La <strong class="text-white">carga de la prueba</strong> cae en manos del acusador. Sin evidencia, no hay caso.</p><div class="rounded-r-xl p-3 mb-3" style="background: rgba(46,125,50,0.1); border-left: 4px solid #2e7d32;"><p><strong style="color: #4caf50;">&#10003; Correcto:</strong> "Envia capturas de evidencia. Sin pruebas, no hay caso."</p></div><div class="rounded-r-xl p-3 mb-4" style="background: rgba(198,40,40,0.1); border-left: 4px solid #c62828;"><p><strong style="color: #ef5350;">&#10007; Incorrecto:</strong> "Dejame investigar a ese jugador ahora mismo."</p></div>' },
+        { title: "Modulo 2: Esto es un juego, no un tribunal", icon: "&#127918;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#127918; Esto es un juego, no un tribunal</h2><p class="mb-4 leading-relaxed" style="color: #9fa8da;">AllianceHub opera dentro del ecosistema de Supremacy 1914. Respetamos las reglas de Bytro/Stillfront.</p><div class="rounded-r-xl p-4 mb-4" style="background: rgba(255,111,0,0.1); border-left: 4px solid #ff6f00;"><p class="font-medium">"Nunca violaremos el EULA de Bytro. No queremos problemas legales."</p></div><h3 class="text-lg font-semibold mb-3 text-white">&#128683; Lo que NO puedes hacer</h3><ul class="list-disc pl-5 space-y-2 mb-4" style="color: #9fa8da;"><li>Pedir a un GO que investigue uso de oro/potenciadores</li><li>Acceder a datos internos del juego</li><li>Interceptar trafico o APIs de Bytro</li></ul><h3 class="text-lg font-semibold mb-3 text-white">&#9989; Lo que SI puedes hacer</h3><ul class="list-disc pl-5 space-y-2 mb-4" style="color: #9fa8da;"><li>Crear reglas ADICIONALES para tus torneos internos</li><li>Invalidar estadisticas de tu ranking propio</li><li>Auditar post-partida con evidencia de jugadores</li></ul>' },
+        { title: "Modulo 3: La sancion es el ranking", icon: "&#128201;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#128201; La sancion es el ranking, no el ban</h2><p class="mb-4 leading-relaxed" style="color: #9fa8da;">AllianceHub no puede banear cuentas de Supremacy. Pero si tenemos algo mas valioso: <strong class="text-white">el ranking</strong>.</p><div class="rounded-r-xl p-4 mb-4" style="background: rgba(255,111,0,0.1); border-left: 4px solid #ff6f00;"><p class="font-medium">"Invalidamos estadisticas, no cuentas. El ranking es la moneda: quitasela."</p></div><h3 class="text-lg font-semibold mb-3 text-white">&#9876;&#65039; Sistema de sanciones</h3><div class="space-y-2 mb-4"><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid #1a237e;"><span class="font-semibold" style="color: #ff8f00;">1&#170; Infraccion</span><span class="text-sm" style="color: #9fa8da;">Advertencia + Strike registrado</span></div><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid #1a237e;"><span class="font-semibold" style="color: #ff8f00;">2&#170; Infraccion</span><span class="text-sm" style="color: #9fa8da;">Invalidacion de estadisticas de la partida</span></div><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05);"><span class="font-semibold" style="color: #ff8f00;">3&#170; Infraccion</span><span class="text-sm" style="color: #9fa8da;">Descalificacion del torneo</span></div></div>' },
+        { title: "Modulo 4: Comunicacion sin drama", icon: "&#128172;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#128172; Comunicacion sin drama</h2><p class="mb-4 leading-relaxed" style="color: #9fa8da;">Los jugadores frustrados buscan un culpable. Tu no eres ese culpable. Tu eres el canal por donde fluye la informacion.</p><div class="rounded-r-xl p-4 mb-4" style="background: rgba(255,111,0,0.1); border-left: 4px solid #ff6f00;"><p class="font-medium">"No te hagas el detective. No prometas lo que no puedes cumplir."</p></div><h3 class="text-lg font-semibold mb-3 text-white">&#127919; Respuestas modelo</h3><div class="rounded-xl p-4 mb-3" style="background: rgba(255,255,255,0.05);"><p class="text-xs mb-2" style="color: #ff8f00;">Jugador: "&#161;Ese tipo hace trampa!"</p><p class="text-sm" style="color: #4caf50;">&#10003; "Entiendo tu frustracion. Para procesar tu denuncia, necesito que envies capturas con timestamp. Sin pruebas, no puedo actuar."</p></div><div class="rounded-xl p-4 mb-4" style="background: rgba(255,255,255,0.05);"><p class="text-xs mb-2" style="color: #ff8f00;">Jugador: "&#161;Esto es injusto!"</p><p class="text-sm" style="color: #4caf50;">&#10003; "La presuncion de inocencia protege a todos. Si tu fueras acusado sin pruebas, apreciarias que respetemos ese principio."</p></div>' },
+        { title: "Modulo 5: Panel de Lider de Alianza", icon: "&#127899;&#65039;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#127899;&#65039; Panel de Lider de Alianza</h2><p class="mb-4 leading-relaxed" style="color: #9fa8da;">Como lider de alianza, tendras acceso a un panel exclusivo para gestionar TU alianza.</p><h3 class="text-lg font-semibold mb-3 text-white">&#127988; Herramientas disponibles</h3><div class="space-y-2 mb-4"><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid #1a237e;"><span class="font-semibold" style="color: #ffd700;">&#128202; Miembros</span><span class="text-xs" style="color: #9fa8da;">Ver y gestionar miembros de tu alianza</span></div><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid #1a237e;"><span class="font-semibold" style="color: #ffd700;">&#127942; Rankings Internos</span><span class="text-xs" style="color: #9fa8da;">Estadisticas de partidas internas y duelos</span></div><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid #1a237e;"><span class="font-semibold" style="color: #ffd700;">&#9876;&#65039; Duelos</span><span class="text-xs" style="color: #9fa8da;">Preparar equipo de 5 para duelos de alianza</span></div><div class="flex justify-between rounded-lg p-3" style="background: rgba(255,255,255,0.05);"><span class="font-semibold" style="color: #ffd700;">&#127918; Partidas</span><span class="text-xs" style="color: #9fa8da;">Crear partidas internas para tu alianza</span></div></div><div class="rounded-r-xl p-4" style="background: rgba(198,40,40,0.1); border-left: 4px solid #c62828;"><p><strong style="color: #ef5350;">&#9888;&#65039; Importante:</strong> No compartas tu cuenta. Todo queda registrado. Cada accion es tuya.</p></div>' },
+        { title: "Modulo 6: Resumen Rapido", icon: "&#128203;",
+          content: '<h2 class="text-xl font-bold mb-4" style="color: #ff8f00;">&#128203; Resumen Rapido</h2><p class="mb-4" style="color: #9fa8da;">Antes de la evaluacion, repasa los 5 puntos clave:</p><div class="rounded-xl p-5 space-y-4 mb-6" style="background: rgba(255,255,255,0.05);"><div class="flex items-start gap-3"><span class="text-2xl">1&#65039;&#8419;</span><div><p class="font-semibold text-white">Onus Probandi</p><p class="text-sm" style="color: #9fa8da;">La carga de la prueba es del acusador. Sin evidencia, no hay caso.</p></div></div><div class="flex items-start gap-3"><span class="text-2xl">2&#65039;&#8419;</span><div><p class="font-semibold text-white">Respetar el EULA</p><p class="text-sm" style="color: #9fa8da;">No pidas a GOs que investiguen. Nuestras reglas son adicionales.</p></div></div><div class="flex items-start gap-3"><span class="text-2xl">3&#65039;&#8419;</span><div><p class="font-semibold text-white">Sancion = Ranking</p><p class="text-sm" style="color: #9fa8da;">Invalidamos estadisticas, no cuentas. Post-partida, no durante.</p></div></div><div class="flex items-start gap-3"><span class="text-2xl">4&#65039;&#8419;</span><div><p class="font-semibold text-white">Comunicacion firme</p><p class="text-sm" style="color: #9fa8da;">Empatia con la frustracion, firmeza en el procedimiento.</p></div></div><div class="flex items-start gap-3"><span class="text-2xl">5&#65039;&#8419;</span><div><p class="font-semibold text-white">Panel con responsabilidad</p><p class="text-sm" style="color: #9fa8da;">No compartas cuenta. Todo queda registrado.</p></div></div></div><div class="rounded-r-xl p-4" style="background: rgba(255,111,0,0.1); border-left: 4px solid #ff6f00;"><p class="font-medium">&#127919; <strong>Evaluacion:</strong> 5 preguntas &middot; 80% para aprobar &middot; 5 minutos limite</p></div>' }
+    ],
+    quiz: [
+        { question: "Un jugador dice &#161;Ese tipo hace trampa! pero no envia capturas. &#191;Que haces?", options: ["Investigo inmediatamente el perfil del acusado", "Le pido que envie evidencia. Sin pruebas, no hay caso.", "Sanciono al jugador acusado por precaucion", "Le digo que no puedo hacer nada"], correct: 1, explanation: "Onus probandi: la carga de la prueba es del acusador. Sin evidencia, no puedes actuar." },
+        { question: "&#191;Por que NO pedimos a un GO que investigue uso de oro/potenciadores?", options: ["Porque los GOs son lentos", "Porque violaria el EULA de Bytro y pondria en riesgo la plataforma", "Porque no tenemos contacto con ellos", "Porque los potenciadores no son ilegales"], correct: 1, explanation: "Los GOs no pueden acceder a esos datos sin violar terminos. Respetamos el EULA." },
+        { question: "&#191;Cual es la sancion principal en AllianceHub por colusion confirmada?", options: ["Ban permanente de la cuenta de Supremacy", "Invalidacion de estadisticas de la partida", "Multa economica", "Denuncia publica"], correct: 1, explanation: "No podemos banear cuentas de Bytro. Pero si invalidar estadisticas de nuestro ranking." },
+        { question: "Un jugador frustrado dice &#161;Esto es injusto! &#191;Como respondes?", options: ["Le digo que se calme", "Le explico que la presuncion de inocencia protege a todos", "Le prometo que investigare personalmente", "Le ignoro"], correct: 1, explanation: "Empatia + firmeza en el procedimiento. El jugador debe sentir que el sistema lo protege." },
+        { question: "Como lider de alianza, &#191;que puedes hacer en tu panel?", options: ["Banear jugadores de Supremacy", "Gestionar miembros, rankings internos y duelos de mi alianza", "Acceder a datos internos de Bytro", "Modificar las reglas del juego base"], correct: 1, explanation: "El panel de lider te permite gestionar TU alianza: miembros, rankings internos y duelos." }
+    ]
+};
+
+var courseData = null, currentModule = 0, quizIndex = 0, quizScore = 0, quizTimer = 300, timerInterval = null, answeredCurrent = false, registrationData = null;
+
+function init() {
+    var saved = localStorage.getItem('ah_course_data');
+    if (saved) { try { courseData = JSON.parse(saved); } catch(e) { courseData = JSON.parse(JSON.stringify(defaultCourse)); } }
+    else { courseData = JSON.parse(JSON.stringify(defaultCourse)); }
+}
+function saveCourseData() { localStorage.setItem('ah_course_data', JSON.stringify(courseData)); }
+
+function hideAllViews() { document.querySelectorAll('[id^="view-"]').forEach(function(el) { el.classList.add('hidden'); }); }
+function goTo(view) { hideAllViews(); var el = document.getElementById('view-' + view); if (el) { el.classList.remove('hidden'); el.classList.add('fade-in'); } }
+
+function showRegistrationForm() { goTo('registration'); }
+
+document.getElementById('reg-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    registrationData = {
+        displayName: document.getElementById('reg-display-name').value.trim(),
+        playerId: parseInt(document.getElementById('reg-player-id').value),
+        allianceName: document.getElementById('reg-alliance-name').value.trim(),
+        allianceTag: document.getElementById('reg-alliance-tag').value.trim().toUpperCase(),
+    };
+    localStorage.setItem('ah_course_registration', JSON.stringify(registrationData));
+    startCourse();
+});
+
+function startCourse() {
+    if (!registrationData) {
+        var saved = localStorage.getItem('ah_course_registration');
+        if (saved) registrationData = JSON.parse(saved);
+        else { showRegistrationForm(); return; }
+    }
+    currentModule = 0;
+    goTo('module');
+    document.getElementById('progress-bar-container').classList.remove('hidden');
+    renderModule();
+}
+
+function renderModule() {
+    var mod = courseData.modules[currentModule];
+    document.getElementById('module-content').innerHTML = mod.content;
+    document.getElementById('progress-text').textContent = 'Modulo ' + (currentModule + 1) + ' de ' + courseData.modules.length;
+    var pct = Math.round((currentModule / courseData.modules.length) * 100);
+    document.getElementById('progress-percent').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('btn-prev').style.display = currentModule > 0 ? 'block' : 'none';
+    document.getElementById('btn-next').textContent = currentModule === courseData.modules.length - 1 ? 'Ir a Evaluacion \u2192' : 'Siguiente \u2192';
+}
+
+function nextModule() {
+    if (currentModule < courseData.modules.length - 1) { currentModule++; renderModule(); }
+    else { startQuiz(); }
+}
+function prevModule() {
+    if (currentModule > 0) { currentModule--; renderModule(); }
+}
+
+function startQuiz() {
+    goTo('quiz');
+    document.getElementById('progress-bar-container').classList.add('hidden');
+    quizIndex = 0; quizScore = 0; quizTimer = 300; answeredCurrent = false;
+    renderQuizQuestion();
+    startTimer();
+}
+
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(function() {
+        quizTimer--;
+        var m = Math.floor(quizTimer / 60);
+        var s = quizTimer % 60;
+        document.getElementById('quiz-timer').textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+        if (quizTimer <= 0) { clearInterval(timerInterval); showResult(); }
+    }, 1000);
+}
+
+function renderQuizQuestion() {
+    var q = courseData.quiz[quizIndex];
+    document.getElementById('quiz-progress').textContent = (quizIndex + 1) + ' / ' + courseData.quiz.length;
+    document.getElementById('quiz-question').textContent = q.question;
+    var optsBox = document.getElementById('quiz-options');
+    optsBox.innerHTML = '';
+    document.getElementById('quiz-feedback').classList.add('hidden');
+    answeredCurrent = false;
+    q.options.forEach(function(opt, i) {
+        var btn = document.createElement('button');
+        btn.className = 'option-btn w-full text-left p-4 rounded-xl text-white text-sm';
+        btn.textContent = opt;
+        btn.onclick = function() { handleAnswer(i, btn); };
+        optsBox.appendChild(btn);
+    });
+}
+
+function handleAnswer(selectedIdx, btn) {
+    if (answeredCurrent) return;
+    answeredCurrent = true;
+    var q = courseData.quiz[quizIndex];
+    var allBtns = document.querySelectorAll('#quiz-options button');
+    allBtns.forEach(function(b) { b.disabled = true; b.style.cursor = 'default'; });
+    var feedback = document.getElementById('quiz-feedback');
+    if (selectedIdx === q.correct) {
+        btn.classList.add('correct'); quizScore++;
+        feedback.innerHTML = '&#9989; <strong>Correcto!</strong><br><span class="text-xs opacity-80">' + q.explanation + '</span>';
+        feedback.style.cssText = 'background: rgba(46,125,50,0.2); color: #4caf50;';
+    } else {
+        btn.classList.add('wrong');
+        allBtns[q.correct].classList.add('correct');
+        feedback.innerHTML = '&#10060; <strong>Incorrecto.</strong><br><span class="text-xs opacity-80">' + q.explanation + '</span>';
+        feedback.style.cssText = 'background: rgba(198,40,40,0.2); color: #ef5350;';
+    }
+    feedback.classList.remove('hidden');
+    setTimeout(function() {
+        quizIndex++;
+        if (quizIndex < courseData.quiz.length) renderQuizQuestion();
+        else { clearInterval(timerInterval); showResult(); }
+    }, 2500);
+}
+
+async function showResult() {
+    goTo('result');
+    var percentage = Math.round((quizScore / courseData.quiz.length) * 100);
+    var passed = percentage >= 80;
+    var resultContent = document.getElementById('result-content');
+    if (passed) {
+        var code = generateCode();
+        var now = new Date();
+        var dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+        resultContent.innerHTML = '<div class="text-6xl mb-4">&#127881;</div><h2 class="text-2xl font-bold mb-2" style="color: #4caf50;">&#161;Certificacion Aprobada!</h2><p style="color: #9fa8da;" class="mb-6">Has demostrado que comprendes los principios de administracion de AllianceHub.</p><div class="text-6xl font-extrabold mb-2" style="color: #4caf50;">' + percentage + '%</div><p class="text-sm mb-6" style="color: #9fa8da;">' + quizScore + ' de ' + courseData.quiz.length + ' correctas</p><button onclick="showCertificate()" class="w-full font-semibold py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg" style="background: linear-gradient(135deg, #2e7d32, #4caf50); color: white;">Ver Certificado &rarr;</button>';
+        triggerConfetti();
+        localStorage.setItem('ah_course_certificate', JSON.stringify({ code: code, score: percentage, date: dateStr, passed: true, allianceName: registrationData.allianceName, allianceTag: registrationData.allianceTag, playerId: registrationData.playerId, displayName: registrationData.displayName }));
+        try {
+            await supabase.from('certification_requests').insert({
+                player_id: registrationData.playerId, display_name: registrationData.displayName,
+                supremacy_player_id: registrationData.playerId, alliance_name: registrationData.allianceName,
+                alliance_tag: registrationData.allianceTag, status: 'pending', certificate_code: code,
+                quiz_score: percentage, quiz_passed: true, course_completed_at: new Date().toISOString()
+            });
+        } catch(err) { console.error('Error guardando certificacion:', err); }
+    } else {
+        resultContent.innerHTML = '<div class="text-6xl mb-4">&#128218;</div><h2 class="text-2xl font-bold mb-2" style="color: #ef5350;">No Aprobado</h2><p style="color: #9fa8da;" class="mb-6">Necesitas 80% para certificarte. Repasa los modulos e intenta de nuevo.</p><div class="text-6xl font-extrabold mb-2" style="color: #ef5350;">' + percentage + '%</div><p class="text-sm mb-6" style="color: #9fa8da;">' + quizScore + ' de ' + courseData.quiz.length + ' correctas</p><button onclick="location.reload()" class="w-full font-semibold py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">&#8635; Repetir Curso</button>';
+    }
+}
+
+function showCertificate() {
+    var cert = JSON.parse(localStorage.getItem('ah_course_certificate') || '{}');
+    if (!cert.code) return;
+    goTo('certificate');
+    document.getElementById('cert-code').textContent = cert.code;
+    document.getElementById('cert-date').textContent = cert.date;
+    document.getElementById('cert-name').textContent = cert.displayName || 'Administrador';
+    document.getElementById('cert-alliance').textContent = cert.allianceName || '--';
+    document.getElementById('cert-alliance-tag').textContent = cert.allianceTag || '--';
+}
+
+function generateCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = 'AH-';
+    for (var i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+}
+
+function copyCode() {
+    var code = document.getElementById('cert-code').textContent;
+    navigator.clipboard.writeText(code).then(function() { alert('Codigo copiado: ' + code); }).catch(function() {
+        var ta = document.createElement('textarea'); ta.value = code; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta); alert('Codigo copiado: ' + code);
+    });
+}
+
+function triggerConfetti() {
+    var colors = ['#ffd700', '#ff6f00', '#4fc3f7', '#81c784', '#e57373'];
+    for (var i = 0; i < 50; i++) {
+        setTimeout(function(idx) { return function() {
+            var conf = document.createElement('div'); conf.className = 'confetti';
+            conf.style.left = Math.random() * 100 + 'vw';
+            conf.style.background = colors[Math.floor(Math.random() * colors.length)];
+            conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            conf.style.animationDuration = (2 + Math.random() * 2) + 's';
+            document.body.appendChild(conf);
+            setTimeout(function() { conf.remove(); }, 4000);
+        }; }(i), i * 50);
+    }
+}
+
+init();
+</script>
+</body>
+</html>
