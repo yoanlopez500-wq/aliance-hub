@@ -37,7 +37,6 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <button type="submit" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">Entrar</button>
 </form>
 <div id="error-msg" class="mt-4 text-sm text-center hidden" style="color:#ef5350"></div>
-<div id="success-msg" class="mt-4 text-sm text-center hidden" style="color:#4caf50"></div>
 <div class="mt-6 text-center space-y-2">
 <a href="login.html" class="text-sm font-bold block" style="color:#ff8f00">Soy Admin &rarr; Login Admin</a>
 <a href="index.html" class="text-sm block" style="color:#9fa8da;opacity:0.6">&larr; Volver al inicio</a>
@@ -70,7 +69,7 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <div class="text-center mb-4">
 <div class="text-3xl mb-2">&#128373;&#65039;</div>
 <h2 class="text-lg font-bold text-white">Verificacion de Seguridad</h2>
-<p class="text-sm" style="color:#9fa8da">Parece que estas en un dispositivo nuevo. Responde tus preguntas de seguridad.</p>
+<p class="text-sm" style="color:#9fa8da">Parece que estas en un dispositivo nuevo. Responde tus preguntas.</p>
 <p class="text-xs mt-1" style="color:#9fa8da;opacity:0.6">Jugador: <strong id="sec-check-name" class="text-white">-</strong></p>
 </div>
 <form id="security-check-form" class="space-y-4">
@@ -94,7 +93,7 @@ input:focus{outline:none;border-color:#ff6f00!important}
 var pendingPlayerId = null;
 var pendingUsername = null;
 
-// Generar un device fingerprint simple
+// Device ID: se guarda en localStorage y en player_tokens.token
 function getDeviceId() {
     var stored = localStorage.getItem('ah_device_id');
     if (stored) return stored;
@@ -114,53 +113,46 @@ function showError(id, msg) { var el = document.getElementById(id); el.textConte
 function hideError(id) { var el = document.getElementById(id); if(el) el.classList.add('hidden'); }
 
 function resetToLogin() {
-    pendingPlayerId = null;
-    pendingUsername = null;
+    pendingPlayerId = null; pendingUsername = null;
     localStorage.removeItem('ah_v2_player_id');
     localStorage.removeItem('ah_v2_display_name');
     document.getElementById('login-form').reset();
-    hideError('error-msg');
-    hideError('setup-error');
-    hideError('sec-check-error');
+    hideError('error-msg'); hideError('setup-error'); hideError('sec-check-error');
     showView('login');
 }
 
-// ====== MAIN LOGIN FLOW ======
+// ====== LOGIN ======
 document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var playerId = document.getElementById('player-id').value;
     var username = document.getElementById('username').value.trim();
-    hideError('error-msg');
-    hideError('setup-error');
+    hideError('error-msg'); hideError('setup-error');
 
     try {
-        // 1. Verificar que el jugador existe
-        var { data: player, error: pErr } = await supabase.from('players').select('id, current_username').eq('id', parseInt(playerId)).maybeSingle();
+        var { data: player, error: pErr } = await supabase.from('players').select('id').eq('id', parseInt(playerId)).maybeSingle();
         if (pErr) throw pErr;
 
-        // 2. Guardar datos en localStorage
         localStorage.setItem('ah_v2_player_id', playerId);
         localStorage.setItem('ah_v2_display_name', username);
         pendingPlayerId = playerId;
         pendingUsername = username;
 
-        // 3. Verificar si tiene preguntas de seguridad
+        // Verificar si tiene preguntas de seguridad
         var { data: sec, error: sErr } = await supabase.from('player_security').select('*').eq('player_id', parseInt(playerId)).maybeSingle();
         if (sErr && sErr.code !== 'PGRST116') throw sErr;
 
         if (!sec) {
-            // Primera vez: pedir preguntas de seguridad
             showView('setup-security');
             return;
         }
 
-        // 4. Verificar device_id
-        var { data: tokenRow, error: tErr } = await supabase.from('player_tokens').select('device_id').eq('player_id', parseInt(playerId)).maybeSingle();
+        // Verificar dispositivo (token = device_id)
+        var { data: tok, error: tErr } = await supabase.from('player_tokens').select('token').eq('player_id', parseInt(playerId)).maybeSingle();
         if (tErr && tErr.code !== 'PGRST116') throw tErr;
 
         var currentDevice = getDeviceId();
-        if (tokenRow && tokenRow.device_id && tokenRow.device_id !== currentDevice) {
-            // Dispositivo nuevo: mostrar preguntas
+        if (tok && tok.token && tok.token !== currentDevice) {
+            // Dispositivo nuevo
             document.getElementById('sec-check-name').textContent = username + ' (ID: ' + playerId + ')';
             document.getElementById('sec-q-1').textContent = sec.question_1;
             document.getElementById('sec-q-2').textContent = sec.question_2;
@@ -168,7 +160,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
             return;
         }
 
-        // Mismo dispositivo o primer token: login directo
         await doLogin(playerId, username);
 
     } catch(e) {
@@ -177,7 +168,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
     }
 });
 
-// ====== SETUP SECURITY (first time) ======
+// ====== SETUP SECURITY ======
 document.getElementById('security-setup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     hideError('setup-error');
@@ -187,31 +178,25 @@ document.getElementById('security-setup-form').addEventListener('submit', async 
     var ans2 = document.getElementById('sec-ans-2').value.trim().toLowerCase();
 
     try {
-        // Guardar preguntas de seguridad
-        var { error: secErr } = await supabase.from('player_security').insert({
-            player_id: parseInt(pendingPlayerId),
-            answer_1: ans1,
-            answer_2: ans2
+        var { error: s1 } = await supabase.from('player_security').insert({
+            player_id: parseInt(pendingPlayerId), answer_1: ans1, answer_2: ans2
         });
-        if (secErr) throw secErr;
+        if (s1) throw s1;
 
-        // Guardar device_id
         var deviceId = getDeviceId();
-        var { error: tokErr } = await supabase.from('player_tokens').upsert({
-            player_id: parseInt(pendingPlayerId),
-            token: deviceId,
-            device_id: deviceId
+        var { error: s2 } = await supabase.from('player_tokens').upsert({
+            player_id: parseInt(pendingPlayerId), token: deviceId
         }, { onConflict: 'player_id' });
-        if (tokErr) throw tokErr;
+        if (s2) throw s2;
 
         await doLogin(pendingPlayerId, pendingUsername);
     } catch(e) {
-        console.error('[Login] Setup error:', e);
+        console.error('[Login] Setup:', e);
         showError('setup-error', 'Error: ' + (e.message || 'intenta de nuevo'));
     }
 });
 
-// ====== SECURITY CHECK (new device) ======
+// ====== SECURITY CHECK ======
 document.getElementById('security-check-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     hideError('sec-check-error');
@@ -221,32 +206,27 @@ document.getElementById('security-check-form').addEventListener('submit', async 
     var ans2 = document.getElementById('sec-check-ans-2').value.trim().toLowerCase();
 
     try {
-        // Verificar respuestas
         var { data: sec, error: sErr } = await supabase.from('player_security').select('*').eq('player_id', parseInt(pendingPlayerId)).single();
         if (sErr) throw sErr;
 
         if (sec.answer_1 !== ans1 || sec.answer_2 !== ans2) {
-            showError('sec-check-error', 'Respuestas incorrectas. Intenta de nuevo.');
+            showError('sec-check-error', 'Respuestas incorrectas.');
             return;
         }
 
-        // Respuestas correctas: actualizar device_id y entrar
         var deviceId = getDeviceId();
         var { error: tokErr } = await supabase.from('player_tokens').upsert({
-            player_id: parseInt(pendingPlayerId),
-            token: deviceId,
-            device_id: deviceId
+            player_id: parseInt(pendingPlayerId), token: deviceId
         }, { onConflict: 'player_id' });
         if (tokErr) throw tokErr;
 
         await doLogin(pendingPlayerId, pendingUsername);
     } catch(e) {
-        console.error('[Login] Security check error:', e);
+        console.error('[Login] Check:', e);
         showError('sec-check-error', 'Error: ' + (e.message || 'intenta de nuevo'));
     }
 });
 
-// ====== DO LOGIN ======
 async function doLogin(playerId, username) {
     var result = await lazyLogin(playerId, username);
     if (result.success) {
