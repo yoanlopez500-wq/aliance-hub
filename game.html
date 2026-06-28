@@ -5,65 +5,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Partida - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=10"></script>
-<script src="assets/js/base.js?v=10"></script>
-<script src="assets/js/auth.js?v=10"></script>
-<script src="assets/js/pwa-utils.js?v=10"></script>
-<meta name="theme-color" content="#0f172a">
+<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/base.js?v=11"></script>
+<script src="assets/js/auth.js?v=11"></script>
+<script src="assets/js/pwa-utils.js?v=11"></script>
+<meta name="theme-color" content="#0a0e27">
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
+<body class="min-h-screen" style="background: #0a0e27;" data-role="public">
+
 <div id="admin-nav"></div>
 
 <div class="max-w-4xl mx-auto px-4 py-8">
-<div id="match-header" class="mb-6"><div class="text-center py-12 text-slate-400">Cargando...</div></div>
+<div id="match-header" class="mb-6"><div class="text-center py-12" style="color: #9fa8da;">Cargando...</div></div>
 
-<div id="winners-display" class="hidden bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
-<h2 class="font-bold text-yellow-800 mb-4">&#127942; Podio</h2>
+<div id="winners-display" class="hidden rounded-xl p-6 mb-6" style="background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3);">
+<h2 class="font-bold mb-4" style="color: #ffd700;">&#127942; Podio</h2>
 <div id="winners-podium" class="grid grid-cols-3 gap-4"></div></div>
 
-<div id="waiting-approval-banner" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-6 mb-6 text-center">
+<div id="waiting-approval-banner" class="hidden rounded-xl p-6 mb-6 text-center" style="background: rgba(255,143,0,0.1); border: 1px solid rgba(255,143,0,0.2);">
 <div class="text-4xl mb-3">&#9203;</div>
-<h2 class="font-bold text-orange-800 text-lg">Esperando aprobacion del admin</h2>
-<p class="text-orange-600 text-sm mt-2">Tu registro esta pendiente. Cuando el admin te apruebe, veras aqui el ID y contrasena.</p></div>
+<h2 class="font-bold text-lg" style="color: #ff8f00;">Esperando aprobacion del admin</h2>
+<p class="text-sm mt-2" style="color: #9fa8da;">Tu registro esta pendiente. Cuando el admin te apruebe, veras aqui el ID y contrasena.</p></div>
 
-<div id="match-credentials" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
-<h2 class="font-bold text-green-800 mb-3">&#128275; Datos de Acceso</h2>
+<div id="match-credentials" class="hidden rounded-xl p-6 mb-6" style="background: rgba(46,125,50,0.1); border: 1px solid rgba(46,125,50,0.2);">
+<h2 class="font-bold mb-3" style="color: #4caf50;">&#128275; Datos de Acceso</h2>
 <div class="grid grid-cols-2 gap-4">
-<div class="bg-white rounded-lg p-3 border border-green-200"><p class="text-xs text-green-600 uppercase font-bold">ID de Partida</p><p id="cred-game-id" class="text-lg font-mono font-bold text-green-800">---</p></div>
-<div class="bg-white rounded-lg p-3 border border-green-200"><p class="text-xs text-green-600 uppercase font-bold">Contrasena</p><p id="cred-password" class="text-lg font-mono font-bold text-green-800">---</p></div>
+<div class="rounded-lg p-3" style="background: #0a0e27; border: 1px solid #1a237e;"><p class="text-xs uppercase font-bold" style="color: #4caf50;">ID de Partida</p><p id="cred-game-id" class="text-lg font-mono font-bold text-white">---</p></div>
+<div class="rounded-lg p-3" style="background: #0a0e27; border: 1px solid #1a237e;"><p class="text-xs uppercase font-bold" style="color: #4caf50;">Contrasena</p><p id="cred-password" class="text-lg font-mono font-bold text-white">---</p></div>
 </div></div>
 
 <div id="report-section" class="hidden mb-6">
-<a href="#" id="report-link" class="block bg-red-50 border border-red-200 rounded-xl p-4 text-center hover:bg-red-100 transition">
-<div class="flex items-center justify-center gap-2"><span class="text-xl">&#128680;</span><span class="font-bold text-red-700">Reportar jugador</span></div>
-<p class="text-xs text-red-500 mt-1">Viste a alguien haciendo trampa? Reportalo aqui con evidencia.</p></a></div>
+<a href="#" id="report-link" class="block rounded-xl p-4 text-center transition" style="background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.2);">
+<div class="flex items-center justify-center gap-2"><span class="text-xl">&#128680;</span><span class="font-bold" style="color: #ef5350;">Reportar jugador</span></div>
+<p class="text-xs mt-1" style="color: #ef5350;">Viste a alguien haciendo trampa? Reportalo aqui con evidencia.</p></a></div>
 
 <div id="chat-section" class="hidden mb-6">
-<h2 class="font-bold text-slate-800 mb-3">&#128172; Chat entre Alianzas</h2>
-<div id="chat-messages" class="bg-white rounded-xl border border-slate-200 p-4 h-64 overflow-y-auto mb-3"></div>
+<h2 class="font-bold text-white mb-3">&#128172; Chat entre Alianzas</h2>
+<div id="chat-messages" class="rounded-xl p-4 mb-3 h-64 overflow-y-auto" style="background: #11183a; border: 1px solid #1a237e;"></div>
 <div class="flex gap-2">
-<input type="text" id="chat-input" placeholder="Escribe..." class="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-<button onclick="sendChatMessage()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400">Enviar</button>
+<input type="text" id="chat-input" placeholder="Escribe..." class="flex-1 px-4 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;">
+<button onclick="sendChatMessage()" class="px-4 py-2 rounded-lg font-bold transition" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Enviar</button>
 </div></div>
 
 <div id="rules-section" class="hidden mb-6">
-<h2 class="font-bold text-slate-800 mb-3">&#128220; Reglas</h2>
-<div class="bg-white rounded-xl border border-slate-200 overflow-hidden" style="height:500px"><iframe id="rules-iframe" class="w-full h-full" frameborder="0"></iframe></div></div>
+<h2 class="font-bold text-white mb-3">&#128220; Reglas</h2>
+<div class="rounded-xl overflow-hidden" style="height:500px; background: #11183a; border: 1px solid #1a237e;"><iframe id="rules-iframe" class="w-full h-full" frameborder="0"></iframe></div></div>
 
 <div id="registrations-section" class="hidden mb-6">
-<h2 class="font-bold text-slate-800 mb-3">&#128101; Registrados</h2>
-<div id="registrations-list" class="bg-white rounded-xl border border-slate-200 p-4 overflow-x-auto"></div></div>
+<h2 class="font-bold text-white mb-3">&#128101; Registrados</h2>
+<div id="registrations-list" class="rounded-xl p-4 overflow-x-auto" style="background: #11183a; border: 1px solid #1a237e;"></div></div>
 
 <div id="results-section" class="hidden">
-<h2 class="font-bold text-slate-800 mb-3">&#127942; Resultados</h2>
-<div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">#</th><th class="text-left p-3">Nacion</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead>
+<h2 class="font-bold text-white mb-3">&#127942; Resultados</h2>
+<div class="rounded-xl overflow-x-auto" style="background: #11183a; border: 1px solid #1a237e;">
+<table class="w-full text-sm"><thead><tr style="background: rgba(255,255,255,0.05);"><th class="text-left p-3">#</th><th class="text-left p-3">Nacion</th><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead>
 <tbody id="results-tbody"></tbody></table>
 </div></div>
 
-<div id="no-results" class="hidden text-center py-12 bg-white rounded-xl border border-slate-200">
-<div class="text-4xl mb-3">&#9203;</div><p class="text-slate-500">Resultados no disponibles aun</p></div>
+<div id="no-results" class="hidden text-center py-12 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;">
+<div class="text-4xl mb-3">&#9203;</div><p>Resultados no disponibles aun</p></div>
 </div>
 
 <script>
@@ -75,14 +77,14 @@ if (!matchId) location.href = 'index.html';
 
 async function loadMatch() {
     var { data: match } = await supabase.from('matches').select('*').eq('id', matchId).single();
-    if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-center text-red-500">Partida no encontrada</div>'; return; }
+    if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-center" style="color: #ef5350;">Partida no encontrada</div>'; return; }
     var allianceA = null, allianceB = null, allianceMain = null;
     if (match.alliance_id) { var { data: am } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_id).single(); allianceMain = am; }
     if (match.alliance_a_id) { var { data: aa } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_a_id).single(); allianceA = aa; }
     if (match.alliance_b_id) { var { data: ab } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_b_id).single(); allianceB = ab; }
 
     if (match.is_private && match.share_token !== shareToken) {
-        document.getElementById('match-header').innerHTML = '<div class="text-center text-red-500 text-xl">&#128274; Partida Privada</div><p class="text-center text-slate-400 mt-2">Necesitas un enlace de invitacion.</p><div class="text-center mt-4"><a href="index.html" class="text-amber-600 font-bold">&larr; Volver</a></div>';
+        document.getElementById('match-header').innerHTML = '<div class="text-center text-xl" style="color: #ef5350;">&#128274; Partida Privada</div><p class="text-center mt-2" style="color: #9fa8da;">Necesitas un enlace de invitacion.</p><div class="text-center mt-4"><a href="index.html" class="font-bold" style="color: #ff8f00;">&larr; Volver</a></div>';
         return;
     }
     if (match.winners_declared) loadWinners(matchId);
@@ -94,7 +96,7 @@ async function loadMatch() {
 
     var isRegistered = false, regStatus = null;
     if (playerData.playerId) {
-        var { data: reg } = await supabase.from('match_registrations').select('status').eq('match_id', matchId).eq('player_id', playerData.playerId).single();
+        var { data: reg } = await supabase.from('match_registrations').select('status').eq('match_id', matchId).eq('player_id', playerData.playerId).maybeSingle();
         isRegistered = !!reg; regStatus = reg ? reg.status : null;
     }
     if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) {
@@ -110,11 +112,11 @@ async function loadMatch() {
     if (showWaiting) document.getElementById('waiting-approval-banner').classList.remove('hidden');
 
     var regBadge = '';
-    if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) regBadge = '<div class="mt-4"><span class="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-bold">&#10003; Aprobado</span></div>';
-    else if (isRegistered && regStatus === 'pending') regBadge = '<div class="mt-4"><span class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg font-bold">&#9203; Esperando aprobacion</span></div>';
-    else if (isRegistered) regBadge = '<div class="mt-4"><span class="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-bold">&#10003; Registrado</span></div>';
+    if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) regBadge = '<div class="mt-4"><span class="px-4 py-2 rounded-lg font-bold" style="background: rgba(46,125,50,0.15); color: #4caf50;">&#10003; Aprobado</span></div>';
+    else if (isRegistered && regStatus === 'pending') regBadge = '<div class="mt-4"><span class="px-4 py-2 rounded-lg font-bold" style="background: rgba(255,143,0,0.15); color: #ff8f00;">&#9203; Esperando aprobacion</span></div>';
+    else if (isRegistered) regBadge = '<div class="mt-4"><span class="px-4 py-2 rounded-lg font-bold" style="background: rgba(46,125,50,0.15); color: #4caf50;">&#10003; Registrado</span></div>';
 
-    document.getElementById('match-header').innerHTML = '<div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">&#128274;</span>' : '') + (match.requires_approval ? '<span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">&#128065; Con Aprobacion</span>' : '') + (match.winners_declared ? '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">&#127942; Ganadores</span>' : '') + '</div><h1 class="text-3xl font-bold text-slate-800">' + match.name + '</h1><p class="text-slate-500 mt-1">' + (match.description || '') + '</p><div class="flex flex-wrap gap-4 mt-3 text-sm text-slate-400"><span>&#128197; ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>&#128101; Max ' + match.max_players + '</span></div>' + (match.status === 'open' && !isRegistered ? '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Registrarme</a></div>' : regBadge);
+    document.getElementById('match-header').innerHTML = '<div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,143,0,0.1); color: #ff8f00;">&#128274;</span>' : '') + (match.requires_approval ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,143,0,0.1); color: #ff8f00;">&#128065; Con Aprobacion</span>' : '') + (match.winners_declared ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,215,0,0.1); color: #ffd700;">&#127942; Ganadores</span>' : '') + '</div><h1 class="text-3xl font-bold text-white">' + match.name + '</h1><p class="mt-1" style="color: #9fa8da;">' + (match.description || '') + '</p><div class="flex flex-wrap gap-4 mt-3 text-sm" style="color: #9fa8da;"><span>&#128197; ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>&#128101; Max ' + match.max_players + '</span></div>' + (match.status === 'open' && !isRegistered ? '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block px-6 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Registrarme</a></div>' : regBadge);
 
     if (match.rules_url) { document.getElementById('rules-section').classList.remove('hidden'); document.getElementById('rules-iframe').src = match.rules_url.replace('/view', '/preview').replace('/edit', '/preview'); }
     if (match.match_type === 'duel') { document.getElementById('chat-section').classList.remove('hidden'); loadChat(); }
@@ -128,15 +130,15 @@ async function loadWinners(matchId) {
     var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
     var playersMap = {}; (players || []).forEach(function(p) { playersMap[p.id] = p; });
     document.getElementById('winners-display').classList.remove('hidden');
-    var medals = ['&#129351;', '&#129352;', '&#129353;']; var colors = ['bg-yellow-100 border-yellow-300', 'bg-slate-100 border-slate-300', 'bg-amber-100 border-amber-300'];
-    document.getElementById('winners-podium').innerHTML = winners.map(function(w, i) { var p = playersMap[w.player_id] || {}; return '<div class="' + colors[i] + ' rounded-lg p-4 text-center border"><div class="text-3xl mb-2">' + medals[i] + '</div><p class="text-xs text-slate-500 uppercase font-bold">' + (i+1) + ' Lugar</p><p class="font-bold text-slate-800">' + (p.current_username || 'Jugador ' + w.player_id) + '</p><p class="text-xs text-slate-400">ID: ' + w.player_id + '</p></div>'; }).join('');
+    var medals = ['&#129351;', '&#129352;', '&#129353;']; var styles = ['background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);', 'background:rgba(255,255,255,0.03);border:1px solid #1a237e;', 'background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);'];
+    document.getElementById('winners-podium').innerHTML = winners.map(function(w, i) { var p = playersMap[w.player_id] || {}; return '<div class="rounded-lg p-4 text-center" style="' + styles[i] + '"><div class="text-3xl mb-2">' + medals[i] + '</div><p class="text-xs uppercase font-bold" style="color: #9fa8da;">' + (i+1) + ' Lugar</p><p class="font-bold text-white">' + (p.current_username || 'Jugador ' + w.player_id) + '</p><p class="text-xs" style="color: #9fa8da;">ID: ' + w.player_id + '</p></div>'; }).join('');
 }
 
 async function loadChat() {
     var { data: messages } = await supabase.from('chat_messages').select('*').eq('channel', matchId).order('created_at', { ascending: true }).limit(50);
     var container = document.getElementById('chat-messages');
-    if (!messages || messages.length === 0) { container.innerHTML = '<div class="text-center text-slate-400 text-sm">Sin mensajes. Se el primero en escribir!</div>'; return; }
-    container.innerHTML = messages.map(function(m) { var isMine = m.sender_name === playerData.displayName; return '<div class="mb-2 ' + (isMine ? 'text-right' : 'text-left') + '"><div class="inline-block px-3 py-2 rounded-lg ' + (isMine ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700') + '"><div class="text-xs font-bold">' + (m.sender_name || 'Admin') + '</div><div class="text-sm">' + m.message + '</div></div></div>'; }).join('');
+    if (!messages || messages.length === 0) { container.innerHTML = '<div class="text-center text-sm" style="color: #9fa8da;">Sin mensajes. Se el primero en escribir!</div>'; return; }
+    container.innerHTML = messages.map(function(m) { var isMine = m.sender_name === playerData.displayName; return '<div class="mb-2 ' + (isMine ? 'text-right' : 'text-left') + '"><div class="inline-block px-3 py-2 rounded-lg ' + (isMine ? 'text-white' : '') + '" style="background: ' + (isMine ? '#1a237e' : 'rgba(255,255,255,0.05)') + ';"><div class="text-xs font-bold" style="color: ' + (isMine ? '#ff8f00' : '#9fa8da') + ';">' + (m.sender_name || 'Admin') + '</div><div class="text-sm" style="color: #e8eaf6;">' + m.message + '</div></div></div>'; }).join('');
     container.scrollTop = container.scrollHeight;
 }
 
@@ -156,7 +158,7 @@ async function loadRegistrations() {
     var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
     var playersMap = {}; (players || []).forEach(function(p) { playersMap[p.id] = p; });
     section.classList.remove('hidden');
-    document.getElementById('registrations-list').innerHTML = '<table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Jugador</th><th class="text-left p-2">Nacion</th></tr></thead><tbody>' + regs.map(function(r) { var p = playersMap[r.player_id] || {}; return '<tr class="border-b"><td class="p-2 font-medium">' + (p.current_username || r.username || 'Jugador ' + r.player_id) + '</td><td class="p-2">' + (r.nation || '-') + '</td></tr>'; }).join('') + '</tbody></table>';
+    document.getElementById('registrations-list').innerHTML = '<table class="w-full text-sm"><thead><tr style="background: rgba(255,255,255,0.05);"><th class="text-left p-2">Jugador</th><th class="text-left p-2">Nacion</th></tr></thead><tbody>' + regs.map(function(r) { var p = playersMap[r.player_id] || {}; return '<tr class="border-b" style="border-color: #1a237e;"><td class="p-2 font-medium text-white">' + (p.current_username || r.username || 'Jugador ' + r.player_id) + '</td><td class="p-2" style="color: #9fa8da;">' + (r.nation || '-') + '</td></tr>'; }).join('') + '</tbody></table>';
 }
 
 async function loadResults() {
@@ -168,7 +170,7 @@ async function loadResults() {
     var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
     var playersMap = {}; (players || []).forEach(function(p) { playersMap[p.id] = p; });
     document.getElementById('results-section').classList.remove('hidden');
-    document.getElementById('results-tbody').innerHTML = results.map(function(r, i) { var p = playersMap[r.player_id] || {}; return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold ' + (i < 3 ? 'text-amber-600' : 'text-slate-400') + '">' + (i + 1) + '</td><td class="p-3">' + (r.nation || '-') + '</td><td class="p-3 font-medium"><a href="player.html?id=' + r.player_id + '" class="hover:text-amber-600">' + (p.current_username || '?') + '</a></td><td class="p-3 text-right text-green-600 font-bold">' + (r.kills || 0).toLocaleString() + '</td><td class="p-3 text-right text-red-500">' + (r.deaths || 0).toLocaleString() + '</td><td class="p-3 text-right font-bold ' + ((r.kd_ratio || 0) >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + (r.kd_ratio || 0) + '</td></tr>'; }).join('');
+    document.getElementById('results-tbody').innerHTML = results.map(function(r, i) { var p = playersMap[r.player_id] || {}; return '<tr class="border-b" style="border-color: #1a237e;"><td class="p-3 font-bold ' + (i < 3 ? '' : '') + '" style="color: ' + (i < 3 ? '#ffd700' : '#9fa8da') + ';">' + (i + 1) + '</td><td class="p-3" style="color: #e8eaf6;">' + (r.nation || '-') + '</td><td class="p-3 font-medium"><a href="player.html?id=' + r.player_id + '" style="color: #ff8f00;">' + (p.current_username || '?') + '</a></td><td class="p-3 text-right font-bold" style="color: #4caf50;">' + (r.kills || 0).toLocaleString() + '</td><td class="p-3 text-right" style="color: #ef5350;">' + (r.deaths || 0).toLocaleString() + '</td><td class="p-3 text-right font-bold" style="color: ' + ((r.kd_ratio || 0) >= 1 ? '#4caf50' : '#ff8f00') + ';">' + (r.kd_ratio || 0) + '</td></tr>'; }).join('');
 }
 
 loadMatch();
