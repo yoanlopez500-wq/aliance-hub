@@ -4,85 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportar Jugador - Alliance Hub</title>
+    <script src="assets/js/theme.js?v=11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <script src="assets/js/config.js?v=3"></script>
-    <script src="assets/js/base.js?v=3"></script>
-    <script src="assets/js/auth.js?v=3"></script>
-    <meta name="theme-color" content="#0f172a">
+    <script src="assets/js/config.js?v=11"></script>
+    <script src="assets/js/base.js?v=11"></script>
+    <script src="assets/js/auth.js?v=11"></script>
+    <meta name="theme-color" content="#0a0e27">
     <style>
-        .report-type-btn.selected { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
-        .evidence-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0; }
-        .search-result { cursor: pointer; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-        .search-result:hover { background: #f1f5f9; }
+        .report-type-btn.selected { border-color: #ff8f00; background: rgba(255,143,0,0.1); color: #ffb74d; }
+        .evidence-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #1a237e; }
+        .search-result { cursor: pointer; padding: 8px 12px; border-bottom: 1px solid #1a237e; font-size: 13px; color: #e0e0e0; }
+        .search-result:hover { background: #11183a; }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
+<body class="bg-ah-bg min-h-screen text-ah-text" data-role="public">
     <div id="admin-nav"></div>
 
     <div class="max-w-lg mx-auto px-4 py-6">
-        <!-- Header -->
         <div class="mb-6">
-            <a href="#" id="back-link" class="text-amber-600 font-bold text-sm hover:text-amber-700">← Volver a la partida</a>
-            <h1 class="text-2xl font-bold text-slate-800 mt-2">🚨 Reportar Jugador</h1>
-            <p class="text-sm text-slate-500 mt-1">Reporta comportamiento sospechoso o trampas en la partida.</p>
+            <a href="#" id="back-link" class="text-ah-accent font-bold text-sm hover:text-ah-accent/80">← Volver a la partida</a>
+            <h1 class="text-2xl font-bold text-ah-text mt-2">🚨 Reportar Jugador</h1>
+            <p class="text-sm text-ah-muted mt-1">Reporta comportamiento sospechoso o trampas en la partida.</p>
         </div>
 
-        <!-- Info del reportero -->
-        <div id="reporter-info" class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
-            <p class="text-xs text-blue-600">Reportando como: <span id="reporter-name" class="font-bold">-</span></p>
+        <div id="reporter-info" class="bg-blue-900/20 border border-blue-800/30 rounded-xl p-3 mb-4">
+            <p class="text-xs text-blue-400">Reportando como: <span id="reporter-name" class="font-bold">-</span></p>
         </div>
 
-        <!-- Formulario -->
-        <form id="report-form" class="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+        <form id="report-form" class="bg-ah-card rounded-xl border border-ah-border p-5 space-y-4">
             <input type="hidden" id="match-id">
 
-            <!-- Buscador de jugador reportado -->
             <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Jugador a reportar *</label>
-                <input type="text" id="reported-search" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Escribe el nombre del jugador..." oninput="searchReportedPlayer(this.value)">
+                <label class="block text-xs font-medium text-ah-muted mb-1">Jugador a reportar *</label>
+                <input type="text" id="reported-search" required class="w-full px-3 py-2 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-red-500 outline-none text-sm" placeholder="Escribe el nombre del jugador..." oninput="searchReportedPlayer(this.value)">
                 <input type="hidden" id="reported-player-id" required>
-                <div id="reported-results" class="mt-1 max-h-40 overflow-y-auto bg-slate-50 rounded-lg border border-slate-200 hidden"></div>
-                <p id="reported-selected" class="text-xs text-green-600 mt-1 font-bold hidden"></p>
+                <div id="reported-results" class="mt-1 max-h-40 overflow-y-auto bg-ah-bg rounded-lg border border-ah-border hidden"></div>
+                <p id="reported-selected" class="text-xs text-green-400 mt-1 font-bold hidden"></p>
             </div>
 
-            <!-- Tipo de reporte -->
             <div>
-                <label class="block text-xs font-medium text-slate-700 mb-2">Tipo de reporte *</label>
+                <label class="block text-xs font-medium text-ah-muted mb-2">Tipo de reporte *</label>
                 <div class="grid grid-cols-2 gap-2" id="report-types">
-                    <button type="button" onclick="selectReportType(this, 'gold_boost')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">💰 Oro, potenciadores o heroes</button>
-                    <button type="button" onclick="selectReportType(this, 'multis')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">👥 Multi-cuentas</button>
-                    <button type="button" onclick="selectReportType(this, 'team_kill')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">⚔️ Team Kill</button>
-                    <button type="button" onclick="selectReportType(this, 'abandono')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🏳️ Abandono</button>
-                    <button type="button" onclick="selectReportType(this, 'toxico')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">💬 Comportamiento toxico</button>
-                    <button type="button" onclick="selectReportType(this, 'bugs')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🐛 Bugs / Exploits</button>
-                    <button type="button" onclick="selectReportType(this, 'colusion')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">🤝 Colusion</button>
-                    <button type="button" onclick="selectReportType(this, 'spam')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">📢 Spam / Flood</button>
-                    <button type="button" onclick="selectReportType(this, 'otro')" class="report-type-btn px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:border-amber-300">❓ Otro</button>
+                    <button type="button" onclick="selectReportType(this, 'gold_boost')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">💰 Oro, potenciadores o heroes</button>
+                    <button type="button" onclick="selectReportType(this, 'multis')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">👥 Multi-cuentas</button>
+                    <button type="button" onclick="selectReportType(this, 'team_kill')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">⚔️ Team Kill</button>
+                    <button type="button" onclick="selectReportType(this, 'abandono')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">🏳️ Abandono</button>
+                    <button type="button" onclick="selectReportType(this, 'toxico')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">💬 Comportamiento toxico</button>
+                    <button type="button" onclick="selectReportType(this, 'bugs')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">🐛 Bugs / Exploits</button>
+                    <button type="button" onclick="selectReportType(this, 'colusion')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">🤝 Colusion</button>
+                    <button type="button" onclick="selectReportType(this, 'spam')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">📢 Spam / Flood</button>
+                    <button type="button" onclick="selectReportType(this, 'otro')" class="report-type-btn px-3 py-2 rounded-lg border border-ah-border text-xs font-medium text-ah-muted hover:border-ah-accent/50">❓ Otro</button>
                 </div>
                 <input type="hidden" id="report-type" required>
             </div>
 
-            <!-- Descripcion -->
             <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Descripcion *</label>
-                <textarea id="report-description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Describe lo que viste con el mayor detalle posible..."></textarea>
+                <label class="block text-xs font-medium text-ah-muted mb-1">Descripcion *</label>
+                <textarea id="report-description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-red-500 outline-none text-sm" placeholder="Describe lo que viste con el mayor detalle posible..."></textarea>
             </div>
 
-            <!-- Evidencia (imagenes) -->
             <div>
-                <label class="block text-xs font-medium text-slate-700 mb-2">Evidencia (opcional, max 5 imagenes)</label>
-                <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-red-300 transition cursor-pointer" onclick="document.getElementById('evidence-input').click()">
+                <label class="block text-xs font-medium text-ah-muted mb-2">Evidencia (opcional, max 5 imagenes)</label>
+                <div class="border-2 border-dashed border-ah-border rounded-xl p-4 text-center hover:border-red-400 transition cursor-pointer" onclick="document.getElementById('evidence-input').click()">
                     <div class="text-2xl mb-1">📷</div>
-                    <p class="text-xs text-slate-500">Toca para subir imagenes</p>
+                    <p class="text-xs text-ah-muted">Toca para subir imagenes</p>
                     <input type="file" id="evidence-input" accept="image/*" multiple class="hidden" onchange="handleEvidence(this)">
                 </div>
                 <div id="evidence-preview" class="flex gap-2 mt-2 flex-wrap"></div>
-                <p class="text-xs text-slate-400 mt-1">Max 5MB por imagen. Se comprimen automaticamente.</p>
+                <p class="text-xs text-ah-muted/70 mt-1">Max 5MB por imagen. Se comprimen automaticamente.</p>
             </div>
 
-            <!-- Submit -->
             <button type="submit" id="submit-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-500 transition text-sm">
                 🚨 Enviar Reporte
             </button>
@@ -109,7 +102,6 @@
         document.getElementById('back-link').href = 'game.html?id=' + matchId;
         document.getElementById('reporter-name').textContent = playerData.displayName || 'Jugador ' + playerData.playerId;
 
-        // Cargar jugadores registrados en la partida para el buscador
         async function loadRegisteredPlayers() {
             try {
                 var { data: regs } = await supabase.from('match_registrations')
@@ -137,12 +129,12 @@
                 return p.current_username && p.current_username.toLowerCase().indexOf(cleanQuery) !== -1;
             }).slice(0, 10);
 
-            if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">Sin resultados</div>'; resultsDiv.classList.remove('hidden'); return; }
+            if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-ah-muted/70 text-center">Sin resultados</div>'; resultsDiv.classList.remove('hidden'); return; }
 
             resultsDiv.innerHTML = matches.map(function(p) {
                 return '<div class="search-result" onclick="selectReportedPlayer(' + p.id + ', \'' + p.current_username.replace(/\\'/g, "\\\\'") + '\')">' +
                     '<span class="font-medium">' + p.current_username + '</span>' +
-                    '<span class="text-slate-400 ml-2">ID: ' + p.id + '</span>' +
+                    '<span class="text-ah-muted ml-2">ID: ' + p.id + '</span>' +
                 '</div>';
             }).join('');
             resultsDiv.classList.remove('hidden');
@@ -215,12 +207,10 @@
                 if (!type) { showToast('Selecciona un tipo de reporte', 'warning'); btn.disabled = false; btn.textContent = '🚨 Enviar Reporte'; return; }
                 if (!description) { showToast('Escribe una descripcion', 'warning'); btn.disabled = false; btn.textContent = '🚨 Enviar Reporte'; return; }
 
-                // Buscar el nombre del jugador reportado
                 var reportedName = '';
                 var found = registeredPlayersCache.find(function(p) { return p.id === reportedId; });
                 if (found) reportedName = found.current_username;
 
-                // Subir imagenes a Supabase Storage
                 var evidenceUrls = [];
                 for (var i = 0; i < evidenceFiles.length; i++) {
                     var file = evidenceFiles[i];
@@ -236,7 +226,6 @@
                     evidenceUrls.push(urlData.publicUrl);
                 }
 
-                // Insertar reporte usando los nombres CORRECTOS de columnas
                 var { error } = await supabase.from('player_reports').insert({
                     match_id: matchId,
                     player_id: parseInt(playerData.playerId),
