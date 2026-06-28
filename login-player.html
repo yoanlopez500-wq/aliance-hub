@@ -19,17 +19,24 @@ input:focus{outline:none;border-color:#ff6f00!important}
 </head>
 <body class="min-h-screen flex items-center justify-center px-4 py-8" data-role="public">
 
-<!-- AUTO-LOGIN: Si ya tiene sesion activa, redirigir inmediatamente -->
+<!-- AUTO-LOGIN: Ejecuta SIEMPRE, incluso al volver del bfcache (navegar "atras") -->
 <script>
-(function autoLogin() {
+function autoLoginPlayer() {
     var playerId = localStorage.getItem('ah_v2_player_id');
     var displayName = localStorage.getItem('ah_v2_display_name');
     var token = localStorage.getItem('ah_v2_player_token');
-    // Si tiene los 3 datos de sesion, ir directo al dashboard
     if (playerId && displayName && token) {
         window.location.replace('dashboard.html');
+        return true;
     }
-})();
+    return false;
+}
+// Al cargar la pagina
+if (autoLoginPlayer()) { document.write(''); document.documentElement.style.display = 'none'; }
+// Al volver del bfcache (boton "atras" del navegador)
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) autoLoginPlayer();
+});
 </script>
 
 <div class="w-full max-w-md">
@@ -240,8 +247,6 @@ document.getElementById('security-check-form').addEventListener('submit', async 
 async function doLogin(playerId, username) {
     var result = await lazyLogin(playerId, username);
     if (result.success) {
-        // lazyLogin ya guarda ah_v2_player_token en localStorage
-        // Solo redirigimos al dashboard
         window.location.href = 'dashboard.html';
     } else {
         showError('error-msg', result.message || 'Error en login');
