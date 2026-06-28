@@ -5,66 +5,236 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrar - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=10"></script>
-<script src="assets/js/base.js?v=10"></script>
-<script src="assets/js/auth.js?v=10"></script>
-<script src="assets/js/pwa-utils.js?v=10"></script>
-<meta name="theme-color" content="#0f172a">
+<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/base.js?v=11"></script>
+<script src="assets/js/auth.js?v=11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+input:focus{outline:none;border-color:#ff6f00!important}
+</style>
+<meta name="theme-color" content="#0a0e27">
 </head>
-<body class="bg-slate-900 min-h-screen flex items-center justify-center px-4" data-role="public">
-<div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+<body class="min-h-screen flex items-center justify-center px-4 py-8" data-role="public">
+
+<div class="w-full max-w-md">
+<!-- Logo -->
 <div class="text-center mb-8">
-<div class="text-4xl mb-3">&#9876;&#65039;</div>
-<h1 class="text-2xl font-bold text-slate-800">Alliance Hub</h1>
-<p class="text-slate-500 text-sm mt-1">Entra con tu ID de Supremacy 1914</p>
+<div class="text-5xl mb-3">&#9876;&#65039;</div>
+<h1 class="text-2xl font-bold" style="color:#ff8f00">Alliance Hub</h1>
+<p class="text-sm mt-1" style="color:#9fa8da">Entra con tu ID de Supremacy 1914</p>
 </div>
 
+<!-- VIEW: Login Form -->
+<div id="view-login" class="rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
 <form id="lazy-login-form" class="space-y-4">
-<div><label class="block text-sm font-medium text-slate-700 mb-1">ID del Jugador (numero)</label>
-<input type="number" id="player-id" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition" placeholder="Ej: 99702975"></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
-<input type="text" id="username" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition" placeholder="Ej: Tlaloc27"></div>
-<button type="submit" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition">Entrar</button>
+<div><label class="block text-sm font-medium mb-1" style="color:#9fa8da">ID del Jugador (numero)</label>
+<input type="number" id="player-id" required class="w-full px-4 py-3 rounded-xl text-white text-sm" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e" placeholder="Ej: 99702975"></div>
+<div><label class="block text-sm font-medium mb-1" style="color:#9fa8da">Username de Supremacy 1914</label>
+<input type="text" id="username" required class="w-full px-4 py-3 rounded-xl text-white text-sm" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e" placeholder="Ej: Tlaloc27"></div>
+<button type="submit" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">Entrar</button>
 </form>
-
-<div id="error-msg" class="mt-4 text-red-500 text-sm text-center hidden"></div>
-<div id="success-msg" class="mt-4 text-green-600 text-sm text-center hidden"></div>
-
+<div id="error-msg" class="mt-4 text-sm text-center hidden" style="color:#ef5350"></div>
+<div id="success-msg" class="mt-4 text-sm text-center hidden" style="color:#4caf50"></div>
 <div class="mt-6 text-center space-y-2">
-<a href="login.html" class="text-sm text-amber-600 hover:text-amber-700 font-medium block">Soy Admin &rarr; Login Admin</a>
-<a href="index.html" class="text-sm text-slate-400 hover:text-slate-600 block">&larr; Volver al inicio</a>
-</div></div>
+<a href="login.html" class="text-sm font-bold block" style="color:#ff8f00">Soy Admin &rarr; Login Admin</a>
+<a href="index.html" class="text-sm block" style="color:#9fa8da;opacity:0.6">&larr; Volver al inicio</a>
+</div>
+</div>
+
+<!-- VIEW: Token Check (cuenta protegida) -->
+<div id="view-token-check" class="hidden rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
+<div class="text-center mb-6">
+<div class="text-4xl mb-3">&#128272;</div>
+<h2 class="text-lg font-bold text-white">Cuenta Protegida</h2>
+<p class="text-sm" style="color:#9fa8da">Esta cuenta ya esta vinculada a un dispositivo.</p>
+</div>
+<div class="space-y-3">
+<button onclick="showTokenInput()" class="w-full py-3 rounded-xl text-sm font-bold transition active:scale-[0.98]" style="background:#1a237e;color:#fff">&#128273; Tengo mi token de acceso</button>
+<button onclick="showTransferInput()" class="w-full py-3 rounded-xl text-sm font-bold transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#128259; Tengo un codigo de transferencia</button>
+<button onclick="showNewDeviceFlow()" class="w-full py-3 rounded-xl text-sm font-medium transition active:scale-[0.98]" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.3);color:#ff8f00">&#128294; Estoy en un dispositivo nuevo</button>
+</div>
+<div id="token-check-error" class="mt-4 text-sm text-center hidden" style="color:#ef5350"></div>
+<button onclick="resetLogin()" class="w-full mt-4 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Usar otra cuenta</button>
+</div>
+
+<!-- VIEW: Token Input -->
+<div id="view-token-input" class="hidden rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
+<h3 class="text-lg font-bold text-white mb-2 text-center">&#128273; Token de Acceso</h3>
+<p class="text-sm text-center mb-4" style="color:#9fa8da">Pega el token de tu dispositivo original.</p>
+<textarea id="input-token" rows="3" class="w-full px-4 py-3 rounded-xl text-white text-xs font-mono" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e" placeholder="xxxx-xxxx-..."></textarea>
+<button onclick="submitToken()" class="w-full mt-3 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">Verificar Token</button>
+<div id="token-error" class="mt-3 text-sm text-center hidden" style="color:#ef5350"></div>
+<button onclick="showView('token-check')" class="w-full mt-3 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Volver</button>
+</div>
+
+<!-- VIEW: Transfer Code Input -->
+<div id="view-transfer-input" class="hidden rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
+<h3 class="text-lg font-bold text-white mb-2 text-center">&#128259; Codigo de Transferencia</h3>
+<p class="text-sm text-center mb-4" style="color:#9fa8da">Ingresa el codigo TR-XXXX que generaste.</p>
+<input type="text" id="input-transfer-code" class="w-full px-4 py-3 rounded-xl text-white text-sm text-center font-mono uppercase" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e" placeholder="TR-XXXXXX">
+<button onclick="submitTransferCode()" class="w-full mt-3 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">Transferir Cuenta</button>
+<div id="transfer-error" class="mt-3 text-sm text-center hidden" style="color:#ef5350"></div>
+<button onclick="showView('token-check')" class="w-full mt-3 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Volver</button>
+</div>
+
+<!-- VIEW: New Device (generar transfer code) -->
+<div id="view-new-device" class="hidden rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
+<h3 class="text-lg font-bold text-white mb-2 text-center">&#128294; Nuevo Dispositivo</h3>
+<p class="text-sm mb-4" style="color:#9fa8da">Para proteger tu cuenta, debes generar un codigo de transferencia desde tu <strong class="text-white">dispositivo original</strong>.</p>
+<div class="rounded-xl p-4 mb-4" style="background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2)">
+<p class="text-xs mb-2" style="color:#ffd700">&#9888;&#65039; Instrucciones:</p>
+<ol class="text-xs space-y-1" style="color:#9fa8da">
+<li>1. Entra a Alliance Hub desde tu dispositivo original</li>
+<li>2. Ve a tu Perfil de jugador</li>
+<li>3. Click en "Generar Codigo de Transferencia"</li>
+<li>4. Vuelve aqui e ingresa ese codigo</li>
+</ol>
+</div>
+<p class="text-xs text-center" style="color:#9fa8da;opacity:0.6">Si perdiste acceso a tu dispositivo original, contacta a un admin.</p>
+<button onclick="showView('token-check')" class="w-full mt-4 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Volver</button>
+</div>
+
+</div>
 
 <script>
-if (isLazyLoggedIn()) {
-    getLastRegisteredMatch().then(function(lastMatch) {
-        if (lastMatch) window.location.href = 'game.html?id=' + lastMatch;
-        else window.location.href = 'index.html';
+var pendingPlayerId = null;
+var pendingUsername = null;
+
+function showView(view) {
+    ['login','token-check','token-input','transfer-input','new-device'].forEach(function(v){
+        var el = document.getElementById('view-'+v);
+        if(el) el.classList.add('hidden');
+    });
+    document.getElementById('view-'+view).classList.remove('hidden');
+}
+function showError(id, msg) { var el = document.getElementById(id); el.textContent = msg; el.classList.remove('hidden'); }
+function hideErrors() {
+    ['error-msg','token-check-error','token-error','transfer-error'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.classList.add('hidden');
     });
 }
+function resetLogin() {
+    pendingPlayerId = null; pendingUsername = null;
+    document.getElementById('lazy-login-form').reset();
+    hideErrors();
+    showView('login');
+}
 
-document.getElementById('lazy-login-form').addEventListener('submit', async function(e) {
+// Main login flow
+async function checkTokenProtected(playerId, username) {
+    hideErrors();
+    var errorMsg = document.getElementById('error-msg');
+    var successMsg = document.getElementById('success-msg');
+
+    // 1. Check if player exists
+    var { data: player } = await supabase.from('players').select('id, current_username').eq('id', parseInt(playerId)).maybeSingle();
+
+    // 2. Check if player has a token
+    var { data: tokenRow } = await supabase.from('player_tokens').select('*').eq('player_id', parseInt(playerId)).maybeSingle();
+
+    if (tokenRow) {
+        // Account is protected with a token
+        pendingPlayerId = playerId;
+        pendingUsername = username;
+        showView('token-check');
+        return;
+    }
+
+    // No token yet - proceed with normal login + create token
+    var result = await lazyLogin(playerId, username);
+    if (result.success) {
+        // Create token for this player
+        var newToken = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        await supabase.from('player_tokens').insert({ player_id: parseInt(playerId), token: newToken });
+        localStorage.setItem('ah_v2_player_token', newToken);
+
+        successMsg.textContent = '\u2713 ' + result.message;
+        successMsg.classList.remove('hidden');
+        setTimeout(function() {
+            window.location.href = 'dashboard.html';
+        }, 800);
+    } else {
+        errorMsg.textContent = '\u2716 ' + result.message;
+        errorMsg.classList.remove('hidden');
+    }
+}
+
+// Token verification
+async function submitToken() {
+    hideErrors();
+    var token = document.getElementById('input-token').value.trim();
+    if (!token) { showError('token-error', 'Ingresa un token'); return; }
+    if (!pendingPlayerId) { showError('token-error', 'Error de sesion. Vuelve a intentar.'); return; }
+
+    var { data: tokenRow } = await supabase.from('player_tokens')
+        .select('*')
+        .eq('player_id', parseInt(pendingPlayerId))
+        .eq('token', token)
+        .maybeSingle();
+
+    if (!tokenRow) { showError('token-error', 'Token invalido. Copialo exactamente de tu dispositivo original.'); return; }
+
+    // Token valido - login
+    localStorage.setItem('ah_v2_player_token', token);
+    var result = await lazyLogin(pendingPlayerId, pendingUsername);
+    if (result.success) {
+        await supabase.from('player_tokens').update({ last_used: new Date().toISOString() }).eq('player_id', parseInt(pendingPlayerId));
+        window.location.href = 'dashboard.html';
+    }
+}
+
+// Transfer code
+async function submitTransferCode() {
+    hideErrors();
+    var code = document.getElementById('input-transfer-code').value.trim().toUpperCase();
+    if (!code) { showError('transfer-error', 'Ingresa un codigo de transferencia'); return; }
+
+    // Call the database function to claim transfer code
+    var { data, error } = await supabase.rpc('claim_transfer_code', { p_transfer_code: code });
+
+    if (error || !data || data.length === 0) {
+        showError('transfer-error', 'Codigo invalido o expirado. Los codigos duran 10 minutos.');
+        return;
+    }
+
+    var newToken = data[0].token;
+    var playerId = data[0].player_id;
+
+    localStorage.setItem('ah_v2_player_token', newToken);
+
+    // Get username
+    var { data: player } = await supabase.from('players').select('current_username').eq('id', playerId).single();
+    var username = player ? player.current_username : pendingUsername || 'Jugador';
+
+    var result = await lazyLogin(playerId.toString(), username);
+    if (result.success) {
+        window.location.href = 'dashboard.html';
+    }
+}
+
+// UI helpers
+function showTokenInput() { document.getElementById('input-token').value = ''; hideErrors(); showView('token-input'); }
+function showTransferInput() { document.getElementById('input-transfer-code').value = ''; hideErrors(); showView('transfer-input'); }
+function showNewDeviceFlow() { showView('new-device'); }
+
+// Auto-redirect if already logged in
+var hasToken = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
+var hasAdmin = false;
+try { hasAdmin = !!localStorage.getItem('sb-qkccyjegkgjzwoxytnqp-auth-token'); } catch(e) {}
+if (hasToken || hasAdmin) {
+    window.location.href = 'dashboard.html';
+}
+
+// Form submit
+document.getElementById('lazy-login-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var playerId = document.getElementById('player-id').value;
     var username = document.getElementById('username').value.trim();
-    var errorMsg = document.getElementById('error-msg');
-    var successMsg = document.getElementById('success-msg');
-    errorMsg.classList.add('hidden'); successMsg.classList.add('hidden');
-    var result = await lazyLogin(playerId, username);
-    if (result.success) {
-        successMsg.textContent = '&#10003; ' + result.message;
-        successMsg.classList.remove('hidden');
-        if ('Notification' in window && Notification.permission === 'granted') { await subscribeToPush(); }
-        else if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission().then(function(permission) { if (permission === 'granted') subscribeToPush(); });
-        }
-        setTimeout(async function() {
-            var lastMatch = await getLastRegisteredMatch();
-            if (lastMatch) window.location.href = 'game.html?id=' + lastMatch;
-            else window.location.href = 'index.html';
-        }, 1500);
-    } else { errorMsg.textContent = '&#10060; ' + result.message; errorMsg.classList.remove('hidden'); }
+    hideErrors();
+    checkTokenProtected(playerId, username);
 });
 </script>
 </body>
