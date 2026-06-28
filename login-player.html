@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrar - Alliance Hub</title>
+<script src="assets/js/theme.js?v=11"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js?v=11"></script>
 <script src="assets/js/base.js?v=11"></script>
@@ -25,6 +25,32 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <div class="text-5xl mb-3">&#9876;&#65039;</div>
 <h1 class="text-2xl font-bold" style="color:#ff8f00">Alliance Hub</h1>
 <p class="text-sm mt-1" style="color:#9fa8da">Entra con tu ID de Supremacy 1914</p>
+</div>
+
+<!-- VIEW: Auto-login (redirect si ya tiene sesion completa) -->
+<!-- Este script corre antes de que el usuario vea nada -->
+<script>
+// Auto-redirect si tiene sesion completa (token + player_id)
+(function() {
+    var hasPlayerId = localStorage.getItem('ah_v2_player_id');
+    var hasToken = localStorage.getItem('ah_v2_player_token');
+    if (hasPlayerId && hasToken) {
+        window.location.href = 'dashboard.html';
+    }
+})();
+</script>
+
+<!-- VIEW: Continue as remembered player -->
+<div id="view-continue" class="hidden rounded-2xl p-8 mb-4" style="background:#11183a;border:1px solid #1a237e">
+    <div class="text-center mb-4">
+        <div class="text-3xl mb-2">&#128100;</div>
+        <h2 class="text-lg font-bold text-white">Bienvenido de vuelta</h2>
+        <p class="text-sm" style="color:#9fa8da">Continuar como <strong id="continue-name" class="text-white">-</strong></p>
+    </div>
+    <div class="space-y-3">
+        <button onclick="continueLogin()" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">&#128274; Continuar</button>
+        <button onclick="forgetAndNew()" class="w-full py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">Usar otra cuenta</button>
+    </div>
 </div>
 
 <!-- VIEW: Login Form -->
@@ -57,7 +83,7 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <button onclick="showNewDeviceFlow()" class="w-full py-3 rounded-xl text-sm font-medium transition active:scale-[0.98]" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.3);color:#ff8f00">&#128294; Estoy en un dispositivo nuevo</button>
 </div>
 <div id="token-check-error" class="mt-4 text-sm text-center hidden" style="color:#ef5350"></div>
-<button onclick="resetLogin()" class="w-full mt-4 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Usar otra cuenta</button>
+<button onclick="forgetAndNew()" class="w-full mt-4 py-2 rounded-lg text-sm transition" style="background:rgba(255,255,255,0.03);color:#9fa8da">&larr; Usar otra cuenta</button>
 </div>
 
 <!-- VIEW: Token Input -->
@@ -103,6 +129,50 @@ input:focus{outline:none;border-color:#ff6f00!important}
 var pendingPlayerId = null;
 var pendingUsername = null;
 
+// ====== SESSION RECALL ======
+// Al cargar: si hay datos guardados (aunque no token completo), ofrecer continuar
+function initSessionRecall() {
+    var savedId = localStorage.getItem('ah_v2_player_id');
+    var savedName = localStorage.getItem('ah_v2_display_name');
+    var savedToken = localStorage.getItem('ah_v2_player_token');
+
+    // Si tiene sesion completa, el script de arriba ya hizo redirect
+    // Si solo tiene datos parciales (ID + nombre sin token), ofrecer continuar
+    if (savedId && savedName && !savedToken) {
+        document.getElementById('continue-name').textContent = savedName + ' (ID: ' + savedId + ')';
+        document.getElementById('player-id').value = savedId;
+        document.getElementById('username').value = savedName;
+        document.getElementById('view-continue').classList.remove('hidden');
+    } else if (savedId && savedName) {
+        // Hay ID y nombre, pre-llenar formulario por si quiere re-loggear
+        document.getElementById('player-id').value = savedId;
+        document.getElementById('username').value = savedName;
+    }
+}
+
+function continueLogin() {
+    // Re-llamar al flujo de login con los datos guardados
+    var savedId = localStorage.getItem('ah_v2_player_id');
+    var savedName = localStorage.getItem('ah_v2_display_name');
+    if (savedId && savedName) {
+        hideErrors();
+        checkTokenProtected(savedId, savedName);
+    }
+}
+
+function forgetAndNew() {
+    // Borrar TODO de localStorage y mostrar formulario limpio
+    localStorage.removeItem('ah_v2_player_id');
+    localStorage.removeItem('ah_v2_display_name');
+    localStorage.removeItem('ah_v2_player_token');
+    pendingPlayerId = null;
+    pendingUsername = null;
+    document.getElementById('lazy-login-form').reset();
+    document.getElementById('view-continue').classList.add('hidden');
+    hideErrors();
+    showView('login');
+}
+
 function showView(view) {
     ['login','token-check','token-input','transfer-input','new-device'].forEach(function(v){
         var el = document.getElementById('view-'+v);
@@ -116,48 +186,54 @@ function hideErrors() {
         var el = document.getElementById(id); if(el) el.classList.add('hidden');
     });
 }
-function resetLogin() {
-    pendingPlayerId = null; pendingUsername = null;
-    document.getElementById('lazy-login-form').reset();
-    hideErrors();
-    showView('login');
-}
 
-// Main login flow
+// ====== MAIN LOGIN FLOW ======
 async function checkTokenProtected(playerId, username) {
     hideErrors();
     var errorMsg = document.getElementById('error-msg');
     var successMsg = document.getElementById('success-msg');
 
-    // 1. Check if player exists
-    var { data: player } = await supabase.from('players').select('id, current_username').eq('id', parseInt(playerId)).maybeSingle();
+    // SIEMPRE guardar datos en localStorage para recordar al jugador
+    localStorage.setItem('ah_v2_player_id', playerId);
+    localStorage.setItem('ah_v2_display_name', username);
 
-    // 2. Check if player has a token
-    var { data: tokenRow } = await supabase.from('player_tokens').select('*').eq('player_id', parseInt(playerId)).maybeSingle();
+    try {
+        // 1. Check if player exists
+        var { data: player, error: pErr } = await supabase.from('players').select('id, current_username').eq('id', parseInt(playerId)).maybeSingle();
+        if (pErr) throw pErr;
 
-    if (tokenRow) {
-        // Account is protected with a token
-        pendingPlayerId = playerId;
-        pendingUsername = username;
-        showView('token-check');
-        return;
-    }
+        // 2. Check if player has a token
+        var { data: tokenRow, error: tErr } = await supabase.from('player_tokens').select('*').eq('player_id', parseInt(playerId)).maybeSingle();
+        if (tErr) throw tErr;
 
-    // No token yet - proceed with normal login + create token
-    var result = await lazyLogin(playerId, username);
-    if (result.success) {
-        // Create token for this player
-        var newToken = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        await supabase.from('player_tokens').insert({ player_id: parseInt(playerId), token: newToken });
-        localStorage.setItem('ah_v2_player_token', newToken);
+        if (tokenRow) {
+            // Account is protected with a token
+            pendingPlayerId = playerId;
+            pendingUsername = username;
+            showView('token-check');
+            return;
+        }
 
-        successMsg.textContent = '\u2713 ' + result.message;
-        successMsg.classList.remove('hidden');
-        setTimeout(function() {
-            window.location.href = 'dashboard.html';
-        }, 800);
-    } else {
-        errorMsg.textContent = '\u2716 ' + result.message;
+        // No token yet - proceed with normal login + create token
+        var result = await lazyLogin(playerId, username);
+        if (result.success) {
+            // Create token for this player
+            var newToken = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            await supabase.from('player_tokens').insert({ player_id: parseInt(playerId), token: newToken });
+            localStorage.setItem('ah_v2_player_token', newToken);
+
+            successMsg.textContent = '\u2713 ' + result.message;
+            successMsg.classList.remove('hidden');
+            setTimeout(function() {
+                window.location.href = 'dashboard.html';
+            }, 800);
+        } else {
+            errorMsg.textContent = '\u2716 ' + result.message;
+            errorMsg.classList.remove('hidden');
+        }
+    } catch(e) {
+        console.error('[Login] Error:', e);
+        errorMsg.textContent = '\u2716 Error: ' + (e.message || 'No se pudo conectar con el servidor');
         errorMsg.classList.remove('hidden');
     }
 }
@@ -169,20 +245,26 @@ async function submitToken() {
     if (!token) { showError('token-error', 'Ingresa un token'); return; }
     if (!pendingPlayerId) { showError('token-error', 'Error de sesion. Vuelve a intentar.'); return; }
 
-    var { data: tokenRow } = await supabase.from('player_tokens')
-        .select('*')
-        .eq('player_id', parseInt(pendingPlayerId))
-        .eq('token', token)
-        .maybeSingle();
+    try {
+        var { data: tokenRow, error } = await supabase.from('player_tokens')
+            .select('*')
+            .eq('player_id', parseInt(pendingPlayerId))
+            .eq('token', token)
+            .maybeSingle();
 
-    if (!tokenRow) { showError('token-error', 'Token invalido. Copialo exactamente de tu dispositivo original.'); return; }
+        if (error) throw error;
+        if (!tokenRow) { showError('token-error', 'Token invalido. Copialo exactamente de tu dispositivo original.'); return; }
 
-    // Token valido - login
-    localStorage.setItem('ah_v2_player_token', token);
-    var result = await lazyLogin(pendingPlayerId, pendingUsername);
-    if (result.success) {
-        await supabase.from('player_tokens').update({ last_used: new Date().toISOString() }).eq('player_id', parseInt(pendingPlayerId));
-        window.location.href = 'dashboard.html';
+        // Token valido - login
+        localStorage.setItem('ah_v2_player_token', token);
+        var result = await lazyLogin(pendingPlayerId, pendingUsername);
+        if (result.success) {
+            await supabase.from('player_tokens').update({ last_used: new Date().toISOString() }).eq('player_id', parseInt(pendingPlayerId));
+            window.location.href = 'dashboard.html';
+        }
+    } catch(e) {
+        console.error('[Login] Token error:', e);
+        showError('token-error', 'Error verificando token: ' + (e.message || 'intenta de nuevo'));
     }
 }
 
@@ -192,26 +274,31 @@ async function submitTransferCode() {
     var code = document.getElementById('input-transfer-code').value.trim().toUpperCase();
     if (!code) { showError('transfer-error', 'Ingresa un codigo de transferencia'); return; }
 
-    // Call the database function to claim transfer code
-    var { data, error } = await supabase.rpc('claim_transfer_code', { p_transfer_code: code });
+    try {
+        var { data, error } = await supabase.rpc('claim_transfer_code', { p_transfer_code: code });
 
-    if (error || !data || data.length === 0) {
-        showError('transfer-error', 'Codigo invalido o expirado. Los codigos duran 10 minutos.');
-        return;
-    }
+        if (error || !data || data.length === 0) {
+            showError('transfer-error', 'Codigo invalido o expirado. Los codigos duran 10 minutos.');
+            return;
+        }
 
-    var newToken = data[0].token;
-    var playerId = data[0].player_id;
+        var newToken = data[0].token;
+        var playerId = data[0].player_id;
 
-    localStorage.setItem('ah_v2_player_token', newToken);
+        localStorage.setItem('ah_v2_player_token', newToken);
+        localStorage.setItem('ah_v2_player_id', playerId);
 
-    // Get username
-    var { data: player } = await supabase.from('players').select('current_username').eq('id', playerId).single();
-    var username = player ? player.current_username : pendingUsername || 'Jugador';
+        var { data: player } = await supabase.from('players').select('current_username').eq('id', playerId).single();
+        var username = player ? player.current_username : pendingUsername || 'Jugador';
+        localStorage.setItem('ah_v2_display_name', username);
 
-    var result = await lazyLogin(playerId.toString(), username);
-    if (result.success) {
-        window.location.href = 'dashboard.html';
+        var result = await lazyLogin(playerId.toString(), username);
+        if (result.success) {
+            window.location.href = 'dashboard.html';
+        }
+    } catch(e) {
+        console.error('[Login] Transfer error:', e);
+        showError('transfer-error', 'Error: ' + (e.message || 'intenta de nuevo'));
     }
 }
 
@@ -219,14 +306,6 @@ async function submitTransferCode() {
 function showTokenInput() { document.getElementById('input-token').value = ''; hideErrors(); showView('token-input'); }
 function showTransferInput() { document.getElementById('input-transfer-code').value = ''; hideErrors(); showView('transfer-input'); }
 function showNewDeviceFlow() { showView('new-device'); }
-
-// Auto-redirect if already logged in
-var hasToken = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
-var hasAdmin = false;
-try { hasAdmin = !!localStorage.getItem('sb-qkccyjegkgjzwoxytnqp-auth-token'); } catch(e) {}
-if (hasToken || hasAdmin) {
-    window.location.href = 'dashboard.html';
-}
 
 // Form submit
 document.getElementById('lazy-login-form').addEventListener('submit', function(e) {
@@ -236,6 +315,9 @@ document.getElementById('lazy-login-form').addEventListener('submit', function(e
     hideErrors();
     checkTokenProtected(playerId, username);
 });
+
+// Initialize
+initSessionRecall();
 </script>
 </body>
 </html>
