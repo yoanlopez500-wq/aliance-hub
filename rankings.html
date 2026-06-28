@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rankings - Alliance Hub</title>
-    <script src="assets/js/theme.js?v=11"></script>
+    <script src="assets/js/theme.js?v=12"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js?v=11"></script>
-    <script src="assets/js/base.js?v=11"></script>
-    <script src="assets/js/auth.js?v=11"></script>
-    <script src="assets/js/pwa-utils.js?v=11"></script>
+    <script src="assets/js/config.js?v=12"></script>
+    <script src="assets/js/base.js?v=12"></script>
+    <script src="assets/js/auth.js?v=12"></script>
+    <script src="assets/js/pwa-utils.js?v=12"></script>
     <meta name="theme-color" content="#0a0e27">
     <style>.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.kill-nullified{text-decoration:line-through;opacity:.5}</style>
 </head>
@@ -43,7 +43,7 @@
                             <th class="text-right p-3 text-ah-muted">Partidas</th>
                             <th class="text-right p-3 text-ah-muted">Bajas</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
-                            <th class="text-right p-3 text-ah-muted">KD Efectivo</th>
+                            <th class="text-right p-3 text-ah-muted">KD</th>
                             <th class="text-right p-3 text-ah-muted text-xs" title="Kills anuladas">&#9889;</th>
                         </tr>
                     </thead>
@@ -52,7 +52,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-xs text-ah-muted/50 mt-2">&#9888;&#65039; KD Efectivo = (Bajas - Kills Anuladas por partida) / Muertes. Cada Kill Nullifier anula kills solo de la partida sancionada. Las muertes siguen contando.</p>
+            <p class="text-xs text-ah-muted/50 mt-2">&#9888;&#65039; KD = (Bajas - Kills Anuladas) / Muertes. Kill Nullifier anula kills solo de la partida sancionada.</p>
         </div>
         <div id="alliances-ranking" class="hidden">
             <div class="overflow-x-auto bg-ah-card rounded-xl border border-ah-border">
@@ -63,7 +63,7 @@
                             <th class="text-left p-3 text-ah-muted">Alianza</th>
                             <th class="text-left p-3 text-ah-muted">Tag</th>
                             <th class="text-right p-3 text-ah-muted">Jugadores</th>
-                            <th class="text-right p-3 text-ah-muted">Bajas Efectivas</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
                             <th class="text-right p-3 text-ah-muted">KD</th>
                             <th class="text-right p-3 text-ah-muted">Partidas</th>
@@ -105,8 +105,9 @@
         </div>
     </div>
     <script>
-        // Cache global de kills anuladas: { player_id: total_nullified }
-        var nullifiedCache = {};
+        // ====== DATA CACHES (join en cliente, NO depende de resource embedding) ======
+        var nullifiedCache = {};  // { player_id: total_nullified }
+        var allianceMap = {};     // { alliance_id: { name, tag } }
 
         function showError(msg) {
             var el = document.getElementById('error-banner');
@@ -114,43 +115,8 @@
             el.classList.remove('hidden');
         }
 
-        async function loadNullifiedCache() {
-            // Cargar todas las kills anuladas una sola vez
-            try {
-                var res = await supabase.from('match_nullified_kills').select('player_id, kills_nullified');
-                if (res.error) throw res.error;
-                nullifiedCache = {};
-                (res.data || []).forEach(function(row) {
-                    nullifiedCache[row.player_id] = (nullifiedCache[row.player_id] || 0) + row.kills_nullified;
-                });
-            } catch(e) {
-                console.error('[Rankings] Error cargando kills anuladas:', e);
-                nullifiedCache = {};
-            }
-        }
-
-        async function loadData() {
-            // Cargar kills anuladas primero (en paralelo con alianzas)
-            var alliances = [];
-            try {
-                var res = await supabase.from('alliances').select('id, name').order('name');
-                if (res.error) throw res.error;
-                alliances = res.data || [];
-            } catch(e) {
-                console.error('[Rankings] Error cargando alianzas:', e);
-                showError('Error cargando alianzas: ' + (e.message || e));
-            }
-            document.getElementById('filter-alliance').innerHTML = '<option value="">Todas las alianzas</option>' + alliances.map(function(a) {
-                return '<option value="' + a.id + '">' + a.name + '</option>';
-            }).join('');
-
-            // Cargar cache de kills anuladas antes de rankings
-            await loadNullifiedCache();
-
-            try { await loadRankings(); } catch(e) { console.error('[Rankings] loadRankings:', e); }
-            try { await loadLeagues(); } catch(e) { console.error('[Rankings] loadLeagues:', e); }
-            try { await loadDuels(); } catch(e) { console.error('[Rankings] loadDuels:', e); }
-            try { await loadStrikes(); } catch(e) { console.error('[Rankings] loadStrikes:', e); }
+        function getAllianceTag(allianceId) {
+            return allianceMap[allianceId]?.tag || '-';
         }
 
         function effectiveKills(player) {
@@ -159,65 +125,93 @@
             return Math.max(0, total - nullified);
         }
 
+        async function loadData() {
+            // 1. Cargar alliances en mapa (para join en cliente)
+            try {
+                var res = await supabase.from('alliances').select('id, name, tag').order('name');
+                if (res.error) throw res.error;
+                allianceMap = {};
+                document.getElementById('filter-alliance').innerHTML = '<option value="">Todas las alianzas</option>' +
+                    (res.data || []).map(function(a) {
+                        allianceMap[a.id] = { name: a.name, tag: a.tag };
+                        return '<option value="' + a.id + '">' + a.name + '</option>';
+                    }).join('');
+            } catch(e) {
+                console.error('[Rankings] Error alianzas:', e);
+                showError('Error alianzas: ' + e.message);
+            }
+
+            // 2. Cargar kills anuladas
+            try {
+                var res = await supabase.from('match_nullified_kills').select('player_id, kills_nullified');
+                if (res.error) throw res.error;
+                nullifiedCache = {};
+                (res.data || []).forEach(function(r) {
+                    nullifiedCache[r.player_id] = (nullifiedCache[r.player_id] || 0) + r.kills_nullified;
+                });
+            } catch(e) {
+                console.error('[Rankings] Error nullified:', e);
+                nullifiedCache = {};
+            }
+
+            // 3. Cargar cada seccion (independiente)
+            try { await loadRankings(); } catch(e) { console.error('[Rankings] jugadores:', e); }
+            try { await loadLeagues(); } catch(e) { console.error('[Rankings] ligas:', e); }
+            try { await loadDuels(); } catch(e) { console.error('[Rankings] duelos:', e); }
+            try { await loadStrikes(); } catch(e) { console.error('[Rankings] strikes:', e); }
+        }
+
         async function loadRankings() {
             try {
                 var allianceFilter = document.getElementById('filter-alliance').value;
-                var query = supabase.from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)');
+                var query = supabase.from('players').select('id, current_username, current_alliance_id, total_kills, total_deaths, games_played, status, last_seen');
                 if (allianceFilter) query = query.eq('current_alliance_id', allianceFilter);
                 var res = await query.order('total_kills', { ascending: false }).limit(100);
                 if (res.error) throw res.error;
                 var players = res.data || [];
 
-                // Ordenar por effective_kills en el cliente
-                players.sort(function(a, b) {
-                    return effectiveKills(b) - effectiveKills(a);
-                });
+                // Ordenar por kills efectivas (client-side)
+                players.sort(function(a, b) { return effectiveKills(b) - effectiveKills(a); });
 
                 var tbody = document.getElementById('players-tbody');
                 if (players.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
-                } else {
-                    tbody.innerHTML = players.map(function(p, i) {
-                        var effKills = effectiveKills(p);
-                        var nullified = nullifiedCache[p.id] || 0;
-                        var kd = p.total_deaths > 0 ? (effKills / p.total_deaths).toFixed(2) : effKills;
-                        var hasNullified = nullified > 0;
-                        var killsDisplay = hasNullified
-                            ? '<span class="kill-nullified" title="Kills anuladas por strike Kill Nullifier">' + (p.total_kills?.toLocaleString() || 0) + '</span> <span class="text-orange-400 text-xs">(' + effKills + ')</span>'
-                            : (p.total_kills?.toLocaleString() || 0);
-                        return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
-                            '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
-                            '<td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-ah-text hover:text-ah-accent">' + p.current_username + '</a>' + (hasNullified ? ' <span title="Kill Nullifier activo" class="text-orange-400">&#9889;</span>' : '') + '</td>' +
-                            '<td class="p-3 text-ah-muted">' + (p.alliance?.tag || '-') + '</td>' +
-                            '<td class="p-3 text-right">' + (p.games_played || 0) + '</td>' +
-                            '<td class="p-3 text-right text-green-400 font-bold">' + killsDisplay + '</td>' +
-                            '<td class="p-3 text-right text-red-400">' + (p.total_deaths?.toLocaleString() || 0) + '</td>' +
-                            '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td>' +
-                            '<td class="p-3 text-right text-orange-400 text-xs">' + (nullified > 0 ? '-' + nullified : '') + '</td>' +
-                        '</tr>';
-                    }).join('');
+                    document.getElementById('alliances-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
+                    return;
                 }
-            } catch(e) {
-                console.error('[Rankings] loadRankings error:', e);
-                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error cargando jugadores</td></tr>';
-            }
 
-            // Alianzas
-            try {
-                var res2 = await supabase.from('players').select('current_alliance_id, alliance:alliances!players_current_alliance_id_fkey(name, tag), total_kills, total_deaths, games_played').not('current_alliance_id', 'is', null);
-                if (res2.error) throw res2.error;
-                var allianceStats = res2.data || [];
-                var grouped = {};
-                allianceStats.forEach(function(p) {
-                    var id = p.current_alliance_id;
-                    if (!grouped[id]) grouped[id] = { name: p.alliance.name, tag: p.alliance.tag, effKills: 0, deaths: 0, players: 0, games: 0, nullified: 0 };
+                tbody.innerHTML = players.map(function(p, i) {
                     var eff = effectiveKills(p);
                     var n = nullifiedCache[p.id] || 0;
-                    grouped[id].effKills += eff;
-                    grouped[id].deaths += p.total_deaths || 0;
-                    grouped[id].players++;
-                    grouped[id].games += p.games_played || 0;
-                    grouped[id].nullified += n;
+                    var kd = p.total_deaths > 0 ? (eff / p.total_deaths).toFixed(2) : eff;
+                    var tag = getAllianceTag(p.current_alliance_id);
+                    var killsDisplay = n > 0
+                        ? '<span class="kill-nullified">' + (p.total_kills?.toLocaleString() || 0) + '</span> <span class="text-orange-400 text-xs">(' + eff + ')</span>'
+                        : (p.total_kills?.toLocaleString() || 0);
+                    return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
+                        '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
+                        '<td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-ah-text hover:text-ah-accent">' + p.current_username + '</a>' + (n > 0 ? ' <span title="Kill Nullifier" class="text-orange-400">&#9889;</span>' : '') + '</td>' +
+                        '<td class="p-3 text-ah-muted">' + tag + '</td>' +
+                        '<td class="p-3 text-right">' + (p.games_played || 0) + '</td>' +
+                        '<td class="p-3 text-right text-green-400 font-bold">' + killsDisplay + '</td>' +
+                        '<td class="p-3 text-right text-red-400">' + (p.total_deaths?.toLocaleString() || 0) + '</td>' +
+                        '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td>' +
+                        '<td class="p-3 text-right text-orange-400 text-xs">' + (n > 0 ? '-' + n : '') + '</td>' +
+                    '</tr>';
+                }).join('');
+
+                // Alianzas (agrupar players ya cargados)
+                var grouped = {};
+                players.forEach(function(p) {
+                    var aid = p.current_alliance_id;
+                    if (!aid) return;
+                    if (!grouped[aid]) grouped[aid] = { id: aid, name: allianceMap[aid]?.name || '???', tag: allianceMap[aid]?.tag || '-', effKills: 0, deaths: 0, players: 0, games: 0, nullified: 0 };
+                    var eff = effectiveKills(p);
+                    grouped[aid].effKills += eff;
+                    grouped[aid].deaths += p.total_deaths || 0;
+                    grouped[aid].players++;
+                    grouped[aid].games += p.games_played || 0;
+                    grouped[aid].nullified += nullifiedCache[p.id] || 0;
                 });
                 var sorted = Object.values(grouped).sort(function(a, b) {
                     var kda = a.deaths > 0 ? a.effKills / a.deaths : a.effKills;
@@ -227,7 +221,7 @@
                 document.getElementById('alliances-tbody').innerHTML = sorted.map(function(a, i) {
                     var kd = a.deaths > 0 ? (a.effKills / a.deaths).toFixed(2) : a.effKills;
                     var killsDisplay = a.nullified > 0
-                        ? '<span class="kill-nullified">' + ((a.effKills + a.nullified).toLocaleString()) + '</span> <span class="text-orange-400 text-xs">(' + a.effKills.toLocaleString() + ')</span>'
+                        ? '<span class="kill-nullified">' + (a.effKills + a.nullified).toLocaleString() + '</span> <span class="text-orange-400 text-xs">(' + a.effKills.toLocaleString() + ')</span>'
                         : a.effKills.toLocaleString();
                     return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
                         '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
@@ -240,9 +234,11 @@
                         '<td class="p-3 text-right">' + a.games + '</td>' +
                     '</tr>';
                 }).join('');
+
             } catch(e) {
-                console.error('[Rankings] loadRankings (alliances) error:', e);
-                document.getElementById('alliances-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error cargando alianzas</td></tr>';
+                console.error('[Rankings] loadRankings:', e);
+                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ' + (e.message || 'cargando jugadores') + '</td></tr>';
+                document.getElementById('alliances-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error</td></tr>';
             }
         }
 
@@ -250,33 +246,30 @@
             try {
                 var res = await supabase.from('leagues').select('*').order('created_at', { ascending: false });
                 if (res.error) throw res.error;
-                var leagues = res.data;
                 var container = document.getElementById('leagues-list');
-                if (!leagues || leagues.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin ligas activas</div>'; return; }
-                container.innerHTML = leagues.map(function(l) { return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div><h3 class="font-bold text-ah-text">' + l.name + '</h3><p class="text-sm text-ah-muted">Temporada: ' + l.season + '</p><p class="text-xs text-ah-muted/70">' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + '</p></div><span class="px-3 py-1 rounded text-xs font-bold ' + (l.status === 'active' ? 'bg-green-900/30 text-green-400' : 'bg-ah-card/50 text-ah-muted') + '">' + l.status + '</span></div></div>'; }).join('');
-            } catch(e) { console.error('[Rankings] loadLeagues:', e); document.getElementById('leagues-list').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando ligas</div>'; }
+                if (!res.data || res.data.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin ligas activas</div>'; return; }
+                container.innerHTML = res.data.map(function(l) { return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div><h3 class="font-bold text-ah-text">' + l.name + '</h3><p class="text-sm text-ah-muted">Temporada: ' + l.season + '</p><p class="text-xs text-ah-muted/70">' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + '</p></div><span class="px-3 py-1 rounded text-xs font-bold ' + (l.status === 'active' ? 'bg-green-900/30 text-green-400' : 'bg-ah-card/50 text-ah-muted') + '">' + l.status + '</span></div></div>'; }).join('');
+            } catch(e) { console.error('[Rankings] ligas:', e); document.getElementById('leagues-list').innerHTML = '<div class="text-center py-8 text-red-400">Error ligas</div>'; }
         }
 
         async function loadDuels() {
             try {
                 var res = await supabase.from('matches').select('*, alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').eq('match_type', 'duel').eq('status', 'finished').order('created_at', { ascending: false }).limit(20);
                 if (res.error) throw res.error;
-                var duels = res.data;
                 var container = document.getElementById('duels-list');
-                if (!duels || duels.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin duelos finalizados</div>'; return; }
-                container.innerHTML = duels.map(function(d) { var aName = d.alliance_a?.name || 'Alianza A'; var bName = d.alliance_b?.name || 'Alianza B'; return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + aName + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_a?.tag || '-') + ']</div></div><div class="px-4"><div class="text-2xl font-bold text-ah-accent">VS</div><div class="text-xs text-ah-muted/70">' + formatDate(d.created_at) + '</div></div><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + bName + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_b?.tag || '-') + ']</div></div></div></div>'; }).join('');
-            } catch(e) { console.error('[Rankings] loadDuels:', e); document.getElementById('duels-list').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando duelos</div>'; }
+                if (!res.data || res.data.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin duelos finalizados</div>'; return; }
+                container.innerHTML = res.data.map(function(d) { return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + (d.alliance_a?.name || 'Alianza A') + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_a?.tag || '-') + ']</div></div><div class="px-4"><div class="text-2xl font-bold text-ah-accent">VS</div><div class="text-xs text-ah-muted/70">' + formatDate(d.created_at) + '</div></div><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + (d.alliance_b?.name || 'Alianza B') + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_b?.tag || '-') + ']</div></div></div></div>'; }).join('');
+            } catch(e) { console.error('[Rankings] duelos:', e); document.getElementById('duels-list').innerHTML = '<div class="text-center py-8 text-red-400">Error duelos</div>'; }
         }
 
         async function loadStrikes() {
             try {
-                var res = await supabase.from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)').gt('strikes', 0).order('strikes', { ascending: false }).limit(50);
+                var res = await supabase.from('players').select('id, current_username, current_alliance_id, strikes, status, last_seen').gt('strikes', 0).order('strikes', { ascending: false }).limit(50);
                 if (res.error) throw res.error;
-                var players = res.data;
                 var tbody = document.getElementById('strikes-tbody');
-                if (!players || players.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Sin strikes registrados</td></tr>'; return; }
-                tbody.innerHTML = players.map(function(p) { return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-medium text-ah-text">' + p.current_username + '</td><td class="p-3 text-ah-muted">' + (p.alliance?.tag || '-') + '</td><td class="p-3 text-right font-bold text-red-400">' + p.strikes + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3 text-ah-muted/70 text-xs">' + formatDate(p.last_seen) + '</td></tr>'; }).join('');
-            } catch(e) { console.error('[Rankings] loadStrikes:', e); document.getElementById('strikes-tbody').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Error cargando strikes</td></tr>'; }
+                if (!res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Sin strikes registrados</td></tr>'; return; }
+                tbody.innerHTML = res.data.map(function(p) { return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-medium text-ah-text">' + p.current_username + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p.current_alliance_id) + '</td><td class="p-3 text-right font-bold text-red-400">' + p.strikes + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3 text-ah-muted/70 text-xs">' + formatDate(p.last_seen) + '</td></tr>'; }).join('');
+            } catch(e) { console.error('[Rankings] strikes:', e); document.getElementById('strikes-tbody').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Error strikes</td></tr>'; }
         }
 
         function showTab(tab) {
