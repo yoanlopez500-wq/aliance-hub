@@ -1,277 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alliance Hub - Supremacy 1914</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js?v=10"></script>
-    <script src="assets/js/base.js?v=10"></script>
-    <script src="assets/js/auth.js?v=10"></script>
-    <script src="assets/js/pwa-utils.js?v=10"></script>
-    <style>
-        .animate-fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .match-card { transition: all 0.2s; }
-        .match-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-    </style>
-    <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alliance Hub - Torneos, Rankings y Ligas para Supremacy 1914</title>
+<meta name="description" content="Alliance Hub es la plataforma oficial de torneos, rankings y ligas para comunidades de Supremacy 1914. Registra tu alianza, compite en partidas organizadas y escala el ranking global.">
+<meta name="keywords" content="Supremacy 1914, torneos, rankings, ligas, alianzas, competencia, estrategia, wargame">
+<meta name="author" content="Alliance Hub">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Alliance Hub - Torneos y Rankings para Supremacy 1914">
+<meta property="og:description" content="Plataforma oficial de torneos, rankings y ligas. Registra tu alianza y compite.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0e27">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+<link rel="canonical" href="https://yoanlopez500-wq.github.io/aliance-hub/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
+</script>
+<!-- REDIRECCION para usuarios logueados (ejecuta ANTES que todo) -->
+<script src="assets/js/config.js"></script>
+<script>
+(function() {
+    var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
+    var hasAdmin = false;
+    try { hasAdmin = !!localStorage.getItem('sb-qkccyjegkgjzwoxytnqp-auth-token'); } catch(e) {}
+    if (hasPlayer || hasAdmin) {
+        window.location.replace('dashboard.html');
+        document.documentElement.style.display = 'none';
+    }
+})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.fade-in{animation:fadeIn .6s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:.15;pointer-events:none}
+.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+.stat-card,.feature-card{transition:transform .2s}.stat-card:hover,.feature-card:hover{transform:translateY(-4px)}
+.feature-card{border:1px solid #1a237e}.feature-card:hover{border-color:#ff6f00}
+</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
-    <script type="text/javascript">
-        (function(l) {
-            if (l.search) {
-                var q = {};
-                l.search.slice(1).split('&').forEach(function(v) {
-                    var a = v.split('=');
-                    q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
-                });
-                if (q.p !== undefined) {
-                    window.history.replaceState(null, null,
-                        l.pathname.slice(0, -1) + (q.p || '') +
-                        (q.q ? ('?' + q.q) : '') + l.hash
-                    );
-                } else if (l.search[1] === '/') {
-                    var decoded = l.search.slice(1).split('&').map(function(s) {
-                        return s.replace(/~and~/g, '&');
-                    }).join('?');
-                    window.history.replaceState(null, null,
-                        l.pathname.slice(0, -1) + decoded + l.hash
-                    );
-                }
-            }
-        }(window.location))
-    </script>
+<body class="min-h-screen flex flex-col">
 
-    <div id="admin-nav"></div>
+<nav style="background:#0a0e27;border-bottom:1px solid #1a237e" class="sticky top-0 z-50">
+<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+<a href="index.html" class="text-lg font-bold flex items-center gap-2" style="color:#ff8f00"><span>&#9876;&#65039;</span><span>Alliance Hub</span></a>
+<div class="flex items-center gap-2 flex-wrap justify-end">
+<a href="course/" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98] hidden sm:inline-block" style="background:#1a237e;color:#fff">&#127891; Curso para Lideres</a>
+<a href="rankings.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127942; Rankings</a>
+<a href="login-player.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Entrar</a>
+</div>
+</div>
+</nav>
 
-    <!-- Hero -->
-    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 text-white">
-        <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
-            <div class="text-center">
-                <h1 class="text-3xl md:text-5xl font-bold mb-4">Alliance Hub</h1>
-                <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
-                    Plataforma de rankings, ligas y gestion para comunidades de <span class="text-amber-400 font-bold">Supremacy 1914</span>
-                </p>
-                <div class="mt-6 flex flex-wrap justify-center gap-3">
-                    <a href="#matches" class="bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-amber-400 transition">Ver Partidas</a>
-                    <a href="rankings.html" class="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition backdrop-blur">Rankings</a>
-                    <a href="login-player.html" class="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition">Entrar</a>
-                    <a href="alliance-panel.html" id="btn-alliance-panel" class="hidden bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-400 transition">Mi Alianza</a>
-                </div>
-            </div>
-        </div>
-    </div>
+<section class="relative overflow-hidden py-16 md:py-24">
+<div class="hero-glow" style="background:#1a237e;top:-200px;left:-100px"></div>
+<div class="hero-glow" style="background:#ff6f00;bottom:-200px;right:-100px"></div>
+<div class="max-w-6xl mx-auto px-4 relative z-10">
+<div class="text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6" style="background:rgba(255,111,0,0.1);border:1px solid rgba(255,111,0,0.2);color:#ff8f00">&#127881; La plataforma de competencia para Supremacy 1914</div>
+<h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">Domina el campo de<br><span style="color:#ff8f00">batalla. Demuestralo.</span></h1>
+<p class="text-lg md:text-xl max-w-2xl mx-auto mb-8" style="color:#9fa8da">Alliance Hub organiza <strong class="text-white">torneos, rankings y ligas</strong> para comunidades de Supremacy 1914. Registra tu alianza, compite en partidas organizadas y escala el ranking global.</p>
+<div class="flex flex-wrap justify-center gap-3">
+<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Comenzar como Jugador</a>
+<a href="course/" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127891; Registrar mi Alianza</a>
+<a href="rankings.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127942; Ver Rankings</a>
+</div>
+</div>
+</div>
+</section>
 
-    <!-- Reglas Base Global -->
-    <div id="global-rules-section" class="hidden bg-blue-50 border-b border-blue-200">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex items-center gap-3">
-                <span class="text-xl">📜</span>
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
-                    <p class="text-xs text-blue-600">Reglas estandar que aplican a todas las partidas. Las reglas adicionales de cada partida estan en su descripcion.</p>
-                </div>
-                <a id="global-rules-link" href="#" target="_blank" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">Ver Reglas</a>
-            </div>
-        </div>
-    </div>
+<section class="py-8">
+<div class="max-w-6xl mx-auto px-4">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="stats-grid">
+<div class="stat-card rounded-xl p-5 text-center" style="background:#11183a;border:1px solid #1a237e"><div class="text-3xl font-extrabold" style="color:#ff8f00" id="stat-matches">-</div><div class="text-xs mt-1 uppercase tracking-wider" style="color:#9fa8da">Partidas</div></div>
+<div class="stat-card rounded-xl p-5 text-center" style="background:#11183a;border:1px solid #1a237e"><div class="text-3xl font-extrabold" style="color:#4caf50" id="stat-players">-</div><div class="text-xs mt-1 uppercase tracking-wider" style="color:#9fa8da">Jugadores</div></div>
+<div class="stat-card rounded-xl p-5 text-center" style="background:#11183a;border:1px solid #1a237e"><div class="text-3xl font-extrabold" style="color:#2196f3" id="stat-alliances">-</div><div class="text-xs mt-1 uppercase tracking-wider" style="color:#9fa8da">Alianzas</div></div>
+<div class="stat-card rounded-xl p-5 text-center" style="background:#11183a;border:1px solid #1a237e"><div class="text-3xl font-extrabold" style="color:#ffd700" id="stat-kills">-</div><div class="text-xs mt-1 uppercase tracking-wider" style="color:#9fa8da">Bajas Totales</div></div>
+</div>
+</div>
+</section>
 
-    <!-- PWA Install Banner -->
-    <div id="pwa-install-banner" class="hidden bg-slate-800 border-b border-amber-500/30">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl">⚔️</div>
-                    <div class="min-w-0">
-                        <p class="text-white font-bold text-sm truncate">Instala Alliance Hub</p>
-                        <p class="text-slate-400 text-xs truncate">Acceso rapido sin navegador. Funciona offline.</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button id="pwa-notify-btn" onclick="requestNotificationPermission()" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-400 transition" title="Recibe alertas de nuevas partidas">🔔 Activar notificaciones</button>
-                    <button onclick="installPWA()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-400 transition whitespace-nowrap">Instalar</button>
-                    <button onclick="dismissInstallBanner()" class="text-slate-400 hover:text-white p-1 transition" title="Cerrar">✕</button>
-                </div>
-            </div>
-        </div>
-    </div>
+<section class="py-16" id="que-es">
+<div class="max-w-6xl mx-auto px-4">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-white mb-3">Que es Alliance Hub?</h2>
+<p class="max-w-2xl mx-auto" style="color:#9fa8da">Una plataforma independiente creada por y para la comunidad de Supremacy 1914.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6">
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127942;</div><h3 class="text-lg font-bold text-white mb-2">Rankings Globales</h3><p class="text-sm" style="color:#9fa8da">Sistema de rankings basado en estadisticas reales de partidas. K/D ratio, partidas jugadas, victorias y mas.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127988;</div><h3 class="text-lg font-bold text-white mb-2">Gestiona tu Alianza</h3><p class="text-sm" style="color:#9fa8da">Lidera tu alianza con herramientas exclusivas: miembros, rankings internos, partidas privadas y duelos.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#9876;&#65039;</div><h3 class="text-lg font-bold text-white mb-2">Duelos de Alianzas</h3><p class="text-sm" style="color:#9fa8da">Prepara un equipo de 5 jugadores y desafia a otras alianzas. Matchmaking automatico.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127919;</div><h3 class="text-lg font-bold text-white mb-2">Torneos Organizados</h3><p class="text-sm" style="color:#9fa8da">Partidas con reglas claras, sistema de strikes y auditoria post-partida.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#128200;</div><h3 class="text-lg font-bold text-white mb-2">Importa Resultados</h3><p class="text-sm" style="color:#9fa8da">Importa estadisticas desde CSV de Supremacy 1914. Calculo automatico de rankings.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#128241;</div><h3 class="text-lg font-bold text-white mb-2">App Web PWA</h3><p class="text-sm" style="color:#9fa8da">Instala Alliance Hub en tu telefono. Funciona como app nativa.</p></article>
+</div>
+</div>
+</section>
 
-    <!-- Stats -->
-    <div class="max-w-7xl mx-auto px-4 -mt-6">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-amber-600" id="stat-matches">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Partidas</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-blue-600" id="stat-players">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Jugadores</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-green-600" id="stat-alliances">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Alianzas</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-purple-600" id="stat-leagues">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Ligas</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-                <div class="text-2xl font-bold text-red-600" id="stat-kills">-</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Bajas Totales</div>
-            </div>
-        </div>
-    </div>
+<section class="py-16" style="background:#11183a;border-top:1px solid #1a237e;border-bottom:1px solid #1a237e">
+<div class="max-w-6xl mx-auto px-4">
+<div class="text-center mb-12"><h2 class="text-3xl font-bold text-white mb-3">Como Funciona</h2><p class="max-w-2xl mx-auto" style="color:#9fa8da">Tres pasos para empezar a competir.</p></div>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="text-center"><div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">1</div><h3 class="text-lg font-bold text-white mb-2">Entra como Jugador</h3><p class="text-sm" style="color:#9fa8da">Solo necesitas tu ID de jugador y username de Supremacy 1914. Sin correos.</p></div>
+<div class="text-center"><div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">2</div><h3 class="text-lg font-bold text-white mb-2">Unete a Partidas</h3><p class="text-sm" style="color:#9fa8da">Explora las partidas disponibles y registrate.</p></div>
+<div class="text-center"><div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">3</div><h3 class="text-lg font-bold text-white mb-2">Escala el Ranking</h3><p class="text-sm" style="color:#9fa8da">Tus resultados se registran automaticamente.</p></div>
+</div>
+</div>
+</section>
 
-    <!-- Matches -->
-    <div id="matches" class="max-w-7xl mx-auto px-4 py-10">
-        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-            <h2 class="text-2xl font-bold text-slate-800">Partidas</h2>
-            <div class="flex gap-2 flex-wrap">
-                <button onclick="filterMatches('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium" data-filter="all">Todas</button>
-                <button onclick="filterMatches('internal')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="internal">Internas</button>
-                <button onclick="filterMatches('duel')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="duel">Duelos</button>
-                <button onclick="filterMatches('public_31')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_31">Publicas 31</button>
-                <button onclick="filterMatches('public_500')" class="filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200" data-filter="public_500">Eventos 500</button>
-            </div>
-        </div>
-        <div id="matches-list" class="grid gap-4">
-            <div class="text-center py-12 text-slate-400"><div class="animate-spin inline-block text-2xl mb-2">⏳</div><p>Cargando partidas...</p></div>
-        </div>
-    </div>
+<section class="py-16" id="alianzas">
+<div class="max-w-6xl mx-auto px-4">
+<div class="grid md:grid-cols-2 gap-8 items-center">
+<div>
+<h2 class="text-3xl font-bold text-white mb-4">&#127988; Para Alianzas</h2>
+<p class="mb-4" style="color:#9fa8da">Eres lider de alianza? Lleva tu comunidad al siguiente nivel.</p>
+<ul class="space-y-3 mb-6">
+<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Panel exclusivo para gestionar miembros</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Rankings internos de tu alianza</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Sistema de duelos contra otras alianzas</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Certificacion de lideres incluida</span></li>
+</ul>
+<a href="course/" class="inline-block px-6 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127891; Certificarme como Lider</a>
+</div>
+<div class="rounded-2xl p-6" style="background:#11183a;border:1px solid #1a237e">
+<div class="text-center"><div class="text-6xl mb-4">&#127988;</div><h3 class="text-xl font-bold text-white mb-2">Tu Alianza. Tu Equipo.</h3><p style="color:#9fa8da">Completa el curso de certificacion y recibe acceso al panel de lider.</p></div>
+</div>
+</div>
+</div>
+</section>
 
-    <footer class="bg-slate-900 text-slate-400 py-8 mt-12">
-        <div class="max-w-7xl mx-auto px-4 text-center text-sm">
-            <p>Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
-            <button onclick="clearAppCache()" class="mt-4 text-xs text-slate-500 hover:text-slate-300 underline">Forzar actualizacion</button>
-        </div>
-    </footer>
+<section class="py-16" style="background:#11183a;border-top:1px solid #1a237e">
+<div class="max-w-6xl mx-auto px-4">
+<div class="flex items-center justify-between mb-8"><h2 class="text-2xl font-bold text-white">&#127918; Partidas Recientes</h2><a href="login-player.html" class="text-sm font-bold" style="color:#ff8f00">Ver todas &rarr;</a></div>
+<div id="recent-matches" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="rounded-xl p-6 text-center col-span-full" style="background:#0a0e27;border:1px solid #1a237e;color:#9fa8da">Cargando partidas...</div>
+</div>
+</div>
+</section>
 
-    <script>
-        var allMatches = [];
-        var playerData = getPlayerData();
+<section class="py-16">
+<div class="max-w-3xl mx-auto px-4 text-center">
+<h2 class="text-3xl font-bold text-white mb-4">Listo para la batalla?</h2>
+<p class="mb-8" style="color:#9fa8da">Unete a cientos de jugadores que ya compiten en Alliance Hub.</p>
+<div class="flex flex-wrap justify-center gap-3">
+<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Entrar como Jugador</a>
+<a href="login.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#128202; Panel de Admin</a>
+</div>
+</div>
+</section>
 
-        async function checkAlliance() {
-            if (!playerData.playerId) return;
-            try {
-                var { data: membership } = await supabase
-                    .from('alliance_memberships')
-                    .select('status')
-                    .eq('player_id', playerData.playerId)
-                    .eq('status', 'approved')
-                    .single();
+<footer style="background:#0a0e27;border-top:1px solid #1a237e" class="py-8">
+<div class="max-w-6xl mx-auto px-4 text-center">
+<p class="text-sm font-bold" style="color:#9fa8da">&#9876;&#65039; Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
+<p class="text-xs mt-2" style="color:#9fa8da;opacity:.5">No afiliado con Bytro Labs / Stillfront Group. Proyecto comunitario independiente.</p>
+<div class="mt-4 flex justify-center gap-4 text-xs" style="color:#9fa8da;opacity:.5">
+<a href="rankings.html" style="color:#9fa8da">Rankings</a><a href="course/" style="color:#9fa8da">Certificacion</a><a href="login.html" style="color:#9fa8da">Admin</a><a href="login-player.html" style="color:#9fa8da">Jugador</a>
+</div>
+</div>
+</footer>
 
-                if (membership) {
-                    document.getElementById('btn-alliance-panel').classList.remove('hidden');
-                }
-            } catch (e) { /* no membership */ }
-        }
-
-        async function loadStats() {
-            try {
-                var { count: mc } = await supabase.from('matches').select('*', { count: 'exact', head: true });
-                var { count: pc } = await supabase.from('players').select('*', { count: 'exact', head: true });
-                var { count: ac } = await supabase.from('alliances').select('*', { count: 'exact', head: true });
-                var { count: lc } = await supabase.from('leagues').select('*', { count: 'exact', head: true });
-                var { data: kd } = await supabase.from('players').select('total_kills');
-                var tk = kd ? kd.reduce(function(s, p) { return s + (p.total_kills || 0); }, 0) : 0;
-
-                document.getElementById('stat-matches').textContent = mc || 0;
-                document.getElementById('stat-players').textContent = pc || 0;
-                document.getElementById('stat-alliances').textContent = ac || 0;
-                document.getElementById('stat-leagues').textContent = lc || 0;
-                document.getElementById('stat-kills').textContent = tk.toLocaleString();
-            } catch (e) { console.error('loadStats error:', e); }
-        }
-
-        async function loadMatches() {
-            showLoading('matches-list');
-            try {
-                var { data, error } = await supabase
-                    .from('matches')
-                    .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
-                    .eq('is_private', false)
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-                allMatches = data || [];
-                renderMatches(allMatches);
-            } catch (e) {
-                document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-500">Error: ' + e.message + '</div>';
-            }
-        }
-
-        function renderMatches(matches) {
-            var c = document.getElementById('matches-list');
-            if (matches.length === 0) {
-                c.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><div class="text-4xl mb-3">🎮</div><p class="text-slate-500">No hay partidas disponibles</p></div>';
-                return;
-            }
-
-            c.innerHTML = matches.map(function(match) {
-                var allianceLabel = '';
-                if (match.match_type === 'internal' && match.alliance) allianceLabel = match.alliance.name;
-                else if (match.match_type === 'duel') allianceLabel = 'Duelo';
-                else allianceLabel = 'Global';
-
-                var approvalBadge = match.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">Aprobacion</span>' : '';
-                var winnerBadge = match.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">Ganadores</span>' : '';
-                var canRegister = match.status === 'open' && match.match_type !== 'public_quick';
-
-                return '<div class="match-card bg-white rounded-xl border border-slate-200 p-5 animate-fade-in">' +
-                    '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
-                        '<div class="flex-1">' +
-                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
-                                getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) +
-                                (match.password ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">🔒</span>' : '') +
-                                approvalBadge + winnerBadge +
-                            '</div>' +
-                            '<h3 class="text-lg font-bold text-slate-800">' + match.name + '</h3>' +
-                            '<p class="text-sm text-slate-500 mt-1">' + (match.description || 'Sin descripcion') + '</p>' +
-                            '<div class="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">' +
-                                '<span>📅 ' + formatDate(match.created_at) + '</span>' +
-                                '<span>' + allianceLabel + '</span>' +
-                                '<span>👥 ' + match.max_players + ' jugadores max</span>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="flex flex-col gap-2">' +
-                            '<a href="game.html?id=' + match.id + '" class="text-center bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">Ver Partida</a>' +
-                            (canRegister ? '<a href="register/index.html?match=' + match.id + '" class="text-center bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition">Registrarme</a>' : '') +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-        }
-
-        function filterMatches(type) {
-            document.querySelectorAll('.filter-btn').forEach(function(btn) {
-                btn.className = btn.dataset.filter === type
-                    ? 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-amber-500 text-white font-medium'
-                    : 'filter-btn px-3 py-1.5 text-sm rounded-lg bg-white text-slate-600 border border-slate-200';
-            });
-            renderMatches(type === 'all' ? allMatches : allMatches.filter(function(m) { return m.match_type === type; }));
-        }
-
-        async function loadGlobalRules() {
-            try {
-                var { data } = await supabase.from('app_settings').select('value').eq('key', 'rules_url').single();
-                if (data && data.value) {
-                    document.getElementById('global-rules-section').classList.remove('hidden');
-                    document.getElementById('global-rules-link').href = data.value;
-                }
-            } catch (e) {}
-        }
-
-        checkAlliance();
-        loadStats();
-        loadMatches();
-        loadGlobalRules();
-    </script>
+<script>
+async function loadStats(){
+try{var c=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var{count:mc}=await c.from('matches').select('*',{count:'exact',head:true});var{count:pc}=await c.from('players').select('*',{count:'exact',head:true});var{count:ac}=await c.from('alliances').select('*',{count:'exact',head:true});var{data:kd}=await c.from('players').select('total_kills');var tk=kd?kd.reduce(function(s,p){return s+(p.total_kills||0)},0):0;document.getElementById('stat-matches').textContent=(mc||0).toLocaleString();document.getElementById('stat-players').textContent=(pc||0).toLocaleString();document.getElementById('stat-alliances').textContent=(ac||0).toLocaleString();document.getElementById('stat-kills').textContent=tk.toLocaleString()}catch(e){}}
+async function loadRecent(){
+try{var c=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var{data:matches}=await c.from('matches').select('*,alliance:alliances!matches_alliance_id_fkey(name,tag)').eq('is_private',false).order('created_at',{ascending:false}).limit(6);var el=document.getElementById('recent-matches');if(!matches||matches.length===0){el.innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">No hay partidas activas aun</div>';return}var sc={open:'#4caf50',closed:'#ef5350',finished:'#9fa8da',in_progress:'#ff8f00'};var tl={internal:'Interna',duel:'Duelo',public_31:'Publica 31',public_500:'Evento 500'};el.innerHTML=matches.map(function(m){var s=sc[m.status]||'#9fa8da',t=tl[m.match_type]||m.match_type;return'<div class="rounded-xl p-5 transition hover:opacity-90" style="background:#0a0e27;border:1px solid #1a237e">'+'<div class="flex items-center gap-2 mb-2 flex-wrap"><span class="text-xs px-2 py-1 rounded font-bold" style="background:'+s+'22;color:'+s+'">'+m.status+'</span><span class="text-xs px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);color:#9fa8da">'+t+'</span></div>'+'<h3 class="font-bold text-white text-sm mb-1">'+m.name+'</h3>'+'<p class="text-xs mb-2" style="color:#9fa8da">'+(m.description?m.description.substring(0,60)+'...':'Sin descripcion')+'</p>'+'<div class="flex items-center justify-between"><span class="text-xs" style="color:#9fa8da">&#128101; '+m.max_players+' max</span><a href="game.html?id='+m.id+'" class="text-xs font-bold" style="color:#ff8f00">Ver &rarr;</a></div></div>'}).join('')}catch(e){document.getElementById('recent-matches').innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">Error cargando partidas</div>'}}
+loadStats();loadRecent();
+</script>
 </body>
 </html>
