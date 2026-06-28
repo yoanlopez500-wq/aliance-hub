@@ -3,96 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rankings V2 - Alliance Hub</title>
+    <title>Rankings - Alliance Hub</title>
+    <script src="assets/js/theme.js?v=11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js"></script>
-    <script src="assets/js/base.js"></script>
-    <script src="assets/js/auth.js"></script>
-    <script src="assets/js/pwa-utils.js"></script>
-    <meta name="theme-color" content="#0f172a">
+    <script src="assets/js/config.js?v=11"></script>
+    <script src="assets/js/base.js?v=11"></script>
+    <script src="assets/js/auth.js?v=11"></script>
+    <script src="assets/js/pwa-utils.js?v=11"></script>
+    <meta name="theme-color" content="#0a0e27">
+    <style>.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
+<body class="bg-ah-bg min-h-screen text-ah-text" data-role="public">
     <div id="admin-nav"></div>
     <div class="max-w-6xl mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-slate-800 mb-2">🏆 Rankings V2</h1>
-        <p class="text-slate-500 mb-6">Estadisticas globales, por alianza, por liga y duelos</p>
-        <div class="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto">
-            <button onclick="showTab('players')" id="tab-players" class="px-4 py-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500 whitespace-nowrap">👤 Jugadores</button>
-            <button onclick="showTab('alliances')" id="tab-alliances" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 whitespace-nowrap">🏴 Alianzas</button>
-            <button onclick="showTab('leagues')" id="tab-leagues" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 whitespace-nowrap">🏆 Ligas</button>
-            <button onclick="showTab('duels')" id="tab-duels" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 whitespace-nowrap">⚔️ Duelos</button>
-            <button onclick="showTab('strikes')" id="tab-strikes" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 whitespace-nowrap">⚠️ Strikes</button>
+        <h1 class="text-3xl font-bold text-ah-text mb-2">🏆 Rankings</h1>
+        <p class="text-ah-muted mb-6">Estadisticas globales, por alianza, por liga y duelos</p>
+        <div class="flex gap-2 mb-6 border-b border-ah-border overflow-x-auto scrollbar-hide">
+            <button onclick="showTab('players')" id="tab-players" class="px-4 py-3 text-sm font-bold text-ah-accent border-b-2 border-ah-accent whitespace-nowrap">👤 Jugadores</button>
+            <button onclick="showTab('alliances')" id="tab-alliances" class="px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap">🏴 Alianzas</button>
+            <button onclick="showTab('leagues')" id="tab-leagues" class="px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap">🏆 Ligas</button>
+            <button onclick="showTab('duels')" id="tab-duels" class="px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap">⚔️ Duelos</button>
+            <button onclick="showTab('strikes')" id="tab-strikes" class="px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap">⚠️ Strikes</button>
         </div>
         <div id="filters-players" class="flex gap-3 mb-4 flex-wrap">
-            <select id="filter-alliance" onchange="loadRankings()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Todas las alianzas</option></select>
-            <select id="filter-match-type" onchange="loadRankings()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">Todos los tipos</option><option value="internal">Internas</option><option value="duel">Duelos</option><option value="public_31">Publicas 31</option><option value="public_500">Eventos 500</option></select>
+            <select id="filter-alliance" onchange="loadRankings()" class="px-3 py-2 rounded-lg border border-ah-border bg-ah-card text-ah-text text-sm focus:outline-none focus:ring-2 focus:ring-ah-accent/30">
+                <option value="">Todas las alianzas</option>
+            </select>
+            <select id="filter-match-type" onchange="loadRankings()" class="px-3 py-2 rounded-lg border border-ah-border bg-ah-card text-ah-text text-sm focus:outline-none focus:ring-2 focus:ring-ah-accent/30">
+                <option value="">Todos los tipos</option>
+                <option value="internal">Internas</option>
+                <option value="duel">Duelos</option>
+                <option value="public_31">Publicas 31</option>
+                <option value="public_500">Eventos 500</option>
+            </select>
         </div>
         <div id="players-ranking">
-            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
-                <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3 w-12">#</th><th class="text-left p-3">Jugador</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Partidas</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD Global</th><th class="text-right p-3">Strikes</th></tr></thead><tbody id="players-tbody"><tr><td colspan="8" class="text-center py-8 text-slate-400">Cargando...</td></tr></tbody></table>
+            <div class="overflow-x-auto bg-ah-card rounded-xl border border-ah-border">
+                <table class="w-full text-sm">
+                    <thead class="bg-ah-card/50">
+                        <tr>
+                            <th class="text-left p-3 w-12 text-ah-muted">#</th>
+                            <th class="text-left p-3 text-ah-muted">Jugador</th>
+                            <th class="text-left p-3 text-ah-muted">Alianza</th>
+                            <th class="text-right p-3 text-ah-muted">Partidas</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas</th>
+                            <th class="text-right p-3 text-ah-muted">Muertes</th>
+                            <th class="text-right p-3 text-ah-muted">KD Global</th>
+                            <th class="text-right p-3 text-ah-muted">Strikes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="players-tbody">
+                        <tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         <div id="alliances-ranking" class="hidden">
-            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
-                <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3 w-12">#</th><th class="text-left p-3">Alianza</th><th class="text-left p-3">Tag</th><th class="text-right p-3">Jugadores</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-right p-3">Partidas</th></tr></thead><tbody id="alliances-tbody"><tr><td colspan="8" class="text-center py-8 text-slate-400">Cargando...</td></tr></tbody></table>
+            <div class="overflow-x-auto bg-ah-card rounded-xl border border-ah-border">
+                <table class="w-full text-sm">
+                    <thead class="bg-ah-card/50">
+                        <tr>
+                            <th class="text-left p-3 w-12 text-ah-muted">#</th>
+                            <th class="text-left p-3 text-ah-muted">Alianza</th>
+                            <th class="text-left p-3 text-ah-muted">Tag</th>
+                            <th class="text-right p-3 text-ah-muted">Jugadores</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas</th>
+                            <th class="text-right p-3 text-ah-muted">Muertes</th>
+                            <th class="text-right p-3 text-ah-muted">KD</th>
+                            <th class="text-right p-3 text-ah-muted">Partidas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alliances-tbody">
+                        <tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div id="leagues-ranking" class="hidden"><div id="leagues-list" class="space-y-4"><div class="text-center py-8 text-slate-400">Cargando ligas...</div></div></div>
-        <div id="duels-ranking" class="hidden"><div id="duels-list" class="space-y-4"><div class="text-center py-8 text-slate-400">Cargando duelos...</div></div></div>
+        <div id="leagues-ranking" class="hidden">
+            <div id="leagues-list" class="space-y-4">
+                <div class="text-center py-8 text-ah-muted/70">Cargando ligas...</div>
+            </div>
+        </div>
+        <div id="duels-ranking" class="hidden">
+            <div id="duels-list" class="space-y-4">
+                <div class="text-center py-8 text-ah-muted/70">Cargando duelos...</div>
+            </div>
+        </div>
         <div id="strikes-ranking" class="hidden">
-            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
-                <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Jugador</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Strikes</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Ultimo No-Show</th></tr></thead><tbody id="strikes-tbody"><tr><td colspan="5" class="text-center py-8 text-slate-400">Cargando...</td></tr></tbody></table>
+            <div class="overflow-x-auto bg-ah-card rounded-xl border border-ah-border">
+                <table class="w-full text-sm">
+                    <thead class="bg-ah-card/50">
+                        <tr>
+                            <th class="text-left p-3 text-ah-muted">Jugador</th>
+                            <th class="text-left p-3 text-ah-muted">Alianza</th>
+                            <th class="text-right p-3 text-ah-muted">Strikes</th>
+                            <th class="text-left p-3 text-ah-muted">Estado</th>
+                            <th class="text-left p-3 text-ah-muted">Ultimo No-Show</th>
+                        </tr>
+                    </thead>
+                    <tbody id="strikes-tbody">
+                        <tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
     <script>
         async function loadData() {
             var [{ data: alliances }, { data: leagues }] = await Promise.all([
-                supabase.schema('v2').from('alliances').select('id, name').order('name'),
-                supabase.schema('v2').from('leagues').select('id, name, season').order('created_at', { ascending: false })
+                supabase.from('alliances').select('id, name').order('name'),
+                supabase.from('leagues').select('id, name, season').order('created_at', { ascending: false })
             ]);
             document.getElementById('filter-alliance').innerHTML = '<option value="">Todas las alianzas</option>' + (alliances || []).map(function(a) { return '<option value="' + a.id + '">' + a.name + '</option>'; }).join('');
             loadRankings(); loadLeagues(); loadDuels(); loadStrikes();
         }
         async function loadRankings() {
             var allianceFilter = document.getElementById('filter-alliance').value;
-            var query = supabase.schema('v2').from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)');
+            var query = supabase.from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)');
             if (allianceFilter) query = query.eq('current_alliance_id', allianceFilter);
             var { data: players } = await query.order('total_kills', { ascending: false }).limit(100);
             var tbody = document.getElementById('players-tbody');
-            if (!players || players.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Sin datos</td></tr>'; }
-            else { tbody.innerHTML = players.map(function(p, i) { var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills; return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold ' + (i < 3 ? 'text-amber-600' : 'text-slate-400') + '">' + (i + 1) + '</td><td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-slate-800 hover:text-amber-600">' + p.current_username + '</a></td><td class="p-3 text-slate-500">' + (p.alliance?.tag || '-') + '</td><td class="p-3 text-right">' + (p.games_played || 0) + '</td><td class="p-3 text-right text-green-600 font-bold">' + (p.total_kills?.toLocaleString() || 0) + '</td><td class="p-3 text-right text-red-500">' + (p.total_deaths?.toLocaleString() || 0) + '</td><td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + kd + '</td><td class="p-3 text-right">' + (p.strikes || 0) + '</td></tr>'; }).join(''); }
+            if (!players || players.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>'; }
+            else { tbody.innerHTML = players.map(function(p, i) { var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills; return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td><td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-ah-text hover:text-ah-accent">' + p.current_username + '</a></td><td class="p-3 text-ah-muted">' + (p.alliance?.tag || '-') + '</td><td class="p-3 text-right">' + (p.games_played || 0) + '</td><td class="p-3 text-right text-green-400 font-bold">' + (p.total_kills?.toLocaleString() || 0) + '</td><td class="p-3 text-right text-red-400">' + (p.total_deaths?.toLocaleString() || 0) + '</td><td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td><td class="p-3 text-right">' + (p.strikes || 0) + '</td></tr>'; }).join(''); }
 
-            var { data: allianceStats } = await supabase.schema('v2').from('players').select('current_alliance_id, alliance:alliances!players_current_alliance_id_fkey(name, tag), total_kills, total_deaths, games_played').not('current_alliance_id', 'is', null);
+            var { data: allianceStats } = await supabase.from('players').select('current_alliance_id, alliance:alliances!players_current_alliance_id_fkey(name, tag), total_kills, total_deaths, games_played').not('current_alliance_id', 'is', null);
             var grouped = {};
             (allianceStats || []).forEach(function(p) { var id = p.current_alliance_id; if (!grouped[id]) grouped[id] = { name: p.alliance.name, tag: p.alliance.tag, kills: 0, deaths: 0, players: 0, games: 0 }; grouped[id].kills += p.total_kills || 0; grouped[id].deaths += p.total_deaths || 0; grouped[id].players++; grouped[id].games += p.games_played || 0; });
             var sorted = Object.values(grouped).sort(function(a, b) { var kda = a.deaths > 0 ? a.kills / a.deaths : a.kills; var kdb = b.deaths > 0 ? b.kills / b.deaths : b.kills; return kdb - kda; });
-            document.getElementById('alliances-tbody').innerHTML = sorted.map(function(a, i) { var kd = a.deaths > 0 ? (a.kills / a.deaths).toFixed(2) : a.kills; return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold ' + (i < 3 ? 'text-amber-600' : 'text-slate-400') + '">' + (i + 1) + '</td><td class="p-3 font-medium">' + a.name + '</td><td class="p-3 text-slate-500">' + a.tag + '</td><td class="p-3 text-right">' + a.players + '</td><td class="p-3 text-right text-green-600 font-bold">' + a.kills.toLocaleString() + '</td><td class="p-3 text-right text-red-500">' + a.deaths.toLocaleString() + '</td><td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + kd + '</td><td class="p-3 text-right">' + a.games + '</td></tr>'; }).join('');
+            document.getElementById('alliances-tbody').innerHTML = sorted.map(function(a, i) { var kd = a.deaths > 0 ? (a.kills / a.deaths).toFixed(2) : a.kills; return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td><td class="p-3 font-medium text-ah-text">' + a.name + '</td><td class="p-3 text-ah-muted">' + a.tag + '</td><td class="p-3 text-right">' + a.players + '</td><td class="p-3 text-right text-green-400 font-bold">' + a.kills.toLocaleString() + '</td><td class="p-3 text-right text-red-400">' + a.deaths.toLocaleString() + '</td><td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td><td class="p-3 text-right">' + a.games + '</td></tr>'; }).join('');
         }
         async function loadLeagues() {
-            var { data: leagues } = await supabase.schema('v2').from('leagues').select('*').order('created_at', { ascending: false });
+            var { data: leagues } = await supabase.from('leagues').select('*').order('created_at', { ascending: false });
             var container = document.getElementById('leagues-list');
-            if (!leagues || leagues.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin ligas activas</div>'; return; }
-            container.innerHTML = leagues.map(function(l) { return '<div class="bg-white rounded-xl border border-slate-200 p-5"><div class="flex items-center justify-between"><div><h3 class="font-bold text-slate-800">' + l.name + '</h3><p class="text-sm text-slate-500">Temporada: ' + l.season + '</p><p class="text-xs text-slate-400">' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + '</p></div><span class="px-3 py-1 rounded text-xs font-bold ' + (l.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600') + '">' + l.status + '</span></div></div>'; }).join('');
+            if (!leagues || leagues.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin ligas activas</div>'; return; }
+            container.innerHTML = leagues.map(function(l) { return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div><h3 class="font-bold text-ah-text">' + l.name + '</h3><p class="text-sm text-ah-muted">Temporada: ' + l.season + '</p><p class="text-xs text-ah-muted/70">' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + '</p></div><span class="px-3 py-1 rounded text-xs font-bold ' + (l.status === 'active' ? 'bg-green-900/30 text-green-400' : 'bg-ah-card/50 text-ah-muted') + '">' + l.status + '</span></div></div>'; }).join('');
         }
         async function loadDuels() {
-            var { data: duels } = await supabase.schema('v2').from('matches').select('*, alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').eq('match_type', 'duel').eq('status', 'finished').order('created_at', { ascending: false }).limit(20);
+            var { data: duels } = await supabase.from('matches').select('*, alliance_a:alliances!matches_alliance_a_id_fkey(name, tag), alliance_b:alliances!matches_alliance_b_id_fkey(name, tag)').eq('match_type', 'duel').eq('status', 'finished').order('created_at', { ascending: false }).limit(20);
             var container = document.getElementById('duels-list');
-            if (!duels || duels.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin duelos finalizados</div>'; return; }
-            container.innerHTML = duels.map(function(d) { var aName = d.alliance_a?.name || 'Alianza A'; var bName = d.alliance_b?.name || 'Alianza B'; return '<div class="bg-white rounded-xl border border-slate-200 p-5"><div class="flex items-center justify-between"><div class="flex-1 text-center"><div class="font-bold text-slate-800">' + aName + '</div><div class="text-xs text-slate-500">[' + (d.alliance_a?.tag || '-') + ']</div></div><div class="px-4"><div class="text-2xl font-bold text-amber-600">VS</div><div class="text-xs text-slate-400">' + formatDate(d.created_at) + '</div></div><div class="flex-1 text-center"><div class="font-bold text-slate-800">' + bName + '</div><div class="text-xs text-slate-500">[' + (d.alliance_b?.tag || '-') + ']</div></div></div></div>'; }).join('');
+            if (!duels || duels.length === 0) { container.innerHTML = '<div class="text-center py-8 text-ah-muted/70 bg-ah-card rounded-xl border border-ah-border">Sin duelos finalizados</div>'; return; }
+            container.innerHTML = duels.map(function(d) { var aName = d.alliance_a?.name || 'Alianza A'; var bName = d.alliance_b?.name || 'Alianza B'; return '<div class="bg-ah-card rounded-xl border border-ah-border p-5"><div class="flex items-center justify-between"><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + aName + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_a?.tag || '-') + ']</div></div><div class="px-4"><div class="text-2xl font-bold text-ah-accent">VS</div><div class="text-xs text-ah-muted/70">' + formatDate(d.created_at) + '</div></div><div class="flex-1 text-center"><div class="font-bold text-ah-text">' + bName + '</div><div class="text-xs text-ah-muted">[' + (d.alliance_b?.tag || '-') + ']</div></div></div></div>'; }).join('');
         }
         async function loadStrikes() {
-            var { data: players } = await supabase.schema('v2').from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)').gt('strikes', 0).order('strikes', { ascending: false }).limit(50);
+            var { data: players } = await supabase.from('players').select('*, alliance:alliances!players_current_alliance_id_fkey(name, tag)').gt('strikes', 0).order('strikes', { ascending: false }).limit(50);
             var tbody = document.getElementById('strikes-tbody');
-            if (!players || players.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Sin strikes registrados</td></tr>'; return; }
-            tbody.innerHTML = players.map(function(p) { return '<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">' + p.current_username + '</td><td class="p-3 text-slate-500">' + (p.alliance?.tag || '-') + '</td><td class="p-3 text-right font-bold text-red-600">' + p.strikes + '</td><td class="p-3">' + getStatusBadge(p.status) + '</td><td class="p-3 text-slate-500 text-xs">' + formatDate(p.last_seen) + '</td></tr>'; }).join('');
+            if (!players || players.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Sin strikes registrados</td></tr>'; return; }
+            tbody.innerHTML = players.map(function(p) { return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-medium text-ah-text">' + p.current_username + '</td><td class="p-3 text-ah-muted">' + (p.alliance?.tag || '-') + '</td><td class="p-3 text-right font-bold text-red-400">' + p.strikes + '</td><td class="p-3">' + getStatusBadge(p.status) + '</td><td class="p-3 text-ah-muted/70 text-xs">' + formatDate(p.last_seen) + '</td></tr>'; }).join('');
         }
         function showTab(tab) {
             ['players', 'alliances', 'leagues', 'duels', 'strikes'].forEach(function(t) {
                 document.getElementById(t + '-ranking').classList.toggle('hidden', t !== tab);
                 var btn = document.getElementById('tab-' + t);
-                btn.className = t === tab ? 'px-4 py-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500 whitespace-nowrap' : 'px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 whitespace-nowrap';
+                btn.className = t === tab ? 'px-4 py-3 text-sm font-bold text-ah-accent border-b-2 border-ah-accent whitespace-nowrap' : 'px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap';
             });
         }
         loadData();

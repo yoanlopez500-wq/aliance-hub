@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Alianza - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/base.js"></script>
+<script src="assets/js/auth.js"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>
+body { font-family: 'Inter', system-ui, sans-serif; }
+.fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.tab-active { border-bottom: 2px solid #ff6f00; color: #ff8f00; }
+.tab-inactive { border-bottom: 2px solid transparent; color: #9fa8da; }
+.tab-inactive:hover { color: #e8eaf6; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body style="background: #0a0e27; color: #e8eaf6; min-height: 100vh;" data-role="alliance_leader">
+<div id="admin-nav"></div>
+
+<div class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- Alliance Header -->
+    <div id="alliance-header" class="mb-6 fade-in">
+        <div class="flex flex-wrap items-center gap-4 mb-2">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold" style="background: linear-gradient(135deg, #1a237e, #283593);">&#127988;</div>
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold text-white" id="alliance-name">Cargando...</h1>
+                <p class="text-sm" style="color: #9fa8da;" id="alliance-tag">--</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <a href="admin/duel-manager.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">&#9876;&#65039; Preparar Duelo</a>
+                <a href="admin/matches.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #e8eaf6;">&#10133; Nueva Partida</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-6 mb-6 border-b overflow-x-auto scrollbar-hide" style="border-color: #1a237e;">
+        <button onclick="switchTab('members')" id="tab-members" class="tab-active pb-3 text-sm font-medium whitespace-nowrap transition">&#128101; Miembros</button>
+        <button onclick="switchTab('rankings')" id="tab-rankings" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127942; Ranking Interno</button>
+        <button onclick="switchTab('duels')" id="tab-duels" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#9876;&#65039; Duelos</button>
+        <button onclick="switchTab('global')" id="tab-global" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127758; Ranking Global</button>
+    </div>
+
+    <!-- TAB: Members -->
+    <div id="panel-members" class="fade-in">
+        <div class="grid gap-3" id="members-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando miembros...</div></div>
+    </div>
+
+    <!-- TAB: Rankings -->
+    <div id="panel-rankings" class="hidden">
+        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="text-sm font-medium" style="color: #9fa8da;">Filtrar por tipo:</span>
+                <select id="ranking-filter" onchange="loadRankings()" class="px-3 py-1.5 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
+                    <option value="all">Todas las partidas</option>
+                    <option value="internal">Partidas internas</option>
+                    <option value="duel">Duelos de alianza</option>
+                </select>
+            </div>
+            <div id="rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings...</div></div>
+        </div>
+    </div>
+
+    <!-- TAB: Duels -->
+    <div id="panel-duels" class="hidden">
+        <div id="duels-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando duelos...</div></div>
+    </div>
+
+    <!-- TAB: Global -->
+    <div id="panel-global" class="hidden">
+        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+            <p class="text-sm mb-4" style="color: #9fa8da;">Este ranking muestra la posicion de los jugadores de tu alianza en el ranking global de AllianceHub.</p>
+            <div id="global-rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings globales...</div></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+requireMinRole('alliance_leader');
+
+var myAllianceId = null;
+var myAllianceData = null;
+var allianceMembers = [];
+var currentTab = 'members';
+
+async function init() {
+    var admin = await getAdminRole();
+    if (!admin || !admin.alliance_id) {
+        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center" style="background: #0a0e27; color: #9fa8da;">' +
+            '<div class="text-center"><div class="text-4xl mb-4">&#9888;&#65039;</div><h2 class="text-xl font-bold text-white mb-2">Sin Alianza Asignada</h2>' +
+            '<p class="mb-4">No tienes una alianza asignada. Contacta a un superadmin.</p>' +
+            '<a href="admin/index.html" class="px-4 py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Ir al Dashboard</a></div></div>';
+        return;
+    }
+    myAllianceId = admin.alliance_id;
+    await loadAllianceData();
+    loadMembers();
+}
+
+async function loadAllianceData() {
+    var { data, error } = await supabase.from('alliances').select('*').eq('id', myAllianceId).single();
+    if (data) {
+        myAllianceData = data;
+        document.getElementById('alliance-name').textContent = data.name;
+        document.getElementById('alliance-tag').textContent = '[' + (data.tag || '---') + ']';
+    }
+}
+
+async function loadMembers() {
+    var { data: players, error } = await supabase.from('players')
+        .select('*').eq('current_alliance_id', myAllianceId).order('current_username');
+
+    var container = document.getElementById('members-list');
+    if (error || !players || players.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;">' +
+            '<div class="text-4xl mb-2">&#128101;</div><p>No hay miembros registrados en tu alianza.</p>' +
+            '<p class="text-xs mt-2">Los jugadores deben registrarse con el ID de esta alianza.</p></div>';
+        return;
+    }
+
+    allianceMembers = players;
+    var playerIds = players.map(function(p) { return p.id; });
+    var { data: results } = await supabase.from('match_results')
+        .select('player_id, kills, deaths').in('player_id', playerIds);
+
+    var statsMap = {};
+    if (results) {
+        results.forEach(function(r) {
+            if (!statsMap[r.player_id]) statsMap[r.player_id] = { kills: 0, deaths: 0, games: 0 };
+            statsMap[r.player_id].kills += (r.kills || 0);
+            statsMap[r.player_id].deaths += (r.deaths || 0);
+            statsMap[r.player_id].games++;
+        });
+    }
+
+    container.innerHTML = players.map(function(p) {
+        var s = statsMap[p.id] || { kills: 0, deaths: 0, games: 0 };
+        var kd = s.deaths > 0 ? (s.kills / s.deaths).toFixed(2) : s.kills > 0 ? s.kills.toFixed(2) : '0.00';
+        var statusColor = p.status === 'active' ? '#4caf50' : p.status === 'suspended' ? '#ff8f00' : '#ef5350';
+
+        return '<div class="rounded-xl p-4 flex items-center gap-4 transition hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;">' +
+            '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
+                (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+            '<div class="flex-1 min-w-0">' +
+                '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + p.id) + '</p>' +
+                '<p class="text-xs" style="color: #9fa8da;">ID: ' + p.id + ' &middot; ' + (s.games || 0) + ' partidas</p></div>' +
+            '<div class="text-right flex-shrink-0">' +
+                '<p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
+                '<p class="text-xs" style="color: #9fa8da;">' + s.kills + 'K / ' + s.deaths + 'D</p></div>' +
+            '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p.status || 'active') + '</span></div>';
+    }).join('');
+}
+
+async function loadRankings() {
+    var filter = document.getElementById('ranking-filter').value;
+    var container = document.getElementById('rankings-list');
+    container.innerHTML = '<div class="text-center py-4" style="color: #9fa8da;">Cargando...</div>';
+    if (!myAllianceId) return;
+
+    var query = supabase.from('match_registrations')
+        .select('player_id, status, matches!inner(match_type, alliance_id)')
+        .eq('matches.alliance_id', myAllianceId)
+        .in('status', ['confirmed', 'played']);
+    if (filter !== 'all') query = query.eq('matches.match_type', filter);
+
+    var { data: regs, error } = await query;
+    if (error || !regs) { container.innerHTML = '<div class="text-center py-4" style="color: #ef5350;">Error cargando rankings</div>'; return; }
+
+    var playerGames = {};
+    regs.forEach(function(r) { if (!playerGames[r.player_id]) playerGames[r.player_id] = 0; playerGames[r.player_id]++; });
+
+    var sorted = Object.keys(playerGames).map(function(pid) {
+        return { player_id: parseInt(pid), games: playerGames[pid] };
+    }).sort(function(a, b) { return b.games - a.games; });
+
+    var pids = sorted.map(function(s) { return s.player_id; });
+    var { data: players } = await supabase.from('players').select('id, current_username').in('id', pids);
+    var nameMap = {}; (players || []).forEach(function(p) { nameMap[p.id] = p.current_username; });
+
+    if (sorted.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings aun</div>'; return; }
+
+    container.innerHTML = '<div class="space-y-2">' + sorted.map(function(s, idx) {
+        var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
+        return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
+            '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
+            '<div class="flex-1"><p class="font-bold text-sm text-white">' + (nameMap[s.player_id] || 'Jugador ' + s.player_id) + '</p></div>' +
+            '<span class="text-sm font-bold" style="color: #ff8f00;">' + s.games + ' partidas</span></div>';
+    }).join('') + '</div>';
+}
+
+async function loadDuels() {
+    var container = document.getElementById('duels-list');
+    if (!myAllianceId) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">Sin alianza asignada</div>'; return; }
+
+    var { data: teams, error } = await supabase.from('alliance_duel_teams')
+        .select('*, matches(*)').eq('alliance_id', myAllianceId).order('created_at', { ascending: false });
+
+    if (error) { container.innerHTML = '<div class="text-center py-8" style="color: #ef5350;">Error: ' + error.message + '</div>'; return; }
+    if (!teams || teams.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e;">' +
+            '<div class="text-4xl mb-2">&#9876;&#65039;</div><p style="color: #9fa8da;">No tienes equipos de duelo preparados.</p>' +
+            '<a href="admin/duel-manager.html" class="inline-block mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Preparar Equipo</a></div>';
+        return;
+    }
+
+    container.innerHTML = teams.map(function(t) {
+        var statusColors = { forming: '#ff8f00', ready: '#4caf50', matched: '#2196f3', active: '#ff6f00', completed: '#9fa8da' };
+        var statusLabels = { forming: 'Formando', ready: 'Listo', matched: 'Emparejado', active: 'En curso', completed: 'Completado' };
+        var sc = statusColors[t.status] || '#9fa8da';
+        var playerCount = t.player_ids ? t.player_ids.length : 0;
+        return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
+            '<div class="flex items-center justify-between mb-2"><span class="font-bold text-white">Equipo de Duelo</span>' +
+            '<span class="text-xs px-2 py-1 rounded font-bold" style="background: ' + sc + '22; color: ' + sc + ';">' + (statusLabels[t.status] || t.status) + '</span></div>' +
+            '<p class="text-sm mb-1" style="color: #9fa8da;">' + playerCount + '/5 jugadores seleccionados</p>' +
+            '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Creado: ' + new Date(t.created_at).toLocaleDateString() + '</p>' +
+            (t.match_id ? '<a href="admin/match-detail.html?id=' + t.match_id + '" class="inline-block mt-2 text-sm font-bold" style="color: #ff8f00;">Ver partida &rarr;</a>' : '') + '</div>';
+    }).join('');
+}
+
+async function loadGlobalRankings() {
+    var container = document.getElementById('global-rankings-list');
+    container.innerHTML = '<div class="text-center py-4" style="color: #9fa8da;">Cargando...</div>';
+    if (!myAllianceId) return;
+
+    var { data: players } = await supabase.from('players')
+        .select('*').eq('current_alliance_id', myAllianceId).order('total_kills', { ascending: false });
+
+    if (!players || players.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>'; return; }
+
+    container.innerHTML = '<div class="space-y-2">' + players.map(function(p, idx) {
+        var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
+        var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
+        return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
+            '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
+            '<div class="flex-1"><p class="font-bold text-sm text-white">' + (p.current_username || 'Jugador ' + p.id) + '</p>' +
+            '<p class="text-xs" style="color: #9fa8da;">' + (p.games_played || 0) + ' partidas jugadas</p></div>' +
+            '<div class="text-right"><p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
+            '<p class="text-xs" style="color: #9fa8da;">' + (p.total_kills || 0) + 'K / ' + (p.total_deaths || 0) + 'D</p></div></div>';
+    }).join('') + '</div>';
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    ['members', 'rankings', 'duels', 'global'].forEach(function(t) {
+        document.getElementById('panel-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('tab-active');
+        document.getElementById('tab-' + t).classList.add('tab-inactive');
+    });
+    document.getElementById('panel-' + tab).classList.remove('hidden');
+    document.getElementById('tab-' + tab).classList.add('tab-active');
+    document.getElementById('tab-' + tab).classList.remove('tab-inactive');
+
+    if (tab === 'rankings') loadRankings();
+    if (tab === 'duels') loadDuels();
+    if (tab === 'global') loadGlobalRankings();
+}
+
+init();
+</script>
+</body>
+</html>

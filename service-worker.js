@@ -1,6 +1,6 @@
-// service-worker.js v10 - Alliance Hub PWA
-// FIX v10: Sin Supabase hardcoded, fetch filtering correcto, iconos PNG
-const CACHE_NAME = 'alliance-hub-v10';
+// service-worker.js v11 - Alliance Hub PWA
+// Cachea landing, dashboard, curso, y tema. No cachea admin/ (siempre fresh).
+const CACHE_NAME = 'alliance-hub-v11';
 
 var BASE_PATH = (function() {
     var path = self.location.pathname;
@@ -13,13 +13,16 @@ var BASE_PATH = (function() {
 
 var urlsToCache = [
     BASE_PATH,
-    BASE_PATH + 'index.html',
+    BASE_PATH + 'index.html',          // Landing page SEO
+    BASE_PATH + 'dashboard.html',       // Panel de partidas (antes index.html)
     BASE_PATH + 'login.html',
+    BASE_PATH + 'login-player.html',
     BASE_PATH + 'game.html',
     BASE_PATH + 'player.html',
-    BASE_PATH + 'login-player.html',
+    BASE_PATH + 'rankings.html',
     BASE_PATH + '404.html',
     BASE_PATH + 'manifest.json',
+    BASE_PATH + 'assets/js/theme.js',   // NUEVO: paleta de colores
     BASE_PATH + 'assets/js/base.js',
     BASE_PATH + 'assets/js/auth.js',
     BASE_PATH + 'assets/js/config.js',
@@ -31,11 +34,11 @@ var urlsToCache = [
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            console.log('[SW v10] Cache abierto');
+            console.log('[SW v11] Cache abierto');
             return Promise.all(
                 urlsToCache.map(function(url) {
                     return cache.add(url).catch(function(err) {
-                        console.log('[SW v10] Skip cache:', url);
+                        console.log('[SW v11] Skip cache:', url);
                     });
                 })
             );
@@ -50,7 +53,7 @@ self.addEventListener('activate', function(event) {
             return Promise.all(
                 cacheNames.map(function(cacheName) {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[SW v10] Borrando cache viejo:', cacheName);
+                        console.log('[SW v11] Borrando cache viejo:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -66,7 +69,7 @@ self.addEventListener('fetch', function(event) {
 
     var url = new URL(event.request.url);
 
-    // No interceptar peticiones a otros origenes (Supabase, CDNs, etc)
+    // No interceptar cross-origin (Supabase, CDNs)
     if (url.origin !== self.location.origin) return;
 
     // No interceptar API de Supabase
@@ -75,15 +78,13 @@ self.addEventListener('fetch', function(event) {
         url.pathname.includes('/storage/') ||
         url.pathname.includes('/realtime/')) return;
 
-    // No cachear paginas de admin - siempre fresh
+    // No cachear paginas de admin ni registro - siempre fresh
     if (url.pathname.includes('/admin/')) return;
-
-    // No cachear paginas de registro
     if (url.pathname.includes('/register/')) return;
+    if (url.pathname.includes('/course/')) return; // El curso es dinamico
 
     event.respondWith(
         caches.match(event.request).then(function(cached) {
-            // Si esta en cache, devolverlo y refrescar en background
             var fetchPromise = fetch(event.request, { cache: 'no-store' })
                 .then(function(networkResponse) {
                     if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
@@ -95,9 +96,9 @@ self.addEventListener('fetch', function(event) {
                     return networkResponse;
                 })
                 .catch(function() {
-                    // Si falla la red y no hay cache, devolver offline
                     if (cached) return cached;
                     if (event.request.mode === 'navigate') {
+                        // Si es navegacion y no hay cache, intentar index.html
                         return caches.match(BASE_PATH + 'index.html');
                     }
                     return new Response('Offline', { status: 503 });
@@ -121,7 +122,7 @@ self.addEventListener('push', function(event) {
             icon: data.icon || BASE_PATH + 'assets/icons/icon-192x192.png',
             badge: data.badge || BASE_PATH + 'assets/icons/icon-72x72.png',
             tag: data.tag || 'alliance-hub',
-            data: data.data || { url: BASE_PATH },
+            data: data.data || { url: BASE_PATH + 'dashboard.html' },
             actions: [
                 { action: 'open', title: 'Ver' },
                 { action: 'close', title: 'Cerrar' }
@@ -133,7 +134,9 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     if (event.action === 'close') return;
-    var url = event.notification.data && event.notification.data.url ? event.notification.data.url : BASE_PATH;
+    var url = event.notification.data && event.notification.data.url
+        ? event.notification.data.url
+        : BASE_PATH + 'dashboard.html';
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
             for (var i = 0; i < clientList.length; i++) {
