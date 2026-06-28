@@ -90,7 +90,7 @@ async function logout() {
 
 async function switchToPlayerMode() {
     if (!hasPlayerSession()) { window.location.href = ahPath('login-player.html'); return; }
-    window.location.href = ahPath('index.html');
+    window.location.href = ahPath('dashboard.html');
 }
 
 async function logoutToPlayerMode() { await switchToPlayerMode(); }
@@ -385,13 +385,13 @@ function renderPlayerNav(nav, playerData, adminSession) {
         '<nav style="background: #0a0e27; border-bottom: 1px solid #1a237e;" class="sticky top-0 z-50">' +
             '<div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">' +
                 '<div class="flex items-center gap-3">' +
-                    '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
+                    '<a href="' + ahPath('dashboard.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
                         '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
                     '</a>' +
                     '<span class="text-[10px] px-2 py-1 rounded font-bold" style="background: #2e7d32; color: white;">JUGADOR</span>' +
                 '</div>' +
                 '<div class="flex items-center gap-2">' +
-                    '<a href="' + ahPath('index.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127918; Partidas</a>' +
+                    '<a href="' + ahPath('dashboard.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127918; Partidas</a>' +
                     '<a href="' + ahPath('rankings.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127942; Rankings</a>' +
                     '<a href="' + ahPath('player.html?id=' + playerId) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#128100; Perfil</a>' +
                     allianceLink +
