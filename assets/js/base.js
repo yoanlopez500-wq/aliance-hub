@@ -1,4 +1,4 @@
-// assets/js/base.js v11 - Alliance Hub utilities + Anti-impersonation token system
+// assets/js/base.js v12 - Alliance Hub utilities + Session persistence
 // __AH_BASE_PATH: detecta el subdirectorio del repo en GitHub Pages
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
@@ -94,10 +94,9 @@ async function unsuspendPlayer(playerId) {
     catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// ===================== PLAYER SESSION v11 - Anti-Impersonation Token System =====================
-// Cada jugador al loguearse por primera vez recibe un token unico (UUID).
-// Para registrarse en partidas, se valida el token en el servidor.
-// Transferencia de cuenta via codigo TR-XXXX (10 minutos de validez).
+// ===================== PLAYER SESSION v12 - Persistent Session =====================
+// Cada jugador al loguearse recibe un token (device_id) que se guarda en player_tokens.
+// La sesion persiste en localStorage y NO se borra al navegar entre paginas.
 
 function getPlayerData() {
     return {
@@ -113,11 +112,13 @@ function setPlayerData(playerId, displayName, token) {
     if (token) localStorage.setItem('ah_v2_player_token', token);
 }
 
+// ====== clearPlayerData: Solo borra datos de jugador, NUNCA toca admin session ======
 function clearPlayerData() {
     localStorage.removeItem('ah_v2_player_id');
     localStorage.removeItem('ah_v2_display_name');
     localStorage.removeItem('ah_v2_player_token');
     localStorage.removeItem('ah_v2_last_match');
+    // NOTA: No borramos ah_device_id para que el dispositivo siga reconocido
 }
 
 function isLazyLoggedIn() {
@@ -151,7 +152,6 @@ async function lazyLogin(playerId, username) {
         var token = tokenRow ? tokenRow.token : null;
 
         if (!token) {
-            // First time login - generate token
             token = crypto.randomUUID ? crypto.randomUUID() : 'tk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
             await supabase.from('player_tokens').insert({ player_id: pid, token: token });
         }
@@ -175,7 +175,7 @@ async function getLastRegisteredMatch() {
 
 function saveLastRegisteredMatch(matchId) { if (matchId) localStorage.setItem('ah_v2_last_match', matchId); }
 
-// ===================== TRANSFER CODE (for player profile page) =====================
+// ===================== TRANSFER CODE =====================
 async function generateTransferCode() {
     var playerData = getPlayerData();
     if (!playerData.playerId) { showToast('No tienes sesion de jugador', 'error'); return null; }
@@ -186,7 +186,7 @@ async function generateTransferCode() {
     } catch(e) { showToast('Error generando codigo', 'error'); return null; }
 }
 
-// ===================== TOKEN VALIDATION HELPER =====================
+// ===================== TOKEN VALIDATION =====================
 async function validatePlayerToken(playerId, token) {
     if (!playerId || !token) return false;
     try {

@@ -6,10 +6,10 @@
 <title>Partidas - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=10"></script>
-<script src="../assets/js/base.js?v=10"></script>
-<script src="../assets/js/auth.js?v=10"></script>
-<script src="../assets/js/pwa-utils.js?v=10"></script>
+<script src="../assets/js/config.js?v=12"></script>
+<script src="../assets/js/base.js?v=12"></script>
+<script src="../assets/js/auth.js?v=12"></script>
+<script src="../assets/js/pwa-utils.js?v=12"></script>
 <style>.modal { display: none; } .modal.active { display: flex; }</style>
 <meta name="theme-color" content="#0f172a">
 </head>
@@ -26,8 +26,8 @@
 <div class="flex items-center gap-3">
 <span class="text-xl">&#128220;</span>
 <div class="flex-1">
-<p class="text-sm font-bold text-blue-800">Reglas Base de Alliance Hub</p>
-<p class="text-xs text-blue-600">Estas reglas aplican a TODAS las partidas. Los admins pueden anadir reglas adicionales en la descripcion de cada partida.</p>
+<p class="text-sm font-bold text-blue-800">Reglas de Alliance Hub</p>
+<p class="text-xs text-blue-600">Estas reglas aplican a TODAS las partidas. Solo el superadmin puede cambiarlas desde el panel de Strikes.</p>
 </div>
 <a id="global-rules-link" href="#" target="_blank" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400 whitespace-nowrap">Ver Reglas</a>
 </div></div>
@@ -61,7 +61,7 @@
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Tipo *</label><select id="m-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">ID Supremacy</label><input type="text" id="m-game-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
 </div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label><textarea id="m-desc" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></textarea></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label><textarea id="m-desc" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Reglas adicionales o detalles de la partida..."></textarea></div>
 <div class="grid grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Alianza</label><select id="m-alliance" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Sin alianza --</option></select></div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Max Jugadores</label><input type="number" id="m-max" min="2" max="500" value="10" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>

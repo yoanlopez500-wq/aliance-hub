@@ -1,4 +1,4 @@
-// assets/js/auth.js v3.3 - Rules Native + PWA session + Fluid mode
+// assets/js/auth.js v3.2 - Session persistence + Fluid mode + Leagues hidden (dev)
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -81,10 +81,14 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     return { success: true, message: 'Cuenta creada. Ya puedes iniciar sesion.' };
 }
 
-// ====== LOGOUT: Solo cierra la sesion activa, NO borra la otra ======
+// ====== LOGOUT: SOLO cierra la sesion activa, NO borra la otra ======
 async function logout() {
+    // Solo cierra sesion de Supabase Auth (admin)
+    // NO toca la sesion de jugador en localStorage
     if (window.__ahNotifInterval) { clearInterval(window.__ahNotifInterval); window.__ahNotifInterval = null; }
     await supabase.auth.signOut();
+    // Si hay sesion de jugador, ir a dashboard (modo jugador)
+    // Si no hay sesion de jugador, ir a login
     if (hasPlayerSession()) {
         window.location.href = ahPath('dashboard.html');
     } else {
@@ -109,6 +113,8 @@ async function logoutToPlayerMode() { await switchToPlayerMode(); }
 // ====== PLAYER LOGOUT: Solo borra datos de jugador, NO toca admin ======
 function playerLogout() {
     if (typeof clearPlayerData === 'function') clearPlayerData();
+    // Si tiene sesion de admin, ir al dashboard de admin
+    // Si no, ir al index
     isAdmin().then(function(isAdmin) {
         if (isAdmin) window.location.href = ahPath('admin/index.html');
         else window.location.href = ahPath('index.html');
@@ -424,7 +430,7 @@ function renderPlayerNav(nav, playerData, adminSession) {
 
     // Modo fluido: si tiene sesion de admin, mostrar boton "Modo Admin"
     var adminBtn = adminSession
-        ? '<button onclick="switchToAdminMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">&#128202; Modo Admin</button>'
+        ? '<button onclick="switchToAdminMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">&#128202; Admin</button>'
         : '';
 
     nav.innerHTML =
@@ -439,7 +445,6 @@ function renderPlayerNav(nav, playerData, adminSession) {
                 '<div class="flex items-center gap-2">' +
                     '<a href="' + ahPath('dashboard.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127918; Partidas</a>' +
                     '<a href="' + ahPath('rankings.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127942; Rankings</a>' +
-                    '<a href="' + ahPath('rules.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#128220; Reglas</a>' +
                     '<a href="' + ahPath('alliance-panel.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127988; Alianza</a>' +
                 '</div>' +
                 '<div class="flex items-center gap-2">' +

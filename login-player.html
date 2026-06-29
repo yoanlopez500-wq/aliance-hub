@@ -19,6 +19,26 @@ input:focus{outline:none;border-color:#ff6f00!important}
 </head>
 <body class="min-h-screen flex items-center justify-center px-4 py-8" data-role="public">
 
+<!-- AUTO-LOGIN: Ejecuta SIEMPRE, incluso al volver del bfcache (navegar "atras") -->
+<script>
+function autoLoginPlayer() {
+    var playerId = localStorage.getItem('ah_v2_player_id');
+    var displayName = localStorage.getItem('ah_v2_display_name');
+    var token = localStorage.getItem('ah_v2_player_token');
+    if (playerId && displayName && token) {
+        window.location.replace('dashboard.html');
+        return true;
+    }
+    return false;
+}
+// Al cargar la pagina
+if (autoLoginPlayer()) { document.write(''); document.documentElement.style.display = 'none'; }
+// Al volver del bfcache (boton "atras" del navegador)
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) autoLoginPlayer();
+});
+</script>
+
 <div class="w-full max-w-md">
 <!-- Logo -->
 <div class="text-center mb-8">
@@ -27,7 +47,7 @@ input:focus{outline:none;border-color:#ff6f00!important}
 <p class="text-sm mt-1" style="color:#9fa8da">Entra con tu ID de Supremacy 1914</p>
 </div>
 
-<!-- VIEW: Login -->
+<!-- VIEW: Login Form -->
 <div id="view-login" class="rounded-2xl p-8" style="background:#11183a;border:1px solid #1a237e">
 <form id="login-form" class="space-y-4">
 <div><label class="block text-sm font-medium mb-1" style="color:#9fa8da">ID del Jugador (numero)</label>
@@ -93,7 +113,6 @@ input:focus{outline:none;border-color:#ff6f00!important}
 var pendingPlayerId = null;
 var pendingUsername = null;
 
-// Device ID: se guarda en localStorage y en player_tokens.token
 function getDeviceId() {
     var stored = localStorage.getItem('ah_device_id');
     if (stored) return stored;
@@ -116,6 +135,7 @@ function resetToLogin() {
     pendingPlayerId = null; pendingUsername = null;
     localStorage.removeItem('ah_v2_player_id');
     localStorage.removeItem('ah_v2_display_name');
+    localStorage.removeItem('ah_v2_player_token');
     document.getElementById('login-form').reset();
     hideError('error-msg'); hideError('setup-error'); hideError('sec-check-error');
     showView('login');

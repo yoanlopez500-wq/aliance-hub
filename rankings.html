@@ -12,7 +12,7 @@
     <script src="assets/js/auth.js?v=12"></script>
     <script src="assets/js/pwa-utils.js?v=12"></script>
     <meta name="theme-color" content="#0a0e27">
-    <style>.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.kill-nullified{text-decoration:line-through;opacity:.5}.strike-penalty{font-size:10px;padding:2px 6px;border-radius:9999px;background:rgba(239,68,68,0.15);color:#ef5350;font-weight:700}</style>
+    <style>.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}.kill-nullified{text-decoration:line-through;opacity:.5}.kill-penalty{text-decoration:line-through;opacity:.5}</style>
 </head>
 <body class="bg-ah-bg min-h-screen text-ah-text" data-role="public">
     <div id="admin-nav"></div>
@@ -58,8 +58,7 @@
                             <th class="text-right p-3 text-ah-muted">Bajas Efect.</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
                             <th class="text-right p-3 text-ah-muted">KD</th>
-                            <th class="text-right p-3 text-ah-muted">&#9889;</th>
-                            <th class="text-center p-3 text-ah-muted text-xs">Penal.</th>
+                            <th class="text-right p-3 text-ah-muted text-xs" title="Strikes / Penalidad">&#9889;</th>
                         </tr>
                     </thead>
                     <tbody id="players-tbody">
@@ -67,7 +66,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-xs text-ah-muted/50 mt-2">&#9888;&#65039; KD = Kills Efectivas / Muertes. Las kills efectivas aplican penalizaciones por strikes del motor de sanciones.</p>
+            <p class="text-xs text-ah-muted/50 mt-2">&#9888;&#65039; KD = (Bajas con penalidad de strikes) / Muertes. 1 strike = -10% kills | 2 strikes = -30% | 3+ strikes = -50% (medio strike). Las muertes no cambian.</p>
         </div>
         <div id="alliances-ranking" class="hidden">
             <div class="overflow-x-auto bg-ah-card rounded-xl border border-ah-border">
@@ -108,12 +107,13 @@
                             <th class="text-left p-3 text-ah-muted">Jugador</th>
                             <th class="text-left p-3 text-ah-muted">Alianza</th>
                             <th class="text-right p-3 text-ah-muted">Strikes</th>
+                            <th class="text-right p-3 text-ah-muted">Penalidad</th>
                             <th class="text-left p-3 text-ah-muted">Estado</th>
                             <th class="text-left p-3 text-ah-muted">Ultimo No-Show</th>
                         </tr>
                     </thead>
                     <tbody id="strikes-tbody">
-                        <tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                        <tr><td colspan="6" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -122,7 +122,7 @@
     <script>
         // ====== DATA CACHES (join en cliente, NO depende de resource embedding) ======
         var nullifiedCache = {};  // { player_id: total_nullified }
-        var sanctionsCache = {};  // { player_id: { kills_after, penalty_pct } }
+        var strikeCache = {};     // { player_id: active_strike_count }
         var allianceMap = {};     // { alliance_id: { name, tag } }
 
         function showError(msg) {
@@ -135,6 +135,27 @@
             return allianceMap[allianceId]?.tag || '-';
         }
 
+        // STRIKE MULTIPLIER: devuelve el % de kills que CUENTAN
+        function strikeKillMultiplier(strikeCount) {
+            if (!strikeCount || strikeCount <= 0) return 1.0;   // 100% de kills
+            if (strikeCount === 1) return 0.9;                   // 90% de kills
+            if (strikeCount === 2) return 0.7;                   // 70% de kills
+            return 0.5;                                           // 3+ = 50% de kills (strike medio)
+        }
+
+        function strikePenaltyLabel(strikeCount) {
+            if (!strikeCount || strikeCount <= 0) return '';
+            if (strikeCount === 1) return '-10%';
+            if (strikeCount === 2) return '-30%';
+            return '-50% (medio)';
+        }
+
+        // Kills que cuentan para KD: aplica penalidad de strikes
+        function strikeEffectiveKills(totalKills, strikeCount) {
+            return Math.round((totalKills || 0) * strikeKillMultiplier(strikeCount));
+        }
+
+        // Kills efectivas = kills reales - anuladas - penalidad de strikes
         function effectiveKills(player) {
             // 1. Motor de sanciones (player_sanctions)
             var sanc = sanctionsCache[player.id];
@@ -142,38 +163,28 @@
             // 2. Fallback hardcoded por strikes
             var total = player.total_kills || 0;
             var nullified = nullifiedCache[player.id] || 0;
-            var killsWN = Math.max(0, total - nullified);
-            var strikes = player.strikes || 0;
-            if (strikes === 1) return Math.round(killsWN * 0.9);
-            if (strikes === 2) return Math.round(killsWN * 0.7);
-            if (strikes >= 3) return Math.round(killsWN * 0.5);
-            return killsWN;
+            var strikes = strikeCache[player.id] || 0;
+            var afterNullified = Math.max(0, total - nullified);
+            return strikeEffectiveKills(afterNullified, strikes);
         }
 
-        function getPenaltyPct(player) {
-            var sanc = sanctionsCache[player.id];
-            if (sanc && sanc.penalty_pct != null) return sanc.penalty_pct;
-            var strikes = player.strikes || 0;
-            if (strikes === 1) return 10;
-            if (strikes === 2) return 30;
-            if (strikes >= 3) return 50;
-            return 0;
-        }
+        // Kills mostradas (con tachado si hay penalidad)
+        function killsDisplay(player) {
+            var total = player.total_kills || 0;
+            var nullified = nullifiedCache[player.id] || 0;
+            var strikes = strikeCache[player.id] || 0;
+            var eff = effectiveKills(player);
+            var afterNullified = Math.max(0, total - nullified);
+            var hasPenalty = strikes > 0;
+            var hasNullified = nullified > 0;
 
-        async function loadSanctions() {
-            try {
-                var res = await supabase.from('player_sanctions').select('player_id, kills_after, penalty_pct').order('created_at', { ascending: false });
-                if (res.error) throw res.error;
-                sanctionsCache = {};
-                (res.data || []).forEach(function(s) {
-                    if (!sanctionsCache[s.player_id]) {
-                        sanctionsCache[s.player_id] = { kills_after: s.kills_after, penalty_pct: s.penalty_pct || 0 };
-                    }
-                });
-            } catch(e) {
-                console.error('[Rankings] Error sanciones:', e);
-                sanctionsCache = {};
+            if (hasPenalty) {
+                return '<span class="kill-penalty">' + afterNullified.toLocaleString() + '</span> <span class="text-red-400 text-xs font-bold">(' + eff + ')</span>';
             }
+            if (hasNullified) {
+                return '<span class="kill-nullified">' + total.toLocaleString() + '</span> <span class="text-orange-400 text-xs">(' + eff + ')</span>';
+            }
+            return total.toLocaleString();
         }
 
         async function loadData() {
@@ -205,10 +216,20 @@
                 nullifiedCache = {};
             }
 
-            // 3. Cargar sanciones del motor
-            await loadSanctions();
+            // 3. Cargar strikes activos por jugador
+            try {
+                var res = await supabase.from('player_strikes').select('player_id').eq('is_active', true);
+                if (res.error) throw res.error;
+                strikeCache = {};
+                (res.data || []).forEach(function(r) {
+                    strikeCache[r.player_id] = (strikeCache[r.player_id] || 0) + 1;
+                });
+            } catch(e) {
+                console.error('[Rankings] Error strikes:', e);
+                strikeCache = {};
+            }
 
-            // 4. Cargar cada seccion
+            // 4. Cargar cada seccion (independiente)
             try { await loadRankings(); } catch(e) { console.error('[Rankings] jugadores:', e); }
             try { await loadLeagues(); } catch(e) { console.error('[Rankings] ligas:', e); }
             try { await loadDuels(); } catch(e) { console.error('[Rankings] duelos:', e); }
@@ -237,22 +258,20 @@
                 tbody.innerHTML = players.map(function(p, i) {
                     var eff = effectiveKills(p);
                     var n = nullifiedCache[p.id] || 0;
-                    var penalty = getPenaltyPct(p);
+                    var strikes = strikeCache[p.id] || 0;
                     var kd = p.total_deaths > 0 ? (eff / p.total_deaths).toFixed(2) : eff;
                     var tag = getAllianceTag(p.current_alliance_id);
-                    var origKills = p.total_kills || 0;
-                    var penaltyBadge = penalty > 0 ? '<span class="strike-penalty">-' + penalty + '%</span>' : '-';
+                    var kDisplay = killsDisplay(p);
+                    var strikeIcon = strikes > 0 ? ' <span title="' + strikes + ' strike' + (strikes > 1 ? 's' : '') + ' (' + strikePenaltyLabel(strikes) + ')" class="text-red-400">&#9889;</span>' : '';
                     return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
                         '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
-                        '<td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-ah-text hover:text-ah-accent">' + p.current_username + '</a>' + (n > 0 ? ' <span title="Kill Nullifier" class="text-orange-400">&#9889;</span>' : '') + '</td>' +
+                        '<td class="p-3"><a href="player.html?id=' + p.id + '" class="font-medium text-ah-text hover:text-ah-accent">' + p.current_username + '</a>' + strikeIcon + '</td>' +
                         '<td class="p-3 text-ah-muted">' + tag + '</td>' +
                         '<td class="p-3 text-right">' + (p.games_played || 0) + '</td>' +
-                        '<td class="p-3 text-right text-ah-muted/50">' + (n > 0 ? '<span class="kill-nullified">' + origKills.toLocaleString() + '</span>' : origKills.toLocaleString()) + '</td>' +
-                        '<td class="p-3 text-right text-green-400 font-bold">' + eff.toLocaleString() + '</td>' +
+                        '<td class="p-3 text-right text-green-400 font-bold">' + kDisplay + '</td>' +
                         '<td class="p-3 text-right text-red-400">' + (p.total_deaths?.toLocaleString() || 0) + '</td>' +
                         '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td>' +
-                        '<td class="p-3 text-right text-orange-400 text-xs">' + (n > 0 ? '-' + n : '') + '</td>' +
-                        '<td class="p-3 text-center">' + penaltyBadge + '</td>' +
+                        '<td class="p-3 text-right text-red-400 text-xs font-bold">' + (strikes > 0 ? strikes + ' (' + strikePenaltyLabel(strikes) + ')' : (n > 0 ? '&#8722;' + n : '')) + '</td>' +
                     '</tr>';
                 }).join('');
 
@@ -318,9 +337,15 @@
                 var res = await supabase.from('players').select('id, current_username, current_alliance_id, strikes, status, last_seen').gt('strikes', 0).order('strikes', { ascending: false }).limit(50);
                 if (res.error) throw res.error;
                 var tbody = document.getElementById('strikes-tbody');
-                if (!res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-ah-muted/70">Sin strikes registrados</td></tr>'; return; }
-                tbody.innerHTML = res.data.map(function(p) { return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-medium text-ah-text">' + p.current_username + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p.current_alliance_id) + '</td><td class="p-3 text-right font-bold text-red-400">' + p.strikes + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3 text-ah-muted/70 text-xs">' + formatDate(p.last_seen) + '</td></tr>'; }).join('');
-            } catch(e) { console.error('[Rankings] strikes:', e); document.getElementById('strikes-tbody').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Error strikes</td></tr>'; }
+                if (!res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-ah-muted/70">Sin strikes registrados</td></tr>'; return; }
+                tbody.innerHTML = res.data.map(function(p) {
+                    var strikes = p.strikes || 0;
+                    var penalty = strikePenaltyLabel(strikes);
+                    var activeStrikes = strikeCache[p.id] || strikes;
+                    var penaltyActive = strikePenaltyLabel(activeStrikes);
+                    return '<tr class="border-b border-ah-border hover:bg-ah-card/50"><td class="p-3 font-medium text-ah-text">' + p.current_username + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p.current_alliance_id) + '</td><td class="p-3 text-right font-bold text-red-400">' + strikes + '</td><td class="p-3 text-right text-xs text-red-400 font-bold">' + penaltyActive + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3 text-ah-muted/70 text-xs">' + formatDate(p.last_seen) + '</td></tr>';
+                }).join('');
+            } catch(e) { console.error('[Rankings] strikes:', e); document.getElementById('strikes-tbody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Error strikes</td></tr>'; }
         }
 
         function showTab(tab) {

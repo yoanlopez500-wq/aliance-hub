@@ -4,16 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login Admin - Alliance Hub</title>
-<script src="assets/js/theme.js?v=11"></script>
+<script src="assets/js/theme.js?v=12"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=11"></script>
-<script src="assets/js/base.js?v=11"></script>
-<script src="assets/js/auth.js?v=11"></script>
-<script src="assets/js/pwa-utils.js?v=11"></script>
+<script src="assets/js/config.js?v=12"></script>
+<script src="assets/js/base.js?v=12"></script>
+<script src="assets/js/auth.js?v=12"></script>
+<script src="assets/js/pwa-utils.js?v=12"></script>
 <meta name="theme-color" content="#0a0e27">
 </head>
 <body class="bg-ah-bg min-h-screen flex items-center justify-center px-4 text-ah-text" data-role="admin">
+
+<!-- AUTO-LOGIN ADMIN: Redirige si ya tiene sesion activa -->
+<script>
+function autoLoginAdmin() {
+    var token = localStorage.getItem('sb-qkccyjegkgjzwoxytnqp-auth-token');
+    if (token) {
+        window.location.replace('admin/index.html');
+        return true;
+    }
+    return false;
+}
+if (autoLoginAdmin()) { document.write(''); document.documentElement.style.display = 'none'; }
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) autoLoginAdmin();
+});
+</script>
+
 <div class="bg-ah-card rounded-2xl shadow-2xl p-8 w-full max-w-md border border-ah-border">
 <div class="text-center mb-8">
 <div class="text-4xl mb-3">&#9876;&#65039;</div>

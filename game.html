@@ -7,10 +7,10 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=13"></script>
-<script src="assets/js/base.js?v=13"></script>
-<script src="assets/js/auth.js?v=13"></script>
-<script src="assets/js/pwa-utils.js?v=13"></script>
+<script src="assets/js/config.js?v=12"></script>
+<script src="assets/js/base.js?v=12"></script>
+<script src="assets/js/auth.js?v=12"></script>
+<script src="assets/js/pwa-utils.js?v=12"></script>
 <meta name="theme-color" content="#0a0e27">
 </head>
 <body class="min-h-screen" style="background: #0a0e27;" data-role="public">
@@ -49,15 +49,21 @@
 <button onclick="sendChatMessage()" class="px-4 py-2 rounded-lg font-bold transition" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Enviar</button>
 </div></div>
 
-<!-- NATIVE RULES: secciones de la base de datos -->
+<!-- RULES SECTION - reads ONLY from global app_settings.rules_url -->
 <div id="rules-section" class="hidden mb-6">
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 class="font-bold text-white">&#128220; Reglas</h2>
-        <a href="rules.html" target="_blank" class="text-xs px-3 py-1.5 rounded-lg font-bold transition hover:opacity-80" style="background: #1a237e; color: white;">Ver todas las reglas &#8599;</a>
+        <div class="flex items-center gap-2">
+            <span id="rules-doc-type" class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(255,111,0,0.15); color: #ff8f00;"></span>
+            <a id="rules-external-link" href="#" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-lg font-bold transition hover:opacity-80" style="background: #1a237e; color: white;">Abrir en pestana &#8599;</a>
+        </div>
     </div>
-    <div id="rules-content" class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-        <div class="text-center text-sm" style="color: #9fa8da">Cargando reglas...</div>
+    <div class="rounded-xl overflow-hidden" style="height:500px; background: #11183a; border: 1px solid #1a237e;">
+        <iframe id="rules-iframe" class="w-full h-full" frameborder="0"></iframe>
     </div>
+    <p id="rules-fallback-msg" class="hidden text-xs mt-2 text-center" style="color: #9fa8da;">
+        Si no puedes ver el documento, usa el boton "Abrir en pestana" arriba.
+    </p>
 </div>
 
 <div id="registrations-section" class="hidden mb-6">
@@ -81,6 +87,94 @@ var matchId = urlParams.get('id');
 var shareToken = urlParams.get('token');
 var playerData = getPlayerData();
 if (!matchId) location.href = 'index.html';
+
+// ===================== SMART RULES VIEWER =====================
+// Reads ONLY from global app_settings.rules_url (set in admin/strikes.html)
+function getSmartViewerUrl(url) {
+    if (!url) return null;
+    url = url.trim();
+
+    // 1. Google Docs/Sheets/Slides - use /preview mode
+    if (url.indexOf('docs.google.com') !== -1) {
+        var previewUrl = url
+            .replace('/edit', '/preview')
+            .replace('/view', '/preview')
+            .replace('/pub', '/preview')
+            .replace('?usp=sharing', '/preview')
+            .replace('?usp=drivesdk', '/preview');
+        if (previewUrl.indexOf('/preview') === -1 && previewUrl.indexOf('?') === -1) {
+            previewUrl = previewUrl.replace(/\/$/, '') + '/preview';
+        }
+        return { url: previewUrl, type: 'Google Docs', icon: '\uD83D\uDCC4' };
+    }
+
+    // 2. Google Drive file links - convert to viewer
+    if (url.indexOf('drive.google.com/file/d/') !== -1) {
+        var fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            var drivePreview = 'https://drive.google.com/file/d/' + fileIdMatch[1] + '/preview';
+            return { url: drivePreview, type: 'Google Drive', icon: '\uD83D\uDCC1' };
+        }
+    }
+
+    // 3. Microsoft Office Online Viewer for Word/PowerPoint/Excel
+    var lowerUrl = url.toLowerCase();
+    var officeExtensions = ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'];
+    var isOfficeFile = officeExtensions.some(function(ext) { return lowerUrl.indexOf(ext) !== -1; });
+
+    if (isOfficeFile) {
+        var officeUrl = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
+        var docType = lowerUrl.indexOf('.doc') !== -1 ? 'Word' :
+                      lowerUrl.indexOf('.ppt') !== -1 ? 'PowerPoint' : 'Excel';
+        return { url: officeUrl, type: 'Microsoft ' + docType, icon: '\uD83D\uDCD8' };
+    }
+
+    // 4. PDF files - direct embed
+    if (lowerUrl.indexOf('.pdf') !== -1) {
+        return { url: url, type: 'PDF', icon: '\uD83D\uDCD5' };
+    }
+
+    // 5. Generic fallback: Google Docs Viewer (handles almost anything)
+    var gviewUrl = 'https://docs.google.com/gview?embedded=1&url=' + encodeURIComponent(url);
+    return { url: gviewUrl, type: 'Documento', icon: '\uD83D\uDCC3' };
+}
+
+function loadRulesViewer(rulesUrl) {
+    var section = document.getElementById('rules-section');
+    var iframe = document.getElementById('rules-iframe');
+    var typeBadge = document.getElementById('rules-doc-type');
+    var externalLink = document.getElementById('rules-external-link');
+    var fallbackMsg = document.getElementById('rules-fallback-msg');
+
+    if (!rulesUrl) return;
+
+    var viewer = getSmartViewerUrl(rulesUrl);
+    if (!viewer) return;
+
+    section.classList.remove('hidden');
+    iframe.src = viewer.url;
+    typeBadge.textContent = viewer.icon + ' ' + viewer.type;
+    externalLink.href = rulesUrl;
+
+    // Show fallback message for external viewers that might have CORS issues
+    if (viewer.url.indexOf('docs.google.com/gview') !== -1 ||
+        viewer.url.indexOf('view.officeapps.live.com') !== -1) {
+        fallbackMsg.classList.remove('hidden');
+    }
+}
+
+// Load global rules from app_settings (single source of truth, set in admin/strikes.html)
+async function loadGlobalRules() {
+    try {
+        var { data } = await supabase.from('app_settings').select('value').eq('key', 'rules_url').single();
+        if (data && data.value && data.value.trim()) {
+            loadRulesViewer(data.value.trim());
+        }
+    } catch(e) {
+        console.log('[Rules] No global rules configured');
+    }
+}
+// ================================================================
 
 async function loadMatch() {
     var { data: match } = await supabase.from('matches').select('*').eq('id', matchId).single();
@@ -125,9 +219,8 @@ async function loadMatch() {
 
     document.getElementById('match-header').innerHTML = '<div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + (match.password ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,143,0,0.1); color: #ff8f00;">&#128274;</span>' : '') + (match.requires_approval ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,143,0,0.1); color: #ff8f00;">&#128065; Con Aprobacion</span>' : '') + (match.winners_declared ? '<span class="text-xs px-2 py-0.5 rounded" style="background: rgba(255,215,0,0.1); color: #ffd700;">&#127942; Ganadores</span>' : '') + '</div><h1 class="text-3xl font-bold text-white">' + match.name + '</h1><p class="mt-1" style="color: #9fa8da;">' + (match.description || '') + '</p><div class="flex flex-wrap gap-4 mt-3 text-sm" style="color: #9fa8da;"><span>&#128197; ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>&#128101; Max ' + match.max_players + '</span></div>' + (match.status === 'open' && !isRegistered ? '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block px-6 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Registrarme</a></div>' : regBadge);
 
-    // Native rules viewer (from rule_sections)
-    document.getElementById('rules-section').classList.remove('hidden');
-    loadNativeRules();
+    // Load global rules (single source of truth, set in admin/strikes.html)
+    loadGlobalRules();
 
     if (match.match_type === 'duel') { document.getElementById('chat-section').classList.remove('hidden'); loadChat(); }
     loadRegistrations(); loadResults();
