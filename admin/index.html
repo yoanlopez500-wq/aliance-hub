@@ -6,10 +6,10 @@
     <title>Dashboard - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=13"></script>
-    <script src="../assets/js/base.js?v=13"></script>
-    <script src="../assets/js/auth.js?v=13"></script>
-    <script src="../assets/js/pwa-utils.js?v=13"></script>
+    <script src="../assets/js/config.js?v=14"></script>
+    <script src="../assets/js/base.js?v=14"></script>
+    <script src="../assets/js/auth.js?v=14"></script>
+    <script src="../assets/js/pwa-utils.js?v=14"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
@@ -25,25 +25,25 @@
             <div class="bg-white rounded-xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between">
                     <div><p class="text-xs text-slate-500 uppercase">Partidas</p><p class="text-3xl font-bold text-amber-600" id="d-matches">-</p></div>
-                    <div class="text-3xl">&#127918;</div>
+                    <div class="text-3xl">🎮</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between">
                     <div><p class="text-xs text-slate-500 uppercase">Jugadores</p><p class="text-3xl font-bold text-blue-600" id="d-players">-</p></div>
-                    <div class="text-3xl">&#128100;</div>
+                    <div class="text-3xl">👤</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between">
                     <div><p class="text-xs text-slate-500 uppercase">Alianzas</p><p class="text-3xl font-bold text-green-600" id="d-alliances">-</p></div>
-                    <div class="text-3xl">&#127988;</div>
+                    <div class="text-3xl">🏳️</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between">
                     <div><p class="text-xs text-slate-500 uppercase">Reportes</p><p class="text-3xl font-bold text-red-500" id="d-reports">-</p></div>
-                    <div class="text-3xl">&#128680;</div>
+                    <div class="text-3xl">🚨</div>
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
 
         <div id="cache-control-section" class="hidden">
             <button onclick="toggleCachePanel()" id="cache-toggle-btn" class="w-full py-3 border border-dashed border-slate-300 rounded-xl text-slate-400 hover:text-slate-600 hover:border-slate-400 transition flex items-center justify-center gap-2 text-sm">
-                <span>&#128295;</span> <span>Controles del sistema</span> <span id="cache-chevron">&#9660;</span>
+                <span>🔧</span> <span>Controles del sistema</span> <span id="cache-chevron">▼</span>
             </button>
             <div id="cache-panel" class="hidden mt-4 bg-white rounded-xl border border-slate-200 p-5">
                 <h2 class="font-bold text-slate-800 mb-1">Control de Cache Global</h2>
@@ -140,8 +140,8 @@
         function toggleCachePanel() {
             var panel = document.getElementById('cache-panel');
             var chevron = document.getElementById('cache-chevron');
-            if (panel.classList.contains('hidden')) { panel.classList.remove('hidden'); chevron.textContent = '&#9650;'; }
-            else { panel.classList.add('hidden'); chevron.textContent = '&#9660;'; }
+            if (panel.classList.contains('hidden')) { panel.classList.remove('hidden'); chevron.textContent = '▲'; }
+            else { panel.classList.add('hidden'); chevron.textContent = '▼'; }
         }
 
         async function loadCacheControlStatus() {
