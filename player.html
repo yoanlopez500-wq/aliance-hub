@@ -7,10 +7,11 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=11"></script>
-<script src="assets/js/base.js?v=11"></script>
-<script src="assets/js/auth.js?v=11"></script>
+<script src="assets/js/config.js?v=12"></script>
+<script src="assets/js/base.js?v=12"></script>
+<script src="assets/js/auth.js?v=12"></script>
 <meta name="theme-color" content="#0a0e27">
+<style>.kill-penalty{text-decoration:line-through;opacity:.5}</style>
 </head>
 <body class="min-h-screen" style="background: #0a0e27;" data-role="public">
 <div id="admin-nav"></div>
@@ -41,6 +42,17 @@
 </div>
 </div>
 
+<!-- Strike penalty banner -->
+<div id="strike-banner" class="hidden rounded-xl p-4 mb-6" style="background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.2);">
+    <div class="flex items-center gap-3">
+        <span class="text-2xl">&#9888;&#65039;</span>
+        <div>
+            <p class="font-bold text-red-400" id="strike-banner-text"></p>
+            <p class="text-xs text-ah-muted">Las bajas mostradas en el ranking aplican esta penalidad. Las muertes no se ven afectadas.</p>
+        </div>
+    </div>
+</div>
+
 <div class="flex gap-2 mb-4 flex-wrap">
 <button onclick="filterHistory('all')" class="hist-filter px-3 py-1.5 text-sm rounded-lg font-medium" data-filter="all" style="background: linear-gradient(135deg,#ff6f00,#ff8f00); color: white;">Todas</button>
 <button onclick="filterHistory('internal')" class="hist-filter px-3 py-1.5 text-sm rounded-lg font-medium" data-filter="internal" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #9fa8da;">Internas</button>
@@ -58,11 +70,40 @@ var playerId = new URLSearchParams(window.location.search).get('id');
 if (!playerId) location.href = 'index.html';
 var allHistory = [];
 
+// STRIKE MULTIPLIER: devuelve el % de kills que CUENTAN
+function strikeKillMultiplier(strikeCount) {
+    if (!strikeCount || strikeCount <= 0) return 1.0;
+    if (strikeCount === 1) return 0.9;
+    if (strikeCount === 2) return 0.7;
+    return 0.5; // 3+ = medio strike
+}
+
+function strikePenaltyLabel(strikeCount) {
+    if (!strikeCount || strikeCount <= 0) return '';
+    if (strikeCount === 1) return '-10% kills';
+    if (strikeCount === 2) return '-30% kills';
+    return '-50% kills (medio strike)';
+}
+
+function strikeEffectiveKills(totalKills, strikeCount) {
+    return Math.round((totalKills || 0) * strikeKillMultiplier(strikeCount));
+}
+
 async function loadPlayer() {
 var { data: player } = await supabase.from('players').select('*, alliances(name, tag)').eq('id', playerId).single();
 if (!player) { document.getElementById('player-header').innerHTML = '<div style="color: #ef5350;">Jugador no encontrado</div>'; return; }
-var kd = player.total_deaths > 0 ? (player.total_kills / player.total_deaths).toFixed(2) : player.total_kills;
+
+// Contar strikes activos reales
+var { data: activeStrikes } = await supabase.from('player_strikes').select('id').eq('player_id', playerId).eq('is_active', true);
+var strikeCount = (activeStrikes || []).length;
+
+var rawKd = player.total_deaths > 0 ? (player.total_kills / player.total_deaths).toFixed(2) : player.total_kills;
+var effKills = strikeEffectiveKills(player.total_kills, strikeCount);
+var effKd = player.total_deaths > 0 ? (effKills / player.total_deaths).toFixed(2) : effKills;
 var statusBorder = player.status === 'active' ? '' : 'border: 1px solid rgba(198,40,40,0.3);';
+
+// Header con info de strikes si los tiene
+var strikeBadge = strikeCount > 0 ? ' &bull; <span style="color: #ef5350;">&#9889; ' + strikeCount + ' strike' + (strikeCount > 1 ? 's' : '') + '</span>' : '';
 
 document.getElementById('player-header').innerHTML =
 '<div class="rounded-2xl p-8 text-center mb-6" style="background: #11183a; border: 1px solid #1a237e; ' + statusBorder + '">' +
@@ -70,17 +111,39 @@ document.getElementById('player-header').innerHTML =
 '<h1 class="text-3xl font-bold text-white">' + player.current_username + '</h1>' +
 '<p class="mt-2" style="color: #9fa8da;">ID: ' + player.id +
 (player.alliances ? ' &bull; ' + player.alliances.name + ' [' + player.alliances.tag + ']' : '') +
+strikeBadge +
 (player.status !== 'active' ? ' &bull; ' + getStatusBadgePlayer(player.status) : '') +
 '</p></div>';
 
 document.getElementById('player-stats').classList.remove('hidden');
 document.getElementById('p-games').textContent = player.games_played || 0;
-document.getElementById('p-kills').textContent = (player.total_kills || 0).toLocaleString();
+
+// Kills: muestra tachado con efectivas entre parentesis si hay penalidad
+if (strikeCount > 0) {
+    document.getElementById('p-kills').innerHTML = '<span class="kill-penalty">' + (player.total_kills || 0).toLocaleString() + '</span> <span style="color: #4caf50; font-size: 0.7em;">(' + effKills + ')</span>';
+    document.getElementById('p-kills').style.color = '#ef5350';
+} else {
+    document.getElementById('p-kills').textContent = (player.total_kills || 0).toLocaleString();
+    document.getElementById('p-kills').style.color = '#4caf50';
+}
+
 document.getElementById('p-deaths').textContent = (player.total_deaths || 0).toLocaleString();
-document.getElementById('p-kd').textContent = kd;
-document.getElementById('p-kd').style.color = kd >= 1 ? '#4caf50' : '#ff8f00';
-document.getElementById('p-strikes').textContent = player.strikes || 0;
-document.getElementById('p-strikes').style.color = (player.strikes || 0) >= 2 ? '#ef5350' : '#ff8f00';
+
+// KD: muestra el efectivo (con penalidad) y el raw entre parentesis
+if (strikeCount > 0) {
+    document.getElementById('p-kd').innerHTML = effKd + ' <span style="color: #9fa8da; font-size: 0.6em;">(sin penal: ' + rawKd + ')</span>';
+    document.getElementById('p-kd').style.color = effKd >= 1 ? '#4caf50' : '#ff8f00';
+    // Show strike banner
+    document.getElementById('strike-banner').classList.remove('hidden');
+    document.getElementById('strike-banner-text').textContent = strikePenaltyLabel(strikeCount) + ' aplicado a tus bajas';
+} else {
+    document.getElementById('p-kd').textContent = rawKd;
+    document.getElementById('p-kd').style.color = rawKd >= 1 ? '#4caf50' : '#ff8f00';
+}
+
+document.getElementById('p-strikes').textContent = strikeCount;
+document.getElementById('p-strikes').style.color = strikeCount >= 2 ? '#ef5350' : (strikeCount >= 1 ? '#ff8f00' : '#ff6f00');
+
 loadHistory();
 }
 
