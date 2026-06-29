@@ -1,4 +1,4 @@
-// assets/js/auth.js v4.2 - Fluid nav SIEMPRE con ambas sesiones + retry
+// assets/js/auth.js v4.3 - SIEMPRE muestra boton del otro modo
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -318,9 +318,7 @@ var ROLE_PANELS = {
     }
 };
 
-// ===================== NAVEGACION: Fluid dual siempre + retry =====================
-// v4.2 cambio clave: si ambas sesiones existen, SIEMPRE se muestra nav dual con ambos botones,
-// sin importar si estas en pagina admin o publica. Ademas retry si supabase tarda.
+// ===================== NAVEGACION CON TRY/CATCH + FALLBACK =====================
 window.__ahNavRetryCount = 0;
 
 async function initAdminNav() {
@@ -337,28 +335,26 @@ async function initAdminNav() {
         var isAdminPage = document.body.getAttribute('data-role') === 'admin';
         var isLeaderPage = document.body.getAttribute('data-role') === 'alliance_leader';
 
-        // ====== DUAL MODE: ADMIN + JUGADOR ======
-        // Siempre muestra AMBOS botones, sin importar la pagina
+        // DUAL MODE: admin + jugador SIEMPRE usa fluid nav
         if (adminSession && isPlayer) {
             var admin = await getAdminRole();
             renderFluidNav(nav, adminSession, admin || { role: 'moderator' }, playerData, isAdminPage || isLeaderPage);
             return;
         }
 
-        // Si tenemos jugador pero supabase.auth tardo/fallo, reintentar
+        // Retry si supabase tarda
         if (isPlayer && !adminSession && window.__ahNavRetryCount < 3) {
             window.__ahNavRetryCount++;
             console.log('[Auth] Retry nav detection #' + window.__ahNavRetryCount);
             setTimeout(function() { initAdminNav(); }, 500);
-            // Mientras tanto renderizar nav de jugador basico
             renderPlayerNav(nav, playerData, null);
             return;
         }
 
-        // Solo ADMIN en pagina admin/leader
+        // Solo ADMIN
         if (adminSession && (isAdminPage || isLeaderPage)) {
             var admin = await getAdminRole();
-            renderAdminNav(nav, adminSession, admin || { role: 'moderator' }, false);
+            renderAdminNav(nav, adminSession, admin || { role: 'moderator' });
             return;
         }
 
@@ -393,9 +389,7 @@ async function initAdminNav() {
 function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     var role = (admin && admin.role) || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
-    var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
 
-    // Link del logo: si estamos en pagina admin, va al admin home. Si no, al dashboard.
     var logoLink = onAdminPage
         ? ahPath(role === 'alliance_leader' ? 'leader-dashboard.html' : 'admin/index.html')
         : ahPath('dashboard.html');
@@ -406,12 +400,10 @@ function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     };
 
     var mainLinks = panel.navLinks.filter(function(l) { return l.section === 'main'; });
-    var toolsLinks = panel.navLinks.filter(function(l) { return l.section === 'tools'; }).slice(0, 6);
 
     nav.innerHTML =
         '<nav class="sticky top-0 z-50 bg-slate-900 border-b border-indigo-900/50">' +
             '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3">' +
-                // Row 1: Logo + dual switch buttons
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-2 min-w-0">' +
                         '<a href="' + logoLink + '" class="text-lg font-bold flex items-center gap-2 text-orange-400 shrink-0">' +
@@ -432,7 +424,6 @@ function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                // Row 2: Admin links (context-aware)
                 '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') + '</div>' +
             '</div>' +
         '</nav>';
@@ -440,10 +431,16 @@ function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     try { startNotifPolling(); } catch(e) {}
 }
 
-// ====== ADMIN NAV (solo admin, sin jugador) ======
-function renderAdminNav(nav, session, admin, hasPlayer) {
+// ====== ADMIN NAV - SIEMPRE muestra boton para jugador ======
+function renderAdminNav(nav, session, admin) {
     var role = (admin && admin.role) || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
+
+    // v4.3 FIX: Siempre mostrar boton de jugador. Si tiene sesion: "Modo Jugador", si no: "Entrar como Jugador"
+    var hasPlayer = hasPlayerSession();
+    var playerBtn = hasPlayer
+        ? '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Modo Jugador</button>'
+        : '<a href="' + ahPath('login-player.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Entrar como Jugador</a>';
 
     var mkLink = function(l) {
         var devBadge = l.devBadge ? '<span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1 bg-orange-500 text-white">DEV</span>' : '';
@@ -474,7 +471,7 @@ function renderAdminNav(nav, session, admin, hasPlayer) {
                         '</a>' +
                         '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + ' text-white shrink-0">' + panel.label + '</span>' +
                     '</div>' +
-                    '<div class="flex items-center gap-1.5 shrink-0">' + notifHTML + logoutHTML + '</div>' +
+                    '<div class="flex items-center gap-1.5 shrink-0">' + notifHTML + playerBtn + logoutHTML + '</div>' +
                 '</div>' +
                 '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') +
                     (toolsLinks.length ? '<div class="w-px mx-1 bg-white/10 shrink-0"></div>' + toolsLinks.map(mkLink).join('') : '') +
@@ -485,15 +482,14 @@ function renderAdminNav(nav, session, admin, hasPlayer) {
     try { startNotifPolling(); } catch(e) {}
 }
 
-// ====== PLAYER NAV ======
+// ====== PLAYER NAV - SIEMPRE muestra boton para admin ======
 function renderPlayerNav(nav, playerData, adminSession) {
     var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
 
-    // Si adminSession es truthy, mostrar boton de admin
-    var adminBtn = '';
-    if (adminSession) {
-        adminBtn = '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-600 hover:bg-orange-500 text-white">&#128202; Admin</button>';
-    }
+    // v4.3 FIX: Siempre mostrar boton de admin. Si tiene sesion: "Admin", si no: "Login Admin"
+    var adminBtn = adminSession
+        ? '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-600 hover:bg-orange-500 text-white">&#128202; Admin</button>'
+        : '<a href="' + ahPath('login.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-600 hover:bg-orange-500 text-white">&#128202; Login Admin</a>';
 
     nav.innerHTML =
         '<nav class="sticky top-0 z-50 bg-slate-900 border-b border-indigo-900/50">' +
@@ -526,15 +522,21 @@ function renderPlayerNav(nav, playerData, adminSession) {
         '</nav>';
 }
 
-// ====== ADMIN on PUBLIC page ======
+// ====== ADMIN on PUBLIC page - SIEMPRE muestra boton para jugador ======
 function renderAdminOnPublicNav(nav, session) {
+    // v4.3 FIX: Siempre mostrar boton de jugador
+    var hasPlayer = hasPlayerSession();
+    var playerBtn = hasPlayer
+        ? '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Modo Jugador</button>'
+        : '<a href="' + ahPath('login-player.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Entrar como Jugador</a>';
+
     nav.innerHTML =
         '<nav class="sticky top-0 z-50 bg-slate-900 border-b border-indigo-900/50">' +
             '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-2 flex-wrap">' +
                 '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2 text-orange-400 shrink-0">' +
                     '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
                 '</a>' +
-                '<div class="flex items-center gap-1.5 shrink-0">' +
+                '<div class="flex items-center gap-1.5 shrink-0">' + playerBtn +
                     '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-600 hover:bg-orange-500 text-white">&#128202; Ir a Admin</button>' +
                     '<div class="relative group">' +
                         '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">Salir &#9662;</button>' +
