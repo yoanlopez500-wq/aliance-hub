@@ -23,7 +23,7 @@
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
 <!-- REDIRECCION para usuarios logueados (ejecuta ANTES que todo) -->
-<script src="assets/js/config.js?v=13"></script>
+<script src="assets/js/config.js?v=14"></script>
 <script>
 (function() {
     var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
@@ -36,7 +36,7 @@
 })();
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=13"></script>
+<script src="assets/js/theme.js?v=14"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -52,11 +52,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 
 <nav style="background:#0a0e27;border-bottom:1px solid #1a237e" class="sticky top-0 z-50">
 <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-<a href="index.html" class="text-lg font-bold flex items-center gap-2" style="color:#ff8f00"><span>&#9876;&#65039;</span><span>Alliance Hub</span></a>
+<a href="index.html" class="text-lg font-bold flex items-center gap-2" style="color:#ff8f00"><span>⚔️</span><span>Alliance Hub</span></a>
 <div class="flex items-center gap-2 flex-wrap justify-end">
-<a href="course/" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98] hidden sm:inline-block" style="background:#1a237e;color:#fff">&#127891; Curso para Lideres</a>
-<a href="rankings.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127942; Rankings</a>
-<a href="login-player.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Entrar</a>
+<a href="apply-leader.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98] hidden sm:inline-block" style="background:#1a237e;color:#fff">🏳️ Solicitar Liderazgo</a>
+<a href="rankings.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">🏆 Rankings</a>
+<a href="login-player.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">🎮 Entrar</a>
 </div>
 </div>
 </nav>
@@ -66,13 +66,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <div class="hero-glow" style="background:#ff6f00;bottom:-200px;right:-100px"></div>
 <div class="max-w-6xl mx-auto px-4 relative z-10">
 <div class="text-center">
-<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6" style="background:rgba(255,111,0,0.1);border:1px solid rgba(255,111,0,0.2);color:#ff8f00">&#127881; La plataforma de competencia para Supremacy 1914</div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6" style="background:rgba(255,111,0,0.1);border:1px solid rgba(255,111,0,0.2);color:#ff8f00">🎉 La plataforma de competencia para Supremacy 1914</div>
 <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">Domina el campo de<br><span style="color:#ff8f00">batalla. Demuestralo.</span></h1>
 <p class="text-lg md:text-xl max-w-2xl mx-auto mb-8" style="color:#9fa8da">Alliance Hub organiza <strong class="text-white">torneos, rankings y ligas</strong> para comunidades de Supremacy 1914. Registra tu alianza, compite en partidas organizadas y escala el ranking global.</p>
 <div class="flex flex-wrap justify-center gap-3">
-<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Comenzar como Jugador</a>
-<a href="course/" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127891; Registrar mi Alianza</a>
-<a href="rankings.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#127942; Ver Rankings</a>
+<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">🎮 Comenzar como Jugador</a>
+<a href="apply-leader.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">🏳️ Solicitar Liderazgo</a>
+<a href="rankings.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">🏆 Ver Rankings</a>
 </div>
 </div>
 </div>
@@ -96,12 +96,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <p class="max-w-2xl mx-auto" style="color:#9fa8da">Una plataforma independiente creada por y para la comunidad de Supremacy 1914.</p>
 </div>
 <div class="grid md:grid-cols-3 gap-6">
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127942;</div><h3 class="text-lg font-bold text-white mb-2">Rankings Globales</h3><p class="text-sm" style="color:#9fa8da">Sistema de rankings basado en estadisticas reales de partidas. K/D ratio, partidas jugadas, victorias y mas.</p></article>
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127988;</div><h3 class="text-lg font-bold text-white mb-2">Gestiona tu Alianza</h3><p class="text-sm" style="color:#9fa8da">Lidera tu alianza con herramientas exclusivas: miembros, rankings internos, partidas privadas y duelos.</p></article>
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#9876;&#65039;</div><h3 class="text-lg font-bold text-white mb-2">Duelos de Alianzas</h3><p class="text-sm" style="color:#9fa8da">Prepara un equipo de 5 jugadores y desafia a otras alianzas. Matchmaking automatico.</p></article>
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#127919;</div><h3 class="text-lg font-bold text-white mb-2">Torneos Organizados</h3><p class="text-sm" style="color:#9fa8da">Partidas con reglas claras, sistema de strikes y auditoria post-partida.</p></article>
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#128200;</div><h3 class="text-lg font-bold text-white mb-2">Importa Resultados</h3><p class="text-sm" style="color:#9fa8da">Importa estadisticas desde CSV de Supremacy 1914. Calculo automatico de rankings.</p></article>
-<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">&#128241;</div><h3 class="text-lg font-bold text-white mb-2">App Web PWA</h3><p class="text-sm" style="color:#9fa8da">Instala Alliance Hub en tu telefono. Funciona como app nativa.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">🏆</div><h3 class="text-lg font-bold text-white mb-2">Rankings Globales</h3><p class="text-sm" style="color:#9fa8da">Sistema de rankings basado en estadisticas reales de partidas. K/D ratio, partidas jugadas, victorias y mas.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">🏳️</div><h3 class="text-lg font-bold text-white mb-2">Gestiona tu Alianza</h3><p class="text-sm" style="color:#9fa8da">Lidera tu alianza con herramientas exclusivas: miembros, rankings internos, partidas privadas y duelos.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">⚔️</div><h3 class="text-lg font-bold text-white mb-2">Duelos de Alianzas</h3><p class="text-sm" style="color:#9fa8da">Prepara un equipo de 5 jugadores y desafia a otras alianzas. Matchmaking automatico.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">🎯</div><h3 class="text-lg font-bold text-white mb-2">Torneos Organizados</h3><p class="text-sm" style="color:#9fa8da">Partidas con reglas claras, sistema de strikes y auditoria post-partida.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">📊</div><h3 class="text-lg font-bold text-white mb-2">Importa Resultados</h3><p class="text-sm" style="color:#9fa8da">Importa estadisticas desde CSV de Supremacy 1914. Calculo automatico de rankings.</p></article>
+<article class="feature-card rounded-xl p-6" style="background:#11183a"><div class="text-3xl mb-4">📱</div><h3 class="text-lg font-bold text-white mb-2">App Web PWA</h3><p class="text-sm" style="color:#9fa8da">Instala Alliance Hub en tu telefono. Funciona como app nativa.</p></article>
 </div>
 </div>
 </section>
@@ -121,18 +121,18 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <div class="max-w-6xl mx-auto px-4">
 <div class="grid md:grid-cols-2 gap-8 items-center">
 <div>
-<h2 class="text-3xl font-bold text-white mb-4">&#127988; Para Alianzas</h2>
+<h2 class="text-3xl font-bold text-white mb-4">🏳️ Para Alianzas</h2>
 <p class="mb-4" style="color:#9fa8da">Eres lider de alianza? Lleva tu comunidad al siguiente nivel.</p>
 <ul class="space-y-3 mb-6">
-<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Panel exclusivo para gestionar miembros</span></li>
-<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Rankings internos de tu alianza</span></li>
-<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Sistema de duelos contra otras alianzas</span></li>
-<li class="flex items-start gap-3"><span style="color:#4caf50">&#10003;</span><span style="color:#9fa8da">Certificacion de lideres incluida</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">✓</span><span style="color:#9fa8da">Panel exclusivo para gestionar miembros</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">✓</span><span style="color:#9fa8da">Rankings internos de tu alianza</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">✓</span><span style="color:#9fa8da">Sistema de duelos contra otras alianzas</span></li>
+<li class="flex items-start gap-3"><span style="color:#4caf50">✓</span><span style="color:#9fa8da">Nombramiento de oficiales con permisos</span></li>
 </ul>
-<a href="course/" class="inline-block px-6 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127891; Certificarme como Lider</a>
+<a href="apply-leader.html" class="inline-block px-6 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">🏳️ Solicitar Liderazgo</a>
 </div>
 <div class="rounded-2xl p-6" style="background:#11183a;border:1px solid #1a237e">
-<div class="text-center"><div class="text-6xl mb-4">&#127988;</div><h3 class="text-xl font-bold text-white mb-2">Tu Alianza. Tu Equipo.</h3><p style="color:#9fa8da">Completa el curso de certificacion y recibe acceso al panel de lider.</p></div>
+<div class="text-center"><div class="text-6xl mb-4">🏳️</div><h3 class="text-xl font-bold text-white mb-2">Tu Alianza. Tu Equipo.</h3><p style="color:#9fa8da">Solicita el liderazgo y recibe acceso al panel de gestion tras aprobacion.</p></div>
 </div>
 </div>
 </div>
@@ -140,7 +140,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 
 <section class="py-16" style="background:#11183a;border-top:1px solid #1a237e">
 <div class="max-w-6xl mx-auto px-4">
-<div class="flex items-center justify-between mb-8"><h2 class="text-2xl font-bold text-white">&#127918; Partidas Recientes</h2><a href="login-player.html" class="text-sm font-bold" style="color:#ff8f00">Ver todas &rarr;</a></div>
+<div class="flex items-center justify-between mb-8"><h2 class="text-2xl font-bold text-white">🎮 Partidas Recientes</h2><a href="login-player.html" class="text-sm font-bold" style="color:#ff8f00">Ver todas →</a></div>
 <div id="recent-matches" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 <div class="rounded-xl p-6 text-center col-span-full" style="background:#0a0e27;border:1px solid #1a237e;color:#9fa8da">Cargando partidas...</div>
 </div>
@@ -152,18 +152,18 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <h2 class="text-3xl font-bold text-white mb-4">Listo para la batalla?</h2>
 <p class="mb-8" style="color:#9fa8da">Unete a cientos de jugadores que ya compiten en Alliance Hub.</p>
 <div class="flex flex-wrap justify-center gap-3">
-<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">&#127918; Entrar como Jugador</a>
-<a href="login.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">&#128202; Panel de Admin</a>
+<a href="login-player.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98] shadow-lg" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff">🎮 Entrar como Jugador</a>
+<a href="login.html" class="px-8 py-4 rounded-xl font-bold text-base transition active:scale-[0.98]" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e;color:#e8eaf6">📊 Panel de Admin</a>
 </div>
 </div>
 </section>
 
 <footer style="background:#0a0e27;border-top:1px solid #1a237e" class="py-8">
 <div class="max-w-6xl mx-auto px-4 text-center">
-<p class="text-sm font-bold" style="color:#9fa8da">&#9876;&#65039; Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
+<p class="text-sm font-bold" style="color:#9fa8da">⚔️ Alliance Hub - Plataforma para comunidades de Supremacy 1914</p>
 <p class="text-xs mt-2" style="color:#9fa8da;opacity:.5">No afiliado con Bytro Labs / Stillfront Group. Proyecto comunitario independiente.</p>
 <div class="mt-4 flex justify-center gap-4 text-xs" style="color:#9fa8da;opacity:.5">
-<a href="rankings.html" style="color:#9fa8da">Rankings</a><a href="course/" style="color:#9fa8da">Certificacion</a><a href="login.html" style="color:#9fa8da">Admin</a><a href="login-player.html" style="color:#9fa8da">Jugador</a>
+<a href="rankings.html" style="color:#9fa8da">Rankings</a><a href="apply-leader.html" style="color:#9fa8da">Solicitar Liderazgo</a><a href="login.html" style="color:#9fa8da">Admin</a><a href="login-player.html" style="color:#9fa8da">Jugador</a>
 </div>
 </div>
 </footer>
@@ -172,7 +172,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 async function loadStats(){
 try{var c=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var{count:mc}=await c.from('matches').select('*',{count:'exact',head:true});var{count:pc}=await c.from('players').select('*',{count:'exact',head:true});var{count:ac}=await c.from('alliances').select('*',{count:'exact',head:true});var{data:kd}=await c.from('players').select('total_kills');var tk=kd?kd.reduce(function(s,p){return s+(p.total_kills||0)},0):0;document.getElementById('stat-matches').textContent=(mc||0).toLocaleString();document.getElementById('stat-players').textContent=(pc||0).toLocaleString();document.getElementById('stat-alliances').textContent=(ac||0).toLocaleString();document.getElementById('stat-kills').textContent=tk.toLocaleString()}catch(e){}}
 async function loadRecent(){
-try{var c=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var{data:matches}=await c.from('matches').select('*,alliance:alliances!matches_alliance_id_fkey(name,tag)').eq('is_private',false).order('created_at',{ascending:false}).limit(6);var el=document.getElementById('recent-matches');if(!matches||matches.length===0){el.innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">No hay partidas activas aun</div>';return}var sc={open:'#4caf50',closed:'#ef5350',finished:'#9fa8da',in_progress:'#ff8f00'};var tl={internal:'Interna',duel:'Duelo',public_31:'Publica 31',public_500:'Evento 500'};el.innerHTML=matches.map(function(m){var s=sc[m.status]||'#9fa8da',t=tl[m.match_type]||m.match_type;return'<div class="rounded-xl p-5 transition hover:opacity-90" style="background:#0a0e27;border:1px solid #1a237e">'+'<div class="flex items-center gap-2 mb-2 flex-wrap"><span class="text-xs px-2 py-1 rounded font-bold" style="background:'+s+'22;color:'+s+'">'+m.status+'</span><span class="text-xs px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);color:#9fa8da">'+t+'</span></div>'+'<h3 class="font-bold text-white text-sm mb-1">'+m.name+'</h3>'+'<p class="text-xs mb-2" style="color:#9fa8da">'+(m.description?m.description.substring(0,60)+'...':'Sin descripcion')+'</p>'+'<div class="flex items-center justify-between"><span class="text-xs" style="color:#9fa8da">&#128101; '+m.max_players+' max</span><a href="game.html?id='+m.id+'" class="text-xs font-bold" style="color:#ff8f00">Ver &rarr;</a></div></div>'}).join('')}catch(e){document.getElementById('recent-matches').innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">Error cargando partidas</div>'}}
+try{var c=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var{data:matches}=await c.from('matches').select('*,alliance:alliances!matches_alliance_id_fkey(name,tag)').eq('is_private',false).order('created_at',{ascending:false}).limit(6);var el=document.getElementById('recent-matches');if(!matches||matches.length===0){el.innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">No hay partidas activas aun</div>';return}var sc={open:'#4caf50',closed:'#ef5350',finished:'#9fa8da',in_progress:'#ff8f00'};var tl={internal:'Interna',duel:'Duelo',public_31:'Publica 31',public_500:'Evento 500'};el.innerHTML=matches.map(function(m){var s=sc[m.status]||'#9fa8da',t=tl[m.match_type]||m.match_type;return'<div class="rounded-xl p-5 transition hover:opacity-90" style="background:#0a0e27;border:1px solid #1a237e">'+'<div class="flex items-center gap-2 mb-2 flex-wrap"><span class="text-xs px-2 py-1 rounded font-bold" style="background:'+s+'22;color:'+s+'">'+m.status+'</span><span class="text-xs px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);color:#9fa8da">'+t+'</span></div>'+'<h3 class="font-bold text-white text-sm mb-1">'+m.name+'</h3>'+'<p class="text-xs mb-2" style="color:#9fa8da">'+(m.description?m.description.substring(0,60)+'...':'Sin descripcion')+'</p>'+'<div class="flex items-center justify-between"><span class="text-xs" style="color:#9fa8da">👥 '+m.max_players+' max</span><a href="game.html?id='+m.id+'" class="text-xs font-bold" style="color:#ff8f00">Ver →</a></div></div>'}).join('')}catch(e){document.getElementById('recent-matches').innerHTML='<div class="col-span-full text-center py-8" style="color:#9fa8da">Error cargando partidas</div>'}}
 loadStats();loadRecent();
 </script>
 </body>
