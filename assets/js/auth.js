@@ -1,4 +1,4 @@
-// assets/js/auth.js v3.2 - Session persistence + Fluid mode + Leagues hidden (dev)
+// assets/js/auth.js v4.0 - Tailwind + Fluid Mode + Session Persistence
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -81,14 +81,10 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     return { success: true, message: 'Cuenta creada. Ya puedes iniciar sesion.' };
 }
 
-// ====== LOGOUT: SOLO cierra la sesion activa, NO borra la otra ======
+// ====== LOGOUT: Solo cierra la sesion activa ======
 async function logout() {
-    // Solo cierra sesion de Supabase Auth (admin)
-    // NO toca la sesion de jugador en localStorage
     if (window.__ahNotifInterval) { clearInterval(window.__ahNotifInterval); window.__ahNotifInterval = null; }
     await supabase.auth.signOut();
-    // Si hay sesion de jugador, ir a dashboard (modo jugador)
-    // Si no hay sesion de jugador, ir a login
     if (hasPlayerSession()) {
         window.location.href = ahPath('dashboard.html');
     } else {
@@ -108,20 +104,16 @@ async function switchToAdminMode() {
     window.location.href = ahPath(target);
 }
 
-async function logoutToPlayerMode() { await switchToPlayerMode(); }
-
-// ====== PLAYER LOGOUT: Solo borra datos de jugador, NO toca admin ======
+// ====== PLAYER LOGOUT: Solo borra datos de jugador ======
 function playerLogout() {
     if (typeof clearPlayerData === 'function') clearPlayerData();
-    // Si tiene sesion de admin, ir al dashboard de admin
-    // Si no, ir al index
     isAdmin().then(function(isAdmin) {
         if (isAdmin) window.location.href = ahPath('admin/index.html');
         else window.location.href = ahPath('index.html');
     });
 }
 
-// ====== LOGOUT TOTAL: Borra TODO ======
+// ====== LOGOUT TOTAL ======
 async function logoutAll() {
     if (window.__ahNotifInterval) { clearInterval(window.__ahNotifInterval); window.__ahNotifInterval = null; }
     if (typeof clearPlayerData === 'function') clearPlayerData();
@@ -166,7 +158,7 @@ function getRoleBadge(role) {
     return badges[role] || '<span class="text-[10px] bg-slate-500 text-white px-2 py-1 rounded">' + role + '</span>';
 }
 
-function hasPlayerSession() { return !!localStorage.getItem('ah_v2_player_id'); }
+function hasPlayerSession() { return !!localStorage.getItem('ah_v2_player_id') && !!localStorage.getItem('ah_v2_player_token'); }
 
 function hasAdminSession() {
     return supabase.auth.getSession().then(function(r) { return !!r.data.session; });
@@ -242,36 +234,37 @@ document.addEventListener('click', function(e) { var w = document.getElementById
 // ===================== PANELES POR ROL =====================
 var ROLE_PANELS = {
     superadmin: {
-        label: 'Super Admin', badgeClass: 'bg-red-500 text-white', icon: '&#128081;',
+        label: 'Super Admin', badgeClass: 'bg-red-500', icon: '&#128081;',
         navLinks: [
             { href: 'admin/index.html', label: '&#128202; Dashboard', section: 'main' },
             { href: 'admin/matches.html', label: '&#127918; Partidas', section: 'main' },
             { href: 'admin/players.html', label: '&#128100; Jugadores', section: 'main' },
             { href: 'admin/alliances.html', label: '&#127988; Alianzas', section: 'main' },
             { href: 'admin/certifications.html', label: '&#127891; Certificaciones', section: 'main' },
-            { href: 'admin/import.html', label: '&#128229; Importar CSV', section: 'tools' },
+            { href: 'admin/import.html', label: '&#128229; Importar', section: 'tools' },
             { href: 'admin/invites.html', label: '&#128273; Invitar', section: 'tools' },
             { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools', devBadge: true },
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
             { href: 'admin/rules-editor.html', label: '&#128220; Reglas', section: 'tools' },
+            { href: 'admin/sanctions-engine.html', label: '&#128295; Sanciones', section: 'tools' },
             { href: 'chat.html', label: '&#128172; Chat', section: 'comms' },
         ],
         quickActions: [
-            { label: '&#10133; Nueva Partida', action: 'openMatchModal()', color: 'amber' },
-            { label: '&#127891; Ver Cursos', href: 'course/', color: 'blue' },
+            { label: '&#10133; Nueva Partida', action: 'openMatchModal()' },
+            { label: '&#127891; Cursos', href: 'course/' },
         ]
     },
     event_admin: {
-        label: 'Admin Eventos', badgeClass: 'bg-blue-500 text-white', icon: '&#127919;',
+        label: 'Admin Eventos', badgeClass: 'bg-blue-500', icon: '&#127919;',
         navLinks: [
             { href: 'admin/index.html', label: '&#128202; Dashboard', section: 'main' },
             { href: 'admin/matches.html', label: '&#127918; Partidas', section: 'main' },
             { href: 'admin/players.html', label: '&#128100; Jugadores', section: 'main' },
             { href: 'admin/alliances.html', label: '&#127988; Alianzas', section: 'main' },
             { href: 'admin/certifications.html', label: '&#127891; Certificaciones', section: 'main' },
-            { href: 'admin/import.html', label: '&#128229; Importar CSV', section: 'tools' },
+            { href: 'admin/import.html', label: '&#128229; Importar', section: 'tools' },
             { href: 'admin/invites.html', label: '&#128273; Invitar', section: 'tools' },
             { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools', devBadge: true },
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
@@ -280,10 +273,10 @@ var ROLE_PANELS = {
             { href: 'admin/rules-editor.html', label: '&#128220; Reglas', section: 'tools' },
             { href: 'chat.html', label: '&#128172; Chat', section: 'comms' },
         ],
-        quickActions: [{ label: '&#10133; Nueva Partida', action: 'openMatchModal()', color: 'amber' }]
+        quickActions: [{ label: '&#10133; Nueva Partida', action: 'openMatchModal()' }]
     },
     alliance_leader: {
-        label: 'Lider de Alianza', badgeClass: 'bg-green-500 text-white', icon: '&#127988;',
+        label: 'Lider de Alianza', badgeClass: 'bg-green-500', icon: '&#127988;',
         navLinks: [
             { href: 'leader-dashboard.html', label: '&#127968; Mi Alianza', section: 'main' },
             { href: 'admin/matches.html', label: '&#127918; Partidas', section: 'main' },
@@ -294,12 +287,12 @@ var ROLE_PANELS = {
             { href: 'chat.html', label: '&#128172; Chat', section: 'comms' },
         ],
         quickActions: [
-            { label: '&#10133; Crear Partida', action: 'openMatchModal()', color: 'amber' },
-            { label: '&#9876;&#65039; Preparar Duelo', href: 'admin/duel-manager.html', color: 'blue' },
+            { label: '&#10133; Crear Partida', action: 'openMatchModal()' },
+            { label: '&#9876;&#65039; Preparar Duelo', href: 'admin/duel-manager.html' },
         ]
     },
     moderator: {
-        label: 'Moderador', badgeClass: 'bg-purple-500 text-white', icon: '&#128737;&#65039;',
+        label: 'Moderador', badgeClass: 'bg-purple-500', icon: '&#128737;&#65039;',
         navLinks: [
             { href: 'admin/index.html', label: '&#128202; Dashboard', section: 'main' },
             { href: 'admin/matches.html', label: '&#127918; Partidas', section: 'main' },
@@ -307,200 +300,229 @@ var ROLE_PANELS = {
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
         ],
-        quickActions: [{ label: '&#128220; Ver Reportes', href: 'admin/reports.html', color: 'red' }]
+        quickActions: [{ label: '&#128220; Ver Reportes', href: 'admin/reports.html' }]
     }
 };
 
-// ===================== NAVEGACION MODULAR =====================
+// ===================== NAVEGACION: Siempre detecta AMBAS sesiones =====================
 async function initAdminNav() {
     var nav = document.getElementById('admin-nav');
     if (!nav) return;
 
+    // Detectar ambas sesiones SIEMPRE (independientemente de la pagina)
     var sessionData = await supabase.auth.getSession();
-    var session = sessionData.data.session;
+    var adminSession = sessionData.data.session;
     var playerData = getPlayerData ? getPlayerData() : {};
-    var isPlayer = !!(playerData && playerData.playerId);
+    var isPlayer = !!(playerData && playerData.playerId && playerData.token);
     var isAdminPage = document.body.getAttribute('data-role') === 'admin';
     var isLeaderPage = document.body.getAttribute('data-role') === 'alliance_leader';
-    var isPublicPage = document.body.getAttribute('data-role') === 'public';
 
-    // ====== ADMIN en pagina admin/leader ======
-    if (session && (isAdminPage || isLeaderPage)) {
+    // Fluid mode: ADMIN + JUGADOR en cualquier pagina
+    if (adminSession && isPlayer) {
         var admin = await getAdminRole();
-        if (!admin) { /* No redirigir, mostrar nav basico */ }
-        else {
-            renderAdminNav(nav, session, admin, isPlayer);
-            return;
+        if (isAdminPage || isLeaderPage) {
+            renderAdminNav(nav, adminSession, admin || { role: 'moderator' }, true);
+        } else {
+            renderFluidNav(nav, adminSession, admin || { role: 'moderator' }, playerData);
         }
+        return;
     }
 
-    // ====== JUGADOR logueado en pagina publica ======
+    // Solo ADMIN en pagina admin/leader
+    if (adminSession && (isAdminPage || isLeaderPage)) {
+        var admin = await getAdminRole();
+        renderAdminNav(nav, adminSession, admin || { role: 'moderator' }, false);
+        return;
+    }
+
+    // Solo ADMIN en pagina publica
+    if (adminSession) {
+        renderAdminOnPublicNav(nav, adminSession);
+        return;
+    }
+
+    // Solo JUGADOR
     if (isPlayer) {
-        renderPlayerNav(nav, playerData, session);
+        renderPlayerNav(nav, playerData, null);
         return;
     }
 
-    // ====== ADMIN logueado en pagina publica (modo fluido) ======
-    if (session) {
-        renderAdminOnPublicNav(nav, session);
-        return;
-    }
-
-    // ====== Publico ======
+    // Publico
     renderPublicNav(nav);
 }
 
-function renderAdminNav(nav, session, admin, isPlayer) {
-    var role = admin.role;
+// ====== FLUID NAV: Admin + Jugador en paginas publicas ======
+function renderFluidNav(nav, session, admin, playerData) {
+    var role = admin.role || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
     var displayName = admin.display_name || session.user.email;
-    var hasAlliance = !!admin.alliance_id;
+    var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
 
-    var warningBanner = '';
-    if (role === 'alliance_leader' && !hasAlliance) {
-        warningBanner = '<div class="max-w-7xl mx-auto px-4"><div class="rounded-lg p-3 mb-4 text-center" style="background: rgba(255,143,0,0.1); border: 1px solid rgba(255,143,0,0.2);">' +
-            '<p class="text-sm font-medium" style="color: #ff8f00;">&#9888;&#65039; No tienes una alianza asignada. Contacta a un superadmin.</p></div></div>';
-    }
+    var mkLink = function(l) {
+        var devBadge = l.devBadge ? ' <span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1 bg-[#ff6f00] text-white">DEV</span>' : '';
+        return '<a href="' + ahPath(l.href) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">' + l.label + devBadge + '</a>';
+    };
+
+    var mainLinks = panel.navLinks.filter(function(l) { return l.section === 'main'; });
+    var toolsLinks = panel.navLinks.filter(function(l) { return l.section === 'tools'; }).slice(0, 6);
+
+    nav.innerHTML =
+        '<nav class="sticky top-0 z-50 bg-[#0a0e27] border-b border-[#1a237e]">' +
+            '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3">' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+                    '<div class="flex items-center gap-2 min-w-0">' +
+                        '<a href="' + ahPath('dashboard.html') + '" class="text-lg font-bold flex items-center gap-2 text-[#ff8f00] shrink-0">' +
+                            '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
+                        '</a>' +
+                        '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + ' text-white shrink-0">' + panel.label + '</span>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1.5 shrink-0">' +
+                        '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#2e7d32] hover:bg-[#388e3c] text-white">&#127918; Jugador</button>' +
+                        '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#ff6f00] hover:bg-[#ff8f00] text-white">&#128202; Admin</button>' +
+                        '<div class="relative group">' +
+                            '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">&#9662;</button>' +
+                            '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl z-50 bg-[#11183a] border border-[#1a237e] overflow-hidden">' +
+                                '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-[#e8eaf6]">Cerrar sesion admin</button>' +
+                                '<button onclick="playerLogout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-[#e8eaf6]">Cerrar sesion jugador</button>' +
+                                '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-red-400">Salir de todo</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') + '</div>' +
+            '</div>' +
+        '</nav>';
+}
+
+// ====== ADMIN NAV ======
+function renderAdminNav(nav, session, admin, hasPlayer) {
+    var role = admin.role || 'moderator';
+    var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
+    var displayName = admin.display_name || session.user.email;
+
+    var mkLink = function(l) {
+        var devBadge = l.devBadge ? ' <span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1 bg-[#ff6f00] text-white">DEV</span>' : '';
+        return '<a href="' + ahPath(l.href) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">' + l.label + devBadge + '</a>';
+    };
 
     var mainLinks = panel.navLinks.filter(function(l) { return l.section === 'main'; });
     var toolsLinks = panel.navLinks.filter(function(l) { return l.section === 'tools'; });
-    var commsLinks = panel.navLinks.filter(function(l) { return l.section === 'comms'; });
 
-    var mkLink = function(l) {
-        var devBadge = l.devBadge ? ' <span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1" style="background: #ff6f00; color: white;">DEV</span>' : '';
-        return '<a href="' + ahPath(l.href) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">' + l.label + devBadge + '</a>';
-    };
+    var switchBtn = hasPlayer
+        ? '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#2e7d32] hover:bg-[#388e3c] text-white">&#127918; Modo Jugador</button>'
+        : '';
 
-    var mainHTML = mainLinks.map(mkLink).join('');
-    var toolsHTML = toolsLinks.map(mkLink).join('');
-    var commsHTML = commsLinks.map(mkLink).join('');
-
-    var quickHTML = panel.quickActions.map(function(a) {
-        if (a.action) return '<button onclick="' + a.action + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">' + a.label + '</button>';
-        if (a.href) return '<a href="' + ahPath(a.href) + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition inline-block" style="background: #1a237e; color: white;">' + a.label + '</a>';
-        return '';
-    }).join('');
-
-    // Modo fluido: boton "Modo Jugador" si tiene ambas sesiones
-    var switchBtn = isPlayer ? '<button onclick="switchToPlayerMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #2e7d32; color: white;">&#127918; Modo Jugador</button>' : '';
-
-    // Salir: dropdown para elegir salir como admin o salir de todo
     var logoutHTML = '<div class="relative group">' +
-        '<button class="px-3 py-1.5 rounded-lg text-xs font-bold transition" style="background: rgba(198,40,40,0.8); color: white;">Salir &#9662;</button>' +
-        '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-40 rounded-lg shadow-xl z-50" style="background: #11183a; border: 1px solid #1a237e;">' +
-            (isPlayer ? '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #e8eaf6;">Cerrar sesion admin</button>' : '') +
-            '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #ef5350;">Salir de todo</button>' +
+        '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">Salir &#9662;</button>' +
+        '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl z-50 bg-[#11183a] border border-[#1a237e] overflow-hidden">' +
+            (hasPlayer ? '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-[#e8eaf6]">Cerrar sesion admin</button>' : '') +
+            '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-red-400">Salir de todo</button>' +
         '</div></div>';
 
     var notifHTML = '';
     try { notifHTML = buildNotificationBell(); } catch(e) { notifHTML = ''; }
-    var separator = '<div class="w-px mx-1" style="background: rgba(255,255,255,0.1);"></div>';
 
     nav.innerHTML =
-        '<nav style="background: #0a0e27; border-bottom: 1px solid #1a237e;" class="sticky top-0 z-50">' +
-            '<div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">' +
-                '<div class="flex items-center gap-3">' +
-                    '<a href="' + ahPath(role === 'alliance_leader' ? 'leader-dashboard.html' : 'admin/index.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
-                        '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
-                    '</a>' +
-                    '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + '">' + panel.label + '</span>' +
+        '<nav class="sticky top-0 z-50 bg-[#0a0e27] border-b border-[#1a237e]">' +
+            '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3">' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+                    '<div class="flex items-center gap-2 min-w-0">' +
+                        '<a href="' + ahPath(role === \'alliance_leader\' ? \'leader-dashboard.html\' : \'admin/index.html\') + '" class="text-lg font-bold flex items-center gap-2 text-[#ff8f00] shrink-0">' +
+                            '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
+                        '</a>' +
+                        '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + ' text-white shrink-0">' + panel.label + '</span>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1.5 shrink-0">' + notifHTML + switchBtn + logoutHTML + '</div>' +
                 '</div>' +
-                '<div class="flex items-center gap-2 flex-wrap">' +
-                    '<div class="hidden md:flex items-center gap-1 p-1 rounded-lg" style="background: rgba(255,255,255,0.03);">' + quickHTML + '</div>' +
-                    notifHTML + switchBtn +
-                    '<span class="text-xs hidden lg:inline max-w-[100px] truncate" style="color: #9fa8da;">' + displayName + '</span>' +
-                    logoutHTML +
-                '</div>' +
-            '</div>' +
-            '<div class="max-w-7xl mx-auto px-4 pb-2">' +
-                '<div class="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">' + mainHTML +
-                    (toolsHTML ? separator + toolsHTML : '') +
-                    (commsHTML ? separator + commsHTML : '') +
+                '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') +
+                    (toolsLinks.length ? '<div class="w-px mx-1 bg-white/10 shrink-0"></div>' + toolsLinks.map(mkLink).join('') : '') +
                 '</div>' +
             '</div>' +
-            warningBanner +
         '</nav>';
 
     try { startNotifPolling(); } catch(e) {}
 }
 
+// ====== PLAYER NAV ======
 function renderPlayerNav(nav, playerData, adminSession) {
     var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
-    var playerId = (playerData && playerData.playerId) ? playerData.playerId : '';
 
-    // Modo fluido: si tiene sesion de admin, mostrar boton "Modo Admin"
-    var adminBtn = adminSession
-        ? '<button onclick="switchToAdminMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">&#128202; Admin</button>'
-        : '';
+    var adminBtn = '';
+    if (adminSession) {
+        adminBtn = '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#ff6f00] hover:bg-[#ff8f00] text-white">&#128202; Admin</button>';
+    }
 
     nav.innerHTML =
-        '<nav style="background: #0a0e27; border-bottom: 1px solid #1a237e;" class="sticky top-0 z-50">' +
-            '<div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">' +
-                '<div class="flex items-center gap-3">' +
-                    '<a href="' + ahPath('dashboard.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
-                        '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
-                    '</a>' +
-                    '<span class="text-[10px] px-2 py-1 rounded font-bold" style="background: #2e7d32; color: white;">JUGADOR</span>' +
+        '<nav class="sticky top-0 z-50 bg-[#0a0e27] border-b border-[#1a237e]">' +
+            '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3">' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+                    '<div class="flex items-center gap-2 min-w-0">' +
+                        '<a href="' + ahPath('dashboard.html') + '" class="text-lg font-bold flex items-center gap-2 text-[#ff8f00] shrink-0">' +
+                            '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
+                        '</a>' +
+                        '<span class="text-[10px] px-2 py-1 rounded font-bold bg-[#2e7d32] text-white shrink-0">JUGADOR</span>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1.5 shrink-0">' + adminBtn +
+                        '<span class="text-xs hidden md:inline max-w-[80px] truncate text-[#9fa8da]">' + name + '</span>' +
+                        '<div class="relative group">' +
+                            '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">&#9662;</button>' +
+                            '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl z-50 bg-[#11183a] border border-[#1a237e] overflow-hidden">' +
+                                '<button onclick="playerLogout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-[#e8eaf6]">Cerrar sesion jugador</button>' +
+                                '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-red-400">Salir de todo</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
-                '<div class="flex items-center gap-2">' +
-                    '<a href="' + ahPath('dashboard.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127918; Partidas</a>' +
-                    '<a href="' + ahPath('rankings.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127942; Rankings</a>' +
-                    '<a href="' + ahPath('alliance-panel.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">&#127988; Alianza</a>' +
-                '</div>' +
-                '<div class="flex items-center gap-2">' +
-                    adminBtn +
-                    '<span class="text-xs hidden md:inline max-w-[100px] truncate" style="color: #9fa8da;">' + name + '</span>' +
-                    '<div class="relative group">' +
-                        '<button class="px-3 py-1.5 rounded-lg text-xs font-bold transition" style="background: rgba(198,40,40,0.8); color: white;">Salir &#9662;</button>' +
-                        '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-40 rounded-lg shadow-xl z-50" style="background: #11183a; border: 1px solid #1a237e;">' +
-                            '<button onclick="playerLogout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #e8eaf6;">Cerrar sesion jugador</button>' +
-                            '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #ef5350;">Salir de todo</button>' +
-                        '</div></div>' +
+                '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' +
+                    '<a href="' + ahPath('dashboard.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">&#127918; Partidas</a>' +
+                    '<a href="' + ahPath('rankings.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">&#127942; Rankings</a>' +
+                    '<a href="' + ahPath('rules.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">&#128220; Reglas</a>' +
+                    '<a href="' + ahPath('alliance-panel.html') + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white text-white/70">&#127988; Alianza</a>' +
                 '</div>' +
             '</div>' +
         '</nav>';
 }
 
-// Admin logueado en pagina publica: modo fluido
+// ====== ADMIN on PUBLIC page ======
 function renderAdminOnPublicNav(nav, session) {
     nav.innerHTML =
-        '<nav style="background: #0a0e27; border-bottom: 1px solid #1a237e;" class="sticky top-0 z-50">' +
-            '<div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">' +
-                '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
-                    '<span>&#9876;&#65039;</span><span>Alliance Hub</span>' +
+        '<nav class="sticky top-0 z-50 bg-[#0a0e27] border-b border-[#1a237e]">' +
+            '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-2 flex-wrap">' +
+                '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2 text-[#ff8f00] shrink-0">' +
+                    '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
                 '</a>' +
-                '<div class="flex items-center gap-2">' +
-                    '<button onclick="switchToAdminMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">&#128202; Ir a Admin</button>' +
+                '<div class="flex items-center gap-1.5 shrink-0">' +
+                    '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#ff6f00] hover:bg-[#ff8f00] text-white">&#128202; Ir a Admin</button>' +
                     '<div class="relative group">' +
-                        '<button class="px-3 py-1.5 rounded-lg text-xs font-bold transition" style="background: rgba(198,40,40,0.8); color: white;">Salir &#9662;</button>' +
-                        '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-40 rounded-lg shadow-xl z-50" style="background: #11183a; border: 1px solid #1a237e;">' +
-                            '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #e8eaf6;">Cerrar sesion</button>' +
-                            '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5" style="color: #ef5350;">Salir de todo</button>' +
-                        '</div></div>' +
+                        '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">Salir &#9662;</button>' +
+                        '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl z-50 bg-[#11183a] border border-[#1a237e] overflow-hidden">' +
+                            '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-[#e8eaf6]">Cerrar sesion</button>' +
+                            '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-red-400">Salir de todo</button>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
             '</div>' +
         '</nav>';
 }
 
+// ====== PUBLIC NAV ======
 function renderPublicNav(nav) {
     nav.innerHTML =
-        '<nav style="background: #0a0e27; border-bottom: 1px solid #1a237e;" class="sticky top-0 z-50">' +
-            '<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">' +
-                '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2" style="color: #ff8f00;">' +
-                    '<span>&#9876;&#65039;</span><span>Alliance Hub</span>' +
+        '<nav class="sticky top-0 z-50 bg-[#0a0e27] border-b border-[#1a237e]">' +
+            '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-2 flex-wrap">' +
+                '<a href="' + ahPath('index.html') + '" class="text-lg font-bold flex items-center gap-2 text-[#ff8f00] shrink-0">' +
+                    '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
                 '</a>' +
-                '<div class="flex items-center gap-2">' +
-                    '<a href="' + ahPath('rules.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: rgba(255,255,255,0.08); color: #e8eaf6;">&#128220; Reglas</a>' +
-                    '<a href="' + ahPath('course/') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #1a237e; color: white;">&#127891; Curso de Certificacion</a>' +
-                    '<a href="' + ahPath('login.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">Admin Login</a>' +
-                    '<a href="' + ahPath('login-player.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #2e7d32; color: white;">Jugador Login</a>' +
+                '<div class="flex items-center gap-1.5 shrink-0">' +
+                    '<a href="' + ahPath('rules.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white/[0.08] hover:bg-white/10 text-[#e8eaf6]">&#128220; Reglas</a>' +
+                    '<a href="' + ahPath('login.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#ff6f00] hover:bg-[#ff8f00] text-white">&#128202; Admin</a>' +
+                    '<a href="' + ahPath('login-player.html') + '" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#2e7d32] hover:bg-[#388e3c] text-white">&#127918; Entrar</a>' +
                 '</div>' +
             '</div>' +
         '</nav>';
 }
 
 supabase.auth.onAuthStateChange(function(event, session) {
-    // No redirigir automaticamente, solo reconstruir nav
     initAdminNav();
 });
 document.addEventListener('DOMContentLoaded', initAdminNav);
