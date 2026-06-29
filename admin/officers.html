@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Equipo - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=14"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=14"></script>
+<script src="../assets/js/base.js?v=14"></script>
+<script src="../assets/js/auth.js?v=14"></script>
+<meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-200" data-role="alliance_leader">
+<div id="admin-nav"></div>
+
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-white mb-2">⭐ Mi Equipo</h1>
+    <p class="text-slate-400 mb-6">Gestiona los oficiales y co-líderes de tu alianza.</p>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 text-center">
+            <div class="text-3xl font-bold text-white" id="stat-total">-</div>
+            <div class="text-xs text-slate-500 uppercase">Miembros</div>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 text-center">
+            <div class="text-3xl font-bold text-emerald-400" id="stat-officers">-</div>
+            <div class="text-xs text-slate-500 uppercase">Oficiales</div>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 text-center">
+            <div class="text-3xl font-bold text-green-400" id="stat-coleaders">-</div>
+            <div class="text-xs text-slate-500 uppercase">Co-Líderes</div>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 text-center">
+            <div class="text-3xl font-bold text-orange-400" id="stat-duels">-</div>
+            <div class="text-xs text-slate-500 uppercase">Duelos</div>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <!-- Nombrar oficial -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
+            <h2 class="font-bold text-white mb-4">➕ Nombrar Oficial</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">ID del Jugador</label>
+                    <input type="number" id="off-player-id" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" placeholder="ID de jugador">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Rol</label>
+                    <select id="off-role" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none">
+                        <option value="officer">⭐ Oficial</option>
+                        <option value="co_leader">👑 Co-Líder</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Título personalizado</label>
+                    <input type="text" id="off-title" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" placeholder="Ej: Comandante de Duelos">
+                </div>
+                <button onclick="appointOfficer()" class="w-full px-4 py-2.5 rounded-lg font-bold text-sm bg-orange-500 hover:bg-orange-400 text-white transition">Nombrar</button>
+            </div>
+        </div>
+
+        <!-- Transferir liderazgo -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
+            <h2 class="font-bold text-white mb-4">🔄 Transferir Liderazgo</h2>
+            <p class="text-xs text-slate-500 mb-4">Transfiere el liderazgo a un miembro de tu alianza. Esta acción no se puede deshacer.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">ID del Nuevo Líder</label>
+                    <input type="number" id="transfer-player-id" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" placeholder="ID de jugador">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Razón</label>
+                    <input type="text" id="transfer-reason" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" placeholder="Ej: Retiro personal">
+                </div>
+                <button onclick="transferLeadership()" class="w-full px-4 py-2.5 rounded-lg font-bold text-sm bg-red-500 hover:bg-red-400 text-white transition">⚠️ Transferir Liderazgo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de oficiales -->
+    <h2 class="font-bold text-white mb-4">📋 Equipo Actual</h2>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-700/50">
+                <tr>
+                    <th class="text-left p-3 text-slate-400">Jugador</th>
+                    <th class="text-left p-3 text-slate-400">Rol</th>
+                    <th class="text-left p-3 text-slate-400">Título</th>
+                    <th class="text-left p-3 text-slate-400">Permisos</th>
+                    <th class="text-left p-3 text-slate-400">Nombrado</th>
+                    <th class="text-left p-3 text-slate-400">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="officers-tbody">
+                <tr><td colspan="6" class="text-center py-8 text-slate-500">Cargando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+var myAllianceId = null;
+var myPlayerId = null;
+
+async function initOfficersPage() {
+    var admin = await getAdminRole();
+    if (!admin || admin.role !== 'alliance_leader') {
+        showToast('Solo líderes de alianza', 'error');
+        window.location.href = ahPath('index.html');
+        return;
+    }
+    myAllianceId = admin.alliance_id;
+    myPlayerId = admin.supremacy_player_id;
+    loadOfficers();
+    loadStats();
+}
+
+async function loadStats() {
+    if (!myAllianceId) return;
+    var { count: total } = await supabase.from('alliance_memberships').select('*', { count: 'exact', head: true }).eq('alliance_id', myAllianceId).eq('status', 'approved');
+    var { count: officers } = await supabase.from('alliance_officers').select('*', { count: 'exact', head: true }).eq('alliance_id', myAllianceId).eq('role', 'officer').eq('is_active', true);
+    var { count: coleaders } = await supabase.from('alliance_officers').select('*', { count: 'exact', head: true }).eq('alliance_id', myAllianceId).eq('role', 'co_leader').eq('is_active', true);
+    var { count: duels } = await supabase.from('matches').select('*', { count: 'exact', head: true }).eq('alliance_id', myAllianceId).eq('match_type', 'duel');
+
+    document.getElementById('stat-total').textContent = total || 0;
+    document.getElementById('stat-officers').textContent = officers || 0;
+    document.getElementById('stat-coleaders').textContent = coleaders || 0;
+    document.getElementById('stat-duels').textContent = duels || 0;
+}
+
+async function loadOfficers() {
+    if (!myAllianceId) return;
+    var { data: officers, error } = await supabase.from('alliance_officers')
+        .select('*, players(current_username)')
+        .eq('alliance_id', myAllianceId)
+        .eq('is_active', true)
+        .order('appointed_at', { ascending: false });
+
+    var tbody = document.getElementById('officers-tbody');
+    if (error) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Error</td></tr>'; return; }
+    if (!officers || officers.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500">Sin oficiales nombrados</td></tr>'; return; }
+
+    tbody.innerHTML = officers.map(function(o) {
+        var roleBadge = o.role === 'co_leader'
+            ? '<span class="text-xs px-2 py-1 rounded font-bold bg-emerald-500/20 text-emerald-400">👑 Co-Líder</span>'
+            : '<span class="text-xs px-2 py-1 rounded font-bold bg-teal-500/20 text-teal-400">⭐ Oficial</span>';
+
+        var perms = o.permissions || {};
+        var permList = Object.keys(perms).filter(function(k) { return perms[k]; }).map(function(k) {
+            var labels = { manage_members: '👥 Miembros', create_matches: '🎮 Partidas', manage_duels: '⚔️ Duelos', view_strikes: '⚡ Strikes', view_reports: '🚨 Reportes', edit_rules: '📜 Reglas', send_notifications: '📢 Notif.', manage_officers: '⭐ Equipo' };
+            return labels[k] || k;
+        }).join(', ');
+
+        return '<tr class="border-b border-slate-700/50 hover:bg-slate-700/30">' +
+            '<td class="p-3"><p class="font-medium text-white">' + (o.players?.current_username || 'Jugador ' + o.player_id) + '</p><p class="text-xs text-slate-500">ID: ' + o.player_id + '</p></td>' +
+            '<td class="p-3">' + roleBadge + '</td>' +
+            '<td class="p-3 text-slate-300">' + (o.title || '-') + '</td>' +
+            '<td class="p-3 text-xs text-slate-400 max-w-[200px] truncate">' + (permList || 'Sin permisos') + '</td>' +
+            '<td class="p-3 text-xs text-slate-500">' + formatDate(o.appointed_at) + '</td>' +
+            '<td class="p-3"><button onclick="removeOfficer(\'' + o.id + '\')" class="px-3 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition">Remover</button></td>' +
+        '</tr>';
+    }).join('');
+}
+
+async function appointOfficer() {
+    var playerId = document.getElementById('off-player-id').value.trim();
+    var role = document.getElementById('off-role').value;
+    var title = document.getElementById('off-title').value.trim();
+    if (!playerId || !myAllianceId) { showToast('Completa los campos', 'warning'); return; }
+
+    try {
+        var sessionData = await supabase.auth.getSession();
+        var { error } = await supabase.from('alliance_officers').insert({
+            alliance_id: myAllianceId,
+            player_id: parseInt(playerId),
+            role: role,
+            title: title || (role === 'co_leader' ? 'Co-Líder' : 'Oficial'),
+            appointed_by: sessionData.data.session.user.id,
+            permissions: role === 'co_leader' ? {
+                manage_members: true, create_matches: true, manage_duels: true,
+                view_strikes: true, view_reports: true, edit_rules: true,
+                send_notifications: true, manage_officers: false
+            } : {
+                manage_members: true, create_matches: true, manage_duels: false,
+                view_strikes: true, view_reports: true, edit_rules: false,
+                send_notifications: false, manage_officers: false
+            }
+        });
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('✓ Oficial nombrado', 'success');
+        document.getElementById('off-player-id').value = '';
+        document.getElementById('off-title').value = '';
+        loadOfficers();
+        loadStats();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function removeOfficer(officerId) {
+    if (!confirm('¿Remover a este oficial?')) return;
+    try {
+        var { error } = await supabase.from('alliance_officers').update({
+            is_active: false,
+            deactivated_at: new Date().toISOString(),
+            deactivated_reason: 'Removido por líder'
+        }).eq('id', officerId);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('✓ Oficial removido', 'success');
+        loadOfficers();
+        loadStats();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function transferLeadership() {
+    var newLeaderId = document.getElementById('transfer-player-id').value.trim();
+    var reason = document.getElementById('transfer-reason').value.trim();
+    if (!newLeaderId || !myAllianceId) { showToast('Completa los campos', 'warning'); return; }
+    if (!confirm('⚠️ ¿Estás seguro? Esta acción transfiere el liderazgo PERMANENTEMENTE.')) return;
+
+    try {
+        var sessionData = await supabase.auth.getSession();
+        var adminId = sessionData.data.session.user.id;
+
+        // 1. Log de transferencia
+        await supabase.from('leader_transfer_log').insert({
+            alliance_id: myAllianceId,
+            from_player_id: myPlayerId,
+            to_player_id: parseInt(newLeaderId),
+            transferred_by: adminId,
+            reason: reason || 'Transferencia de liderazgo'
+        });
+
+        // 2. Actualizar alianza
+        await supabase.from('alliances').update({ leader_id: parseInt(newLeaderId) }).eq('id', myAllianceId);
+
+        // 3. El antiguo líder sigue como co-líder
+        await supabase.from('alliance_officers').insert({
+            alliance_id: myAllianceId,
+            player_id: myPlayerId,
+            role: 'co_leader',
+            title: 'Fundador',
+            appointed_by: adminId
+        });
+
+        showToast('✓ Liderazgo transferido. Serás redirigido...', 'success');
+        setTimeout(function() { window.location.href = ahPath('index.html'); }, 2000);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+initOfficersPage();
+</script>
+</body>
+</html>
