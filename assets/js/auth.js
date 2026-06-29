@@ -1,4 +1,4 @@
-// assets/js/auth.js v3.1 - Session persistence + Fluid mode
+// assets/js/auth.js v3.2 - Session persistence + Fluid mode + Leagues hidden (dev)
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -251,7 +251,7 @@ var ROLE_PANELS = {
             { href: 'admin/certifications.html', label: '&#127891; Certificaciones', section: 'main' },
             { href: 'admin/import.html', label: '&#128229; Importar CSV', section: 'tools' },
             { href: 'admin/invites.html', label: '&#128273; Invitar', section: 'tools' },
-            { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools' },
+            { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools', devBadge: true },
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
@@ -272,7 +272,7 @@ var ROLE_PANELS = {
             { href: 'admin/certifications.html', label: '&#127891; Certificaciones', section: 'main' },
             { href: 'admin/import.html', label: '&#128229; Importar CSV', section: 'tools' },
             { href: 'admin/invites.html', label: '&#128273; Invitar', section: 'tools' },
-            { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools' },
+            { href: 'admin/leagues.html', label: '&#127942; Ligas', section: 'tools', devBadge: true },
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
@@ -365,7 +365,8 @@ function renderAdminNav(nav, session, admin, isPlayer) {
     var commsLinks = panel.navLinks.filter(function(l) { return l.section === 'comms'; });
 
     var mkLink = function(l) {
-        return '<a href="' + ahPath(l.href) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">' + l.label + '</a>';
+        var devBadge = l.devBadge ? ' <span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1" style="background: #ff6f00; color: white;">DEV</span>' : '';
+        return '<a href="' + ahPath(l.href) + '" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap hover:bg-white/10 hover:text-white" style="color: rgba(255,255,255,0.7);">' + l.label + devBadge + '</a>';
     };
 
     var mainHTML = mainLinks.map(mkLink).join('');
