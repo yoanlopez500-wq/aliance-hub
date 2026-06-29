@@ -6,9 +6,9 @@
 <title>Motor de Sanciones - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=13"></script>
-<script src="../assets/js/base.js?v=13"></script>
-<script src="../assets/js/auth.js?v=13"></script>
+<script src="../assets/js/config.js?v=15"></script>
+<script src="../assets/js/base.js?v=15"></script>
+<script src="../assets/js/auth.js?v=15"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 .formula-card{cursor:pointer;transition:all .15s}
@@ -135,7 +135,7 @@ function executeFormula(formulaText, vars) {
         // Reemplazar variables
         for (var key in vars) {
             if (vars.hasOwnProperty(key)) {
-                expr = expr.replace(new RegExp('\\b' + key + '\\b', 'g'), String(vars[key]));
+                expr = expr.replace(new RegExp('\b' + key + '\b', 'g'), String(vars[key]));
             }
         }
         // Operadores seguros
