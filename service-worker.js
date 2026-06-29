@@ -1,149 +1,121 @@
-// service-worker.js v11 - Alliance Hub PWA
-// Cachea landing, dashboard, curso, y tema. No cachea admin/ (siempre fresh).
-const CACHE_NAME = 'alliance-hub-v11';
-
-var BASE_PATH = (function() {
-    var path = self.location.pathname;
-    var parts = path.split('/').filter(function(p) { return p.length > 0; });
-    if (parts.length >= 1 && !parts[0].includes('.') && parts[0].length > 0) {
-        return '/' + parts[0] + '/';
-    }
-    return '/';
+const CACHE_NAME = 'alliance-hub-v15';
+const BASE_PATH = (() => {
+  const parts = self.location.pathname.split('/');
+  parts.pop();
+  return parts.join('/') + '/';
 })();
-
-var urlsToCache = [
-    BASE_PATH,
-    BASE_PATH + 'index.html',          // Landing page SEO
-    BASE_PATH + 'dashboard.html',       // Panel de partidas (antes index.html)
-    BASE_PATH + 'login.html',
-    BASE_PATH + 'login-player.html',
-    BASE_PATH + 'game.html',
-    BASE_PATH + 'player.html',
-    BASE_PATH + 'rankings.html',
-    BASE_PATH + '404.html',
-    BASE_PATH + 'manifest.json',
-    BASE_PATH + 'assets/js/theme.js',   // NUEVO: paleta de colores
-    BASE_PATH + 'assets/js/base.js',
-    BASE_PATH + 'assets/js/auth.js',
-    BASE_PATH + 'assets/js/config.js',
-    BASE_PATH + 'assets/js/pwa-utils.js',
-    BASE_PATH + 'assets/icons/icon-192x192.png',
-    BASE_PATH + 'assets/icons/icon-512x512.png'
+const BASE_LENGTH = BASE_PATH.length;
+const CORE_ASSETS = [
+  BASE_PATH + 'index.html',
+  BASE_PATH + 'login.html',
+  BASE_PATH + 'login-player.html',
+  BASE_PATH + 'assets/js/theme.js?v=15',
+  BASE_PATH + 'assets/js/base.js?v=15',
+  BASE_PATH + 'assets/js/auth.js?v=15',
+  BASE_PATH + 'assets/js/config.js?v=15',
+  BASE_PATH + 'assets/js/pwa-utils.js?v=15',
+  'https://cdn.tailwindcss.com'
 ];
+const HTML_FILES = new Set([
+  'index.html',
+  'login.html',
+  'login-player.html',
+  'dashboard.html',
+  'rankings.html',
+  'player.html',
+  'report.html',
+  'rules.html',
+  'chat.html',
+  'game.html',
+  'apply-leader.html',
+  'leader-dashboard.html',
+  'admin/index.html',
+  'admin/matches.html',
+  'admin/players.html',
+  'admin/strikes.html',
+  'admin/reports.html',
+  'admin/alliances.html',
+  'admin/admins.html',
+  'admin/invites.html',
+  'admin/import.html',
+  'admin/leagues.html',
+  'admin/chat-reports.html',
+  'admin/match-detail.html',
+  'admin/game-detail.html',
+  'admin/games.html',
+  'admin/duel-manager.html',
+  'admin/inbox.html',
+  'admin/sanctions-engine.html',
+  'admin/alliance-members.html',
+  'admin/certifications.html',
+  'admin/leader-requests.html',
+  'admin/officers.html',
+  'admin/rules-editor.html'
+]);
 
-self.addEventListener('install', function(event) {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then(function(cache) {
-            console.log('[SW v11] Cache abierto');
-            return Promise.all(
-                urlsToCache.map(function(url) {
-                    return cache.add(url).catch(function(err) {
-                        console.log('[SW v11] Skip cache:', url);
-                    });
-                })
-            );
-        })
-    );
-    self.skipWaiting();
+self.addEventListener('install', (event) => {
+  console.log('[SW v15] Instalando...');
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', function(event) {
-    event.waitUntil(
-        caches.keys().then(function(cacheNames) {
-            return Promise.all(
-                cacheNames.map(function(cacheName) {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('[SW v11] Borrando cache viejo:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(function() {
-            return self.clients.claim();
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW v15] Borrando cache viejo:', cacheName);
+            return caches.delete(cacheName);
+          }
         })
-    );
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', function(event) {
-    if (event.request.method !== 'GET') return;
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  const path = url.pathname.substring(BASE_LENGTH);
 
-    var url = new URL(event.request.url);
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin && !CORE_ASSETS.includes(request.url)) return;
 
-    // No interceptar cross-origin (Supabase, CDNs)
-    if (url.origin !== self.location.origin) return;
+  const isHTML = HTML_FILES.has(path);
+  const isCore = CORE_ASSETS.includes(request.url);
+  const isCacheable = isHTML || isCore || path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.ico') || path.endsWith('.json');
 
-    // No interceptar API de Supabase
-    if (url.pathname.includes('/rest/') ||
-        url.pathname.includes('/auth/') ||
-        url.pathname.includes('/storage/') ||
-        url.pathname.includes('/realtime/')) return;
+  if (!isCacheable) return;
 
-    // No cachear paginas de admin ni registro - siempre fresh
-    if (url.pathname.includes('/admin/')) return;
-    if (url.pathname.includes('/register/')) return;
-    if (url.pathname.includes('/course/')) return; // El curso es dinamico
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
 
-    event.respondWith(
-        caches.match(event.request).then(function(cached) {
-            var fetchPromise = fetch(event.request, { cache: 'no-store' })
-                .then(function(networkResponse) {
-                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                        var responseClone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(function(cache) {
-                            cache.put(event.request, responseClone).catch(function(){});
-                        });
-                    }
-                    return networkResponse;
-                })
-                .catch(function() {
-                    if (cached) return cached;
-                    if (event.request.mode === 'navigate') {
-                        // Si es navegacion y no hay cache, intentar index.html
-                        return caches.match(BASE_PATH + 'index.html');
-                    }
-                    return new Response('Offline', { status: 503 });
-                });
+      if (isHTML && cached) {
+        console.log('[SW v15] Skip cache para HTML:', path);
+        return fetch(request).catch(() => cached);
+      }
 
-            return cached || fetchPromise;
-        })
-    );
+      if (cached) return cached;
+
+      try {
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
+        return response;
+      } catch (error) {
+        console.log('[SW v15] Offline:', path);
+        return cached || new Response('Sin conexion. Intenta mas tarde.', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }
+    })()
+  );
 });
 
-self.addEventListener('push', function(event) {
-    if (!event.data) return;
-    try {
-        var data = event.data.json();
-    } catch (e) {
-        var data = { title: 'Alliance Hub', body: event.data.text() };
-    }
-    event.waitUntil(
-        self.registration.showNotification(data.title || 'Alliance Hub', {
-            body: data.body || '',
-            icon: data.icon || BASE_PATH + 'assets/icons/icon-192x192.png',
-            badge: data.badge || BASE_PATH + 'assets/icons/icon-72x72.png',
-            tag: data.tag || 'alliance-hub',
-            data: data.data || { url: BASE_PATH + 'dashboard.html' },
-            actions: [
-                { action: 'open', title: 'Ver' },
-                { action: 'close', title: 'Cerrar' }
-            ]
-        })
-    );
-});
-
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    if (event.action === 'close') return;
-    var url = event.notification.data && event.notification.data.url
-        ? event.notification.data.url
-        : BASE_PATH + 'dashboard.html';
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            for (var i = 0; i < clientList.length; i++) {
-                var client = clientList[i];
-                if (client.url === url && 'focus' in client) return client.focus();
-            }
-            if (clients.openWindow) return clients.openWindow(url);
-        })
-    );
+self.addEventListener('message', (event) => {
+  if (event.data === 'clear-cache') {
+    caches.delete(CACHE_NAME).then(() => {
+      console.log('[SW v15] Cache borrado manualmente');
+      event.source.postMessage('cache-cleared');
+    });
+  }
 });
