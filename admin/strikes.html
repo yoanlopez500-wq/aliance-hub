@@ -1,464 +1,260 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Strikes - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=13"></script>
-    <script src="../assets/js/base.js?v=13"></script>
-    <script src="../assets/js/auth.js?v=13"></script>
-    <script src="../assets/js/pwa-utils.js?v=13"></script>
-    <style>
-        .modal { display: none; } .modal.active { display: flex; }
-        .strike-card { transition: background 0.15s; }
-        .strike-card:hover { background: #f8fafc; }
-        .sev-1 { border-left: 4px solid #fbbf24; }
-        .sev-2 { border-left: 4px solid #f97316; }
-        .sev-3 { border-left: 4px solid #ef4444; }
-    </style>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Strikes - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/theme.js?v=15"></script>
+<script src="../assets/js/config.js?v=15"></script>
+<script src="../assets/js/base.js?v=15"></script>
+<script src="../assets/js/auth.js?v=15"></script>
+<script src="../assets/js/pwa-utils.js?v=15"></script>
+<style>.modal{display:none}.modal.active{display:flex}.strike-card{transition:background .15s}.strike-card:hover{background:#f8fafc}.sev-1{border-left:4px solid #fbbf24}.sev-2{border-left:4px solid #f97316}.sev-3{border-left:4px solid #ef4444}</style>
+<meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
+<div id="admin-nav"></div>
+<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+<div class="flex items-center gap-2 mb-3"><h2 class="text-xl font-bold text-slate-800">&#128220; Reglas de Alliance Hub</h2><a href="rules-editor.html" class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background:#1a237e;color:white">Editar Reglas</a></div>
+<p class="text-sm text-slate-500 mb-3">Las reglas estan ahora en el sistema nativo. Puedes editarlas en el editor de reglas. El enlace legacy de abajo solo se mantiene como respaldo.</p>
+<div class="flex gap-3 flex-wrap">
+<input type="url" id="rules-url-input" placeholder="https://docs.google.com/... o enlace a PDF (legacy)" class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+<button onclick="saveRulesUrl()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
+<a id="rules-url-preview" href="#" target="_blank" class="hidden px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">&#128220; Ver Reglas</a>
+</div>
+<p id="rules-save-status" class="text-xs mt-2 h-4"></p>
+</div>
+<div class="flex items-center justify-between mb-4"><div><h1 class="text-2xl font-bold text-slate-800">&#9889; Tipos de Strikes</h1><p class="text-slate-500 text-sm">Solo el superadmin puede crear o editar tipos de strikes. Todos los admins pueden aplicarlos.</p></div><button id="btn-new-strike-type" onclick="openStrikeTypeModal()" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-400 transition">&#10133; Nuevo Tipo</button></div>
+<div id="strike-types-list" class="space-y-3 mb-8"><div class="text-center py-6 text-slate-400">Cargando...</div></div>
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+<h2 class="text-xl font-bold text-slate-800 mb-3">&#9889; Aplicar Strike</h2>
+<form id="apply-form" class="space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Jugador ID *</label><input type="number" id="ap-player-id" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="ID de Supremacy"></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike *</label><select id="ap-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- Seleccionar --</option></select></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Regla violada *</label><select id="ap-rule-section" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- Seleccionar regla --</option></select><p id="precedent-hint" class="text-xs mt-1 hidden" style="color:#9fa8da"></p></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Reporte relacionado</label><select id="ap-report" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- Ninguno --</option></select></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Partida (opcional)</label><select id="ap-match" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- General / Sin partida --</option></select></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Razon / Justificacion *</label><input type="text" id="ap-reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Por que se aplica este strike?"></div>
+</div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label><textarea id="ap-notes" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea></div>
+<button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-500">&#9889; Aplicar Strike</button>
+</form>
+</div>
+<div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold text-slate-800">&#128221; Historial de Strikes</h2><div class="flex gap-2"><select id="filter-strike-status" onchange="loadStrikeHistory()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="all">Todos</option><option value="active">Activos</option><option value="removed">Removidos</option></select></div></div>
+<div id="strike-history" class="space-y-3"><div class="text-center py-6 text-slate-400">Cargando...</div></div>
+</div>
+<div id="strike-type-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold" id="st-modal-title">Nuevo Tipo de Strike</h2><button onclick="closeStrikeTypeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button></div><form id="strike-type-form" class="p-6 space-y-4"><input type="hidden" id="st-id"><div><label class="block text-sm font-medium text-slate-700 mb-1">Codigo *</label><input type="text" id="st-code" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none" placeholder="Ej: TK, AFK, CHAT"></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label><input type="text" id="st-name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none" placeholder="Ej: Team Kill, Abandono"></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label><textarea id="st-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"></textarea></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Severidad *</label><select id="st-severity" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none"><option value="1">&#9888;&#65039; Leve (-5 rep)</option><option value="2">&#128721; Medio (-20 rep)</option><option value="3">&#9940; Grave (-50 rep)</option></select></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Leyenda (texto que aparece en el perfil)</label><input type="text" id="st-legend" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Ej: Este jugador tiene historial de team killing"></div><div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-500">Guardar</button><button type="button" onclick="closeStrikeTypeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button></div></form></div></div>
+<div id="edit-strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold">&#9999;&#65039; Editar Strike</h2><button onclick="closeEditStrikeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button></div><form id="edit-strike-form" class="p-6 space-y-4"><input type="hidden" id="es-id"><div class="bg-slate-50 rounded-lg p-3 mb-2"><p class="text-sm text-slate-600"><span class="font-bold">Jugador:</span> <span id="es-player-name"></span> (ID: <span id="es-player-id-display"></span>)</p><p class="text-sm text-slate-600"><span class="font-bold">Aplicado:</span> <span id="es-applied-at"></span></p><p class="text-sm text-slate-600"><span class="font-bold">Por:</span> <span id="es-applied-by"></span></p></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike *</label><select id="es-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- Seleccionar --</option></select></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Razon / Justificacion *</label><input type="text" id="es-reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Por que se aplica este strike?"></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label><textarea id="es-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea></div><div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">&#128190; Guardar Cambios</button><button type="button" onclick="closeEditStrikeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button></div></form></div></div>
+<script>
+requireAdmin();
+var isSuperAdmin=false,strikeTypes=[],matches=[],currentAdminId=null,ruleSections=[],pendingReports=[];
+async function init(){
+var sessionData=await supabase.auth.getSession();
+currentAdminId=sessionData.data.session?sessionData.data.session.user.id:null;
+var admin=await getAdminRole();
+isSuperAdmin=(admin&&admin.role==='superadmin');
+if(isSuperAdmin)document.getElementById('btn-new-strike-type').classList.remove('hidden');
+loadRulesUrl();loadStrikeTypes();loadMatchesForSelect();loadRuleSections();loadPendingReports();loadStrikeHistory();}
+async function loadRulesUrl(){
+var{data}=await supabase.from('app_settings').select('value').eq('key','rules_url').single();
+if(data&&data.value){document.getElementById('rules-url-input').value=data.value;document.getElementById('rules-url-preview').href=data.value;document.getElementById('rules-url-preview').classList.remove('hidden');}}
+async function saveRulesUrl(){
+var url=document.getElementById('rules-url-input').value.trim();
+if(!url){showToast('Introduce una URL','warning');return;}
+var{error}=await supabase.from('app_settings').upsert({key:'rules_url',value:url},{onConflict:'key'});
+var statusEl=document.getElementById('rules-save-status');
+if(error){statusEl.textContent='Error: '+error.message;statusEl.className='text-xs mt-2 h-4 text-red-500';}
+else{statusEl.textContent='Guardado correctamente';statusEl.className='text-xs mt-2 h-4 text-green-600';document.getElementById('rules-url-preview').href=url;document.getElementById('rules-url-preview').classList.remove('hidden');setTimeout(function(){statusEl.textContent='';},3000);}}
+async function loadStrikeTypes(){
+var{data,error}=await supabase.from('strike_types').select('*').order('severity');
+if(error){document.getElementById('strike-types-list').innerHTML='<div class="text-red-500">Error: '+error.message+'</div>';return;}
+strikeTypes=data||[];
+var container=document.getElementById('strike-types-list');
+if(strikeTypes.length===0)container.innerHTML='<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">No hay tipos de strikes configurados</div>';
+else container.innerHTML=strikeTypes.map(function(t){var sevClass=t.severity===1?'sev-1':t.severity===2?'sev-2':'sev-3';var sevLabel=t.severity===1?'&#9888;&#65039; Leve':t.severity===2?'&#128721; Medio':'&#9940; Grave';return'<div class="bg-white rounded-xl border border-slate-200 p-4 '+sevClass+' strike-card"><div class="flex items-center justify-between"><div><span class="font-bold text-slate-800">'+t.code+': '+t.name+'</span> <span class="text-xs text-slate-500">('+sevLabel+')</span></div><div class="flex gap-2">'+(isSuperAdmin?'<button onclick="editStrikeType(\''+t.id+'\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">Editar</button>':'')+(isSuperAdmin?'<button onclick="toggleStrikeType(\''+t.id+'\','+(t.is_active?'false':'true')+')" class="text-xs '+(t.is_active?'text-slate-400':'text-green-600')+' font-bold hover:text-green-700">'+(t.is_active?'Desactivar':'Activar')+'</button>':'')+'</div></div>'+(t.description?'<p class="text-sm text-slate-600 mt-1">'+t.description+'</p>':'')+(t.legend?'<p class="text-xs text-slate-400 italic mt-1">&#8505;&#65039; '+t.legend+'</p>':'')+'</div>';}).join('');
+var options=strikeTypes.filter(function(t){return t.is_active!==false;}).map(function(t){var sevLabel=t.severity===1?'Leve':t.severity===2?'Medio':'Grave';return'<option value="'+t.id+'">'+t.code+' - '+t.name+' ('+sevLabel+')</option>';}).join('');
+document.getElementById('ap-strike-type').innerHTML='<option value="">-- Seleccionar --</option>'+options;}
+function openStrikeTypeModal(){document.getElementById('strike-type-form').reset();document.getElementById('st-id').value='';document.getElementById('st-modal-title').textContent='Nuevo Tipo de Strike';document.getElementById('strike-type-modal').classList.add('active');}
+function closeStrikeTypeModal(){document.getElementById('strike-type-modal').classList.remove('active');}
+async function editStrikeType(id){
+var t=strikeTypes.find(function(x){return x.id===id;});if(!t)return;
+document.getElementById('st-id').value=t.id;document.getElementById('st-code').value=t.code;document.getElementById('st-name').value=t.name;
+document.getElementById('st-desc').value=t.description||'';document.getElementById('st-severity').value=t.severity;
+document.getElementById('st-legend').value=t.legend||'';document.getElementById('st-modal-title').textContent='Editar Tipo de Strike';
+document.getElementById('strike-type-modal').classList.add('active');}
+async function toggleStrikeType(id,activate){
+if(!confirmAction((activate?'Activar':'Desactivar')+' este tipo de strike?'))return;
+var{error}=await supabase.from('strike_types').update({is_active:activate}).eq('id',id);
+if(error)showToast('Error: '+error.message,'error');
+else{showToast(activate?'Activado':'Desactivado','success');loadStrikeTypes();}}
+document.getElementById('strike-type-form').addEventListener('submit',async function(e){
+e.preventDefault();
+var id=document.getElementById('st-id').value;
+var data={code:document.getElementById('st-code').value.trim().toUpperCase(),name:document.getElementById('st-name').value.trim(),description:document.getElementById('st-desc').value.trim()||null,severity:parseInt(document.getElementById('st-severity').value),legend:document.getElementById('st-legend').value.trim()||null,is_active:true};
+var result;
+if(id)result=await supabase.from('strike_types').update(data).eq('id',id);
+else result=await supabase.from('strike_types').insert([data]);
+if(result.error)showToast('Error: '+result.error.message,'error');
+else{showToast(id?'Tipo actualizado':'Tipo creado','success');closeStrikeTypeModal();loadStrikeTypes();}});
+async function loadMatchesForSelect(){
+var{data}=await supabase.from('matches').select('id, name, status').order('created_at',{ascending:false}).limit(50);
+matches=data||[];
+var options=matches.map(function(m){return'<option value="'+m.id+'">'+m.name+' ('+m.status+')</option>';}).join('');
+document.getElementById('ap-match').innerHTML='<option value="">-- General / Sin partida --</option>'+options;}
+async function loadRuleSections(){
+try{
+var{data}=await supabase.from('rule_sections').select('*').eq('is_active',true).order('order_index');
+ruleSections=data||[];
+var opts='<option value="">-- Seleccionar regla --</option>';
+var roots=ruleSections.filter(function(s){return!s.parent_id;});
+var childMap={};
+ruleSections.filter(function(s){return s.parent_id;}).forEach(function(s){if(!childMap[s.parent_id])childMap[s.parent_id]=[];childMap[s.parent_id].push(s);});
+roots.forEach(function(r){var children=childMap[r.id]||[];children.forEach(function(c){opts+='<option value="'+c.id+'">'+(c.section_number?c.section_number+' ':'')+c.title+'</option>';});
+if(children.length===0){opts+='<option value="'+r.id+'">'+(r.section_number?r.section_number+' ':'')+r.title+'</option>';}});
+document.getElementById('ap-rule-section').innerHTML=opts;
+document.getElementById('ap-rule-section').addEventListener('change',function(){loadPrecedentsHint(this.value);});}catch(e){console.error('[Strikes] Error cargando reglas:',e);}}
+async function loadPrecedentsHint(sectionId){
+var hint=document.getElementById('precedent-hint');if(!sectionId){hint.classList.add('hidden');return;}
+try{
+var{data}=await supabase.from('rule_precedents').select('*').eq('rule_section_id',sectionId).order('created_at',{ascending:false}).limit(3);
+if(data&&data.length>0){
+hint.innerHTML='&#9878;&#65039; Precedentes: '+data.map(function(p){return'<span class="font-bold">'+p.title+'</span> ('+p.resolution+')';}).join('; ');
+hint.classList.remove('hidden');}else{hint.classList.add('hidden');}}catch(e){hint.classList.add('hidden');}}
+async function loadPendingReports(){
+try{
+var{data}=await supabase.from('player_reports').select('id, reported_player_id, reported_player_name, description').eq('status','pending').order('created_at',{ascending:false}).limit(20);
+pendingReports=data||[];
+var opts='<option value="">-- Ninguno --</option>';
+pendingReports.forEach(function(r){opts+='<option value="'+r.id+'">#'+r.id.substring(0,6)+' - '+(r.reported_player_name||'ID:'+r.reported_player_id)+'</option>';});
+document.getElementById('ap-report').innerHTML=opts;}catch(e){console.error('[Strikes] Error cargando reportes:',e);}}
+document.getElementById('apply-form').addEventListener('submit',async function(e){
+e.preventDefault();
+var playerId=parseInt(document.getElementById('ap-player-id').value);
+var strikeTypeId=document.getElementById('ap-strike-type').value;
+var ruleSectionId=document.getElementById('ap-rule-section').value;
+var reportId=document.getElementById('ap-report').value||null;
+var matchId=document.getElementById('ap-match').value||null;
+var reason=document.getElementById('ap-reason').value.trim();
+var notes=document.getElementById('ap-notes').value.trim();
+if(!strikeTypeId){showToast('Selecciona un tipo de strike','warning');return;}
+if(!ruleSectionId){showToast('Selecciona la regla violada','warning');return;}
+try{
+var sessionData=await supabase.auth.getSession();
+var adminId=sessionData.data.session?sessionData.data.session.user.id:null;
+var{error}=await supabase.from('player_strikes').insert({player_id:playerId,match_id:matchId,strike_type_id:strikeTypeId,rule_section_id:ruleSectionId,report_id:reportId,reason:reason,notes:notes||null,applied_by:adminId});
+if(error){showToast('Error: '+error.message,'error');return;}
+showToast('&#9889; Strike aplicado correctamente','success');
+document.getElementById('apply-form').reset();
+loadStrikeHistory();loadPendingReports();}catch(err){showToast('Error: '+err.message,'error');}});
+function openEditStrikeModal(strike){
+document.getElementById('edit-strike-form').reset();
+document.getElementById('es-id').value=strike.id;
+document.getElementById('es-player-name').textContent=strike.player?strike.player.current_username:'?';
+document.getElementById('es-player-id-display').textContent=strike.player_id;
+document.getElementById('es-applied-at').textContent=formatDateTime(strike.applied_at);
+document.getElementById('es-applied-by').textContent=strike.applied_by_admin?strike.applied_by_admin.display_name:(strike.applied_by?'Admin desconocido':'Sistema');
+document.getElementById('es-reason').value=strike.reason||'';
+document.getElementById('es-notes').value=strike.notes||'';
+var options=strikeTypes.filter(function(t){return t.is_active!==false;}).map(function(t){var sevLabel=t.severity===1?'Leve':t.severity===2?'Medio':'Grave';return'<option value="'+t.id+'"'+(t.id===strike.strike_type_id?' selected':'')+'>'+t.code+' - '+t.name+' ('+sevLabel+')</option>';}).join('');
+document.getElementById('es-strike-type').innerHTML='<option value="">-- Seleccionar --</option>'+options;
+document.getElementById('edit-strike-modal').classList.add('active');}
+function closeEditStrikeModal(){document.getElementById('edit-strike-modal').classList.remove('active');}
+document.getElementById('edit-strike-form').addEventListener('submit',async function(e){
+e.preventDefault();
+var id=document.getElementById('es-id').value;
+var strikeTypeId=document.getElementById('es-strike-type').value;
+var reason=document.getElementById('es-reason').value.trim();
+var notes=document.getElementById('es-notes').value.trim();
+if(!strikeTypeId){showToast('Selecciona un tipo de strike','warning');return;}
+var{error}=await supabase.from('player_strikes').update({strike_type_id:strikeTypeId,reason:reason,notes:notes||null}).eq('id',id);
+if(error){showToast('Error: '+error.message,'error');return;}
+showToast('&#9999;&#65039; Strike actualizado correctamente','success');
+closeEditStrikeModal();loadStrikeHistory();});
+async function loadStrikeHistory(){
+var statusFilter=document.getElementById('filter-strike-status').value;
+var query=supabase.from('player_strikes').select('*').order('applied_at',{ascending:false}).limit(100);
+if(statusFilter==='active')query=query.eq('is_active',true);
+else if(statusFilter==='removed')query=query.eq('is_active',false);
+var{data:strikes,error}=await query;
+var container=document.getElementById('strike-history');
+if(error){container.innerHTML='<div class="text-red-500">Error: '+error.message+'</div>';return;}
+if(!strikes||strikes.length===0){container.innerHTML='<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin strikes en el historial</div>';return;}
 
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <div class="flex items-center gap-2 mb-3">
-                <h2 class="text-xl font-bold text-slate-800">&#128220; Reglas de Alliance Hub</h2>
-                <a href="rules-editor.html" class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background:#1a237e;color:white">Editar Reglas</a>
-            </div>
-            <p class="text-sm text-slate-500 mb-3">Las reglas estan ahora en el sistema nativo. Puedes editarlas en el editor de reglas. El enlace legacy de abajo solo se mantiene como respaldo.</p>
-            <div class="flex gap-3 flex-wrap">
-                <input type="url" id="rules-url-input" placeholder="https://docs.google.com/... o enlace a PDF (legacy)" class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                <button onclick="saveRulesUrl()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
-                <a id="rules-url-preview" href="#" target="_blank" class="hidden px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">&#128220; Ver Reglas</a>
-            </div>
-            <p id="rules-save-status" class="text-xs mt-2 h-4"></p>
-        </div>
+var playerIds=strikes.map(function(s){return s.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});
+var strikeTypeIds=strikes.map(function(s){return s.strike_type_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});
+var matchIds=strikes.map(function(s){return s.match_id;}).filter(function(v){return v!==null;});
+var adminIds=strikes.map(function(s){return s.applied_by;}).filter(function(v){return v!==null;});
+var sectionIds=strikes.map(function(s){return s.rule_section_id;}).filter(function(v){return v!==null;});
 
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">&#9889; Tipos de Strikes</h1>
-                <p class="text-slate-500 text-sm">Solo el superadmin puede crear o editar tipos de strikes. Todos los admins pueden aplicarlos.</p>
-            </div>
-            <button id="btn-new-strike-type" onclick="openStrikeTypeModal()" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-400 transition">&#10133; Nuevo Tipo</button>
-        </div>
+var promises=[];
+promises.push(supabase.from('players').select('id, current_username').in('id',playerIds));
+promises.push(supabase.from('strike_types').select('*').in('id',strikeTypeIds));
+if(matchIds.length>0)promises.push(supabase.from('matches').select('id, name').in('id',matchIds));
+else promises.push(Promise.resolve({data:[]}));
+if(adminIds.length>0)promises.push(supabase.from('admin_users').select('id, display_name').in('id',adminIds));
+else promises.push(Promise.resolve({data:[]}));
+if(sectionIds.length>0)promises.push(supabase.from('rule_sections').select('id, section_number, title').in('id',sectionIds));
+else promises.push(Promise.resolve({data:[]}));
 
-        <div id="strike-types-list" class="space-y-3 mb-8">
-            <div class="text-center py-6 text-slate-400">Cargando...</div>
-        </div>
+var results=await Promise.all(promises);
+var playersMap={};(results[0].data||[]).forEach(function(p){playersMap[p.id]=p;});
+var typesMap={};(results[1].data||[]).forEach(function(t){typesMap[t.id]=t;});
+var matchesMap={};(results[2].data||[]).forEach(function(m){matchesMap[m.id]=m;});
+var adminsMap={};(results[3].data||[]).forEach(function(a){adminsMap[a.id]=a;});
+var sectionsMap={};(results[4].data||[]).forEach(function(s){sectionsMap[s.id]=s;});
 
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h2 class="text-xl font-bold text-slate-800 mb-3">&#9889; Aplicar Strike</h2>
-            <form id="apply-form" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Jugador ID *</label>
-                        <input type="number" id="ap-player-id" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="ID de Supremacy">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike *</label>
-                        <select id="ap-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Regla violada *</label>
-                        <select id="ap-rule-section" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm">
-                            <option value="">-- Seleccionar regla --</option>
-                        </select>
-                        <p id="precedent-hint" class="text-xs mt-1 hidden" style="color:#9fa8da"></p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Reporte relacionado</label>
-                        <select id="ap-report" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm">
-                            <option value="">-- Ninguno --</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Partida (opcional)</label>
-                        <select id="ap-match" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm">
-                            <option value="">-- General / Sin partida --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Razon / Justificacion *</label>
-                        <input type="text" id="ap-reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Por que se aplica este strike?">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label>
-                    <textarea id="ap-notes" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea>
-                </div>
-                <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-500">&#9889; Aplicar Strike</button>
-            </form>
-        </div>
+container.innerHTML=strikes.map(function(s){
+var typeObj=typesMap[s.strike_type_id]||{};
+var sevClass=typeObj.severity===1?'sev-1':typeObj.severity===2?'sev-2':'sev-3';
+var isActive=s.is_active!==false;
+var playerName=playersMap[s.player_id]?playersMap[s.player_id].current_username:'Jugador '+s.player_id;
+var adminName=s.applied_by&&adminsMap[s.applied_by]?adminsMap[s.applied_by].display_name:(s.applied_by?'Admin desconocido':'Sistema');
+var matchName=s.match_id&&matchesMap[s.match_id]?matchesMap[s.match_id].name:'General';
+var ruleLabel=s.rule_section_id&&sectionsMap[s.rule_section_id]?(sectionsMap[s.rule_section_id].section_number+' '+sectionsMap[s.rule_section_id].title):'';
+return'<div class="bg-white rounded-xl border border-slate-200 p-4 '+sevClass+' strike-card"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800">'+playerName+'</span><span class="text-xs text-slate-500">ID: '+s.player_id+'</span><span class="px-2 py-0.5 rounded text-xs '+(isActive?'bg-red-100 text-red-700':'bg-slate-100 text-slate-500')+' font-bold">'+(isActive?'ACTIVO':'REMOVIDO')+'</span></div><span class="text-xs text-slate-400">'+formatDateTime(s.applied_at)+'</span></div>'+
+(ruleLabel?'<p class="text-xs text-blue-600 font-bold mb-1">&#128220; '+ruleLabel+'</p>':'')+
+'<p class="text-sm text-slate-600"><span class="font-bold">'+(typeObj.code||'?')+':</span> '+(s.reason||'Sin razon')+'</p><p class="text-xs text-slate-500 mt-1">&#127918; '+matchName+'</p><p class="text-xs text-slate-400 mt-1">&#128100; Aplicado por: <span class="font-medium text-slate-500">'+adminName+'</span></p>'+(s.notes?'<p class="text-xs text-slate-400 mt-1 italic">&#128221; '+s.notes+'</p>':'')+
+'<div class="flex gap-3 mt-3">'+(isActive?'<button onclick="removeStrike(\''+s.id+'\')" class="text-xs text-red-500 font-bold hover:text-red-700">&#10060; Remover strike</button>':'')+(isActive?'<button onclick="editStrike(\''+s.id+'\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">&#9999;&#65039; Editar strike</button>':'')+'</div></div>';
+}).join('');}
 
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-slate-800">&#128221; Historial de Strikes</h2>
-            <div class="flex gap-2">
-                <select id="filter-strike-status" onchange="loadStrikeHistory()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm">
-                    <option value="all">Todos</option>
-                    <option value="active">Activos</option>
-                    <option value="removed">Removidos</option>
-                </select>
-            </div>
-        </div>
-        <div id="strike-history" class="space-y-3">
-            <div class="text-center py-6 text-slate-400">Cargando...</div>
-        </div>
-    </div>
+async function editStrike(strikeId){
+var{data:strike,error}=await supabase.from('player_strikes').select('*').eq('id',strikeId).single();
+if(error||!strike){showToast('Error cargando strike','error');return;}
+if(strike.is_active===false){showToast('No se puede editar un strike removido','warning');return;}
+var promises=[];
+promises.push(supabase.from('players').select('id, current_username').eq('id',strike.player_id).single());
+promises.push(supabase.from('strike_types').select('*').eq('id',strike.strike_type_id).single());
+if(strike.match_id)promises.push(supabase.from('matches').select('id, name').eq('id',strike.match_id).single());
+else promises.push(Promise.resolve({data:null}));
+if(strike.applied_by)promises.push(supabase.from('admin_users').select('id, display_name').eq('id',strike.applied_by).single());
+else promises.push(Promise.resolve({data:null}));
+var results=await Promise.all(promises);
+var player=results[0].data||{};
+var strikeType=results[1].data||{};
+var match=results[2].data||null;
+var admin=results[3].data||null;
+var enrichedStrike={id:strike.id,player_id:strike.player_id,player:player,strike_type_id:strike.strike_type_id,strike_type:strikeType,match:match,applied_by:strike.applied_by,applied_by_admin:admin,applied_at:strike.applied_at,reason:strike.reason,notes:strike.notes,is_active:strike.is_active};
+openEditStrikeModal(enrichedStrike);}
 
-    <div id="strike-type-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b flex items-center justify-between">
-                <h2 class="text-xl font-bold" id="st-modal-title">Nuevo Tipo de Strike</h2>
-                <button onclick="closeStrikeTypeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
-            </div>
-            <form id="strike-type-form" class="p-6 space-y-4">
-                <input type="hidden" id="st-id">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Codigo *</label>
-                    <input type="text" id="st-code" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none" placeholder="Ej: TK, AFK, CHAT">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
-                    <input type="text" id="st-name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none" placeholder="Ej: Team Kill, Abandono">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label>
-                    <textarea id="st-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Severidad *</label>
-                    <select id="st-severity" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none">
-                        <option value="1">&#9888;&#65039; Leve (-5 rep)</option>
-                        <option value="2">&#128721; Medio (-20 rep)</option>
-                        <option value="3">&#9940; Grave (-50 rep)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Leyenda (texto que aparece en el perfil)</label>
-                    <input type="text" id="st-legend" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Ej: Este jugador tiene historial de team killing">
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-500">Guardar</button>
-                    <button type="button" onclick="closeStrikeTypeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+async function removeStrike(strikeId){
+if(!confirmAction('Remover este strike?'))return;
+try{
+var sessionData=await supabase.auth.getSession();
+var adminId=sessionData.data.session?sessionData.data.session.user.id:null;
+var{error}=await supabase.from('player_strikes').update({is_active:false,removed_at:new Date().toISOString(),removed_by:adminId}).eq('id',strikeId);
+if(error)showToast('Error: '+error.message,'error');
+else{showToast('Strike removido','success');loadStrikeHistory();}
+}catch(err){showToast('Error: '+err.message,'error');}}
 
-    <div id="edit-strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b flex items-center justify-between">
-                <h2 class="text-xl font-bold">&#9999;&#65039; Editar Strike</h2>
-                <button onclick="closeEditStrikeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
-            </div>
-            <form id="edit-strike-form" class="p-6 space-y-4">
-                <input type="hidden" id="es-id">
-                <div class="bg-slate-50 rounded-lg p-3 mb-2">
-                    <p class="text-sm text-slate-600"><span class="font-bold">Jugador:</span> <span id="es-player-name"></span> (ID: <span id="es-player-id-display"></span>)</p>
-                    <p class="text-sm text-slate-600"><span class="font-bold">Aplicado:</span> <span id="es-applied-at"></span></p>
-                    <p class="text-sm text-slate-600"><span class="font-bold">Por:</span> <span id="es-applied-by"></span></p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike *</label>
-                    <select id="es-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm"><option value="">-- Seleccionar --</option></select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Razon / Justificacion *</label>
-                    <input type="text" id="es-reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Por que se aplica este strike?">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Notas adicionales</label>
-                    <textarea id="es-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-red-500 outline-none text-sm" placeholder="Evidencia, contexto, etc."></textarea>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500">&#128190; Guardar Cambios</button>
-                    <button type="button" onclick="closeEditStrikeModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        requireAdmin();
-        var isSuperAdmin = false, strikeTypes = [], matches = [], currentAdminId = null, ruleSections = [], pendingReports = [];
-
-        async function init() {
-            var sessionData = await supabase.auth.getSession();
-            currentAdminId = sessionData.data.session ? sessionData.data.session.user.id : null;
-            var admin = await getAdminRole();
-            isSuperAdmin = (admin && admin.role === 'superadmin');
-            if (isSuperAdmin) document.getElementById('btn-new-strike-type').classList.remove('hidden');
-            loadRulesUrl();
-            loadStrikeTypes();
-            loadMatchesForSelect();
-            loadRuleSections();
-            loadPendingReports();
-            loadStrikeHistory();
-        }
-
-        async function loadRulesUrl() {
-            var { data } = await supabase.from('app_settings').select('value').eq('key', 'rules_url').single();
-            if (data && data.value) { document.getElementById('rules-url-input').value = data.value; document.getElementById('rules-url-preview').href = data.value; document.getElementById('rules-url-preview').classList.remove('hidden'); }
-        }
-
-        async function saveRulesUrl() {
-            var url = document.getElementById('rules-url-input').value.trim();
-            if (!url) { showToast('Introduce una URL', 'warning'); return; }
-            var { error } = await supabase.from('app_settings').upsert({ key: 'rules_url', value: url }, { onConflict: 'key' });
-            var statusEl = document.getElementById('rules-save-status');
-            if (error) { statusEl.textContent = 'Error: ' + error.message; statusEl.className = 'text-xs mt-2 h-4 text-red-500'; }
-            else { statusEl.textContent = 'Guardado correctamente'; statusEl.className = 'text-xs mt-2 h-4 text-green-600'; document.getElementById('rules-url-preview').href = url; document.getElementById('rules-url-preview').classList.remove('hidden'); setTimeout(function() { statusEl.textContent = ''; }, 3000); }
-        }
-
-        async function loadStrikeTypes() {
-            var { data, error } = await supabase.from('strike_types').select('*').order('severity');
-            if (error) { document.getElementById('strike-types-list').innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
-            strikeTypes = data || [];
-            var container = document.getElementById('strike-types-list');
-            if (strikeTypes.length === 0) container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">No hay tipos de strikes configurados</div>';
-            else container.innerHTML = strikeTypes.map(function(t) { var sevClass = t.severity === 1 ? 'sev-1' : t.severity === 2 ? 'sev-2' : 'sev-3'; var sevLabel = t.severity === 1 ? '&#9888;&#65039; Leve' : t.severity === 2 ? '&#128721; Medio' : '&#9940; Grave'; return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between"><div><span class="font-bold text-slate-800">' + t.code + ': ' + t.name + '</span> <span class="text-xs text-slate-500">(' + sevLabel + ')</span></div><div class="flex gap-2">' + (isSuperAdmin ? '<button onclick="editStrikeType(\'' + t.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">Editar</button>' : '') + (isSuperAdmin ? '<button onclick="toggleStrikeType(\'' + t.id + '\', ' + (t.is_active ? 'false' : 'true') + ')" class="text-xs ' + (t.is_active ? 'text-slate-400' : 'text-green-600') + ' font-bold hover:text-green-700">' + (t.is_active ? 'Desactivar' : 'Activar') + '</button>' : '') + '</div></div>' + (t.description ? '<p class="text-sm text-slate-600 mt-1">' + t.description + '</p>' : '') + (t.legend ? '<p class="text-xs text-slate-400 italic mt-1">&#8505;&#65039; ' + t.legend + '</p>' : '') + '</div>'; }).join('');
-            var options = strikeTypes.filter(function(t) { return t.is_active !== false; }).map(function(t) { var sevLabel = t.severity === 1 ? 'Leve' : t.severity === 2 ? 'Medio' : 'Grave'; return '<option value="' + t.id + '">' + t.code + ' - ' + t.name + ' (' + sevLabel + ')</option>'; }).join('');
-            document.getElementById('ap-strike-type').innerHTML = '<option value="">-- Seleccionar --</option>' + options;
-        }
-
-        function openStrikeTypeModal() { document.getElementById('strike-type-form').reset(); document.getElementById('st-id').value = ''; document.getElementById('st-modal-title').textContent = 'Nuevo Tipo de Strike'; document.getElementById('strike-type-modal').classList.add('active'); }
-        function closeStrikeTypeModal() { document.getElementById('strike-type-modal').classList.remove('active'); }
-
-        async function editStrikeType(id) {
-            var t = strikeTypes.find(function(x) { return x.id === id; });
-            if (!t) return;
-            document.getElementById('st-id').value = t.id; document.getElementById('st-code').value = t.code; document.getElementById('st-name').value = t.name;
-            document.getElementById('st-desc').value = t.description || ''; document.getElementById('st-severity').value = t.severity;
-            document.getElementById('st-legend').value = t.legend || ''; document.getElementById('st-modal-title').textContent = 'Editar Tipo de Strike';
-            document.getElementById('strike-type-modal').classList.add('active');
-        }
-
-        async function toggleStrikeType(id, activate) {
-            if (!confirmAction((activate ? 'Activar' : 'Desactivar') + ' este tipo de strike?')) return;
-            var { error } = await supabase.from('strike_types').update({ is_active: activate }).eq('id', id);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast(activate ? 'Activado' : 'Desactivado', 'success'); loadStrikeTypes(); }
-        }
-
-        document.getElementById('strike-type-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            var id = document.getElementById('st-id').value;
-            var data = { code: document.getElementById('st-code').value.trim().toUpperCase(), name: document.getElementById('st-name').value.trim(), description: document.getElementById('st-desc').value.trim() || null, severity: parseInt(document.getElementById('st-severity').value), legend: document.getElementById('st-legend').value.trim() || null, is_active: true };
-            var result;
-            if (id) result = await supabase.from('strike_types').update(data).eq('id', id);
-            else result = await supabase.from('strike_types').insert([data]);
-            if (result.error) showToast('Error: ' + result.error.message, 'error');
-            else { showToast(id ? 'Tipo actualizado' : 'Tipo creado', 'success'); closeStrikeTypeModal(); loadStrikeTypes(); }
-        });
-
-        async function loadMatchesForSelect() {
-            var { data } = await supabase.from('matches').select('id, name, status').order('created_at', { ascending: false }).limit(50);
-            matches = data || [];
-            var options = matches.map(function(m) { return '<option value="' + m.id + '">' + m.name + ' (' + m.status + ')</option>'; }).join('');
-            document.getElementById('ap-match').innerHTML = '<option value="">-- General / Sin partida --</option>' + options;
-        }
-
-        // ====== RULE SECTIONS + PRECEDENTS ======
-        async function loadRuleSections() {
-            try {
-                var { data } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
-                ruleSections = data || [];
-                // Build flat options
-                var opts = '<option value="">-- Seleccionar regla --</option>';
-                var roots = ruleSections.filter(function(s) { return !s.parent_id; });
-                var childMap = {};
-                ruleSections.filter(function(s) { return s.parent_id; }).forEach(function(s) {
-                    if (!childMap[s.parent_id]) childMap[s.parent_id] = [];
-                    childMap[s.parent_id].push(s);
-                });
-                roots.forEach(function(r) {
-                    var children = childMap[r.id] || [];
-                    children.forEach(function(c) {
-                        opts += '<option value="' + c.id + '">' + (c.section_number ? c.section_number + ' ' : '') + c.title + '</option>';
-                    });
-                    if (children.length === 0) {
-                        opts += '<option value="' + r.id + '">' + (r.section_number ? r.section_number + ' ' : '') + r.title + '</option>';
-                    }
-                });
-                document.getElementById('ap-rule-section').innerHTML = opts;
-                // Load precedents hint on change
-                document.getElementById('ap-rule-section').addEventListener('change', function() {
-                    loadPrecedentsHint(this.value);
-                });
-            } catch(e) { console.error('[Strikes] Error cargando reglas:', e); }
-        }
-
-        async function loadPrecedentsHint(sectionId) {
-            var hint = document.getElementById('precedent-hint');
-            if (!sectionId) { hint.classList.add('hidden'); return; }
-            try {
-                var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', sectionId).order('created_at', { ascending: false }).limit(3);
-                if (data && data.length > 0) {
-                    hint.innerHTML = '&#9878;&#65039; Precedentes: ' + data.map(function(p) { return '<span class="font-bold">' + p.title + '</span> (' + p.resolution + ')'; }).join('; ');
-                    hint.classList.remove('hidden');
-                } else { hint.classList.add('hidden'); }
-            } catch(e) { hint.classList.add('hidden'); }
-        }
-
-        async function loadPendingReports() {
-            try {
-                var { data } = await supabase.from('player_reports').select('id, reported_player_id, reported_player_name, description').eq('status', 'pending').order('created_at', { ascending: false }).limit(20);
-                pendingReports = data || [];
-                var opts = '<option value="">-- Ninguno --</option>';
-                pendingReports.forEach(function(r) {
-                    opts += '<option value="' + r.id + '">#' + r.id.substring(0, 6) + ' - ' + (r.reported_player_name || 'ID:' + r.reported_player_id) + '</option>';
-                });
-                document.getElementById('ap-report').innerHTML = opts;
-            } catch(e) { console.error('[Strikes] Error cargando reportes:', e); }
-        }
-
-        document.getElementById('apply-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            var playerId = parseInt(document.getElementById('ap-player-id').value);
-            var strikeTypeId = document.getElementById('ap-strike-type').value;
-            var ruleSectionId = document.getElementById('ap-rule-section').value;
-            var reportId = document.getElementById('ap-report').value || null;
-            var matchId = document.getElementById('ap-match').value || null;
-            var reason = document.getElementById('ap-reason').value.trim();
-            var notes = document.getElementById('ap-notes').value.trim();
-            if (!strikeTypeId) { showToast('Selecciona un tipo de strike', 'warning'); return; }
-            if (!ruleSectionId) { showToast('Selecciona la regla violada', 'warning'); return; }
-            try {
-                var sessionData = await supabase.auth.getSession();
-                var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
-                var { error } = await supabase.from('player_strikes').insert({
-                    player_id: playerId, match_id: matchId, strike_type_id: strikeTypeId,
-                    rule_section_id: ruleSectionId, report_id: reportId,
-                    reason: reason, notes: notes || null, applied_by: adminId
-                });
-                if (error) { showToast('Error: ' + error.message, 'error'); return; }
-                showToast('&#9889; Strike aplicado correctamente', 'success');
-                document.getElementById('apply-form').reset();
-                loadStrikeHistory();
-                loadPendingReports();
-            } catch (err) { showToast('Error: ' + err.message, 'error'); }
-        });
-
-        function openEditStrikeModal(strike) {
-            document.getElementById('edit-strike-form').reset();
-            document.getElementById('es-id').value = strike.id;
-            document.getElementById('es-player-name').textContent = strike.player ? strike.player.current_username : '?';
-            document.getElementById('es-player-id-display').textContent = strike.player_id;
-            document.getElementById('es-applied-at').textContent = formatDateTime(strike.applied_at);
-            document.getElementById('es-applied-by').textContent = strike.applied_by_admin ? strike.applied_by_admin.display_name : (strike.applied_by ? 'Admin desconocido' : 'Sistema');
-            document.getElementById('es-reason').value = strike.reason || '';
-            document.getElementById('es-notes').value = strike.notes || '';
-            var options = strikeTypes.filter(function(t) { return t.is_active !== false; }).map(function(t) { var sevLabel = t.severity === 1 ? 'Leve' : t.severity === 2 ? 'Medio' : 'Grave'; return '<option value="' + t.id + '"' + (t.id === strike.strike_type_id ? ' selected' : '') + '>' + t.code + ' - ' + t.name + ' (' + sevLabel + ')</option>'; }).join('');
-            document.getElementById('es-strike-type').innerHTML = '<option value="">-- Seleccionar --</option>' + options;
-            document.getElementById('edit-strike-modal').classList.add('active');
-        }
-
-        function closeEditStrikeModal() { document.getElementById('edit-strike-modal').classList.remove('active'); }
-
-        document.getElementById('edit-strike-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            var id = document.getElementById('es-id').value;
-            var strikeTypeId = document.getElementById('es-strike-type').value;
-            var reason = document.getElementById('es-reason').value.trim();
-            var notes = document.getElementById('es-notes').value.trim();
-            if (!strikeTypeId) { showToast('Selecciona un tipo de strike', 'warning'); return; }
-            var { error } = await supabase.from('player_strikes').update({ strike_type_id: strikeTypeId, reason: reason, notes: notes || null }).eq('id', id);
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('&#9999;&#65039; Strike actualizado correctamente', 'success');
-            closeEditStrikeModal();
-            loadStrikeHistory();
-        });
-
-        async function loadStrikeHistory() {
-            var statusFilter = document.getElementById('filter-strike-status').value;
-            var query = supabase.from('player_strikes').select('*').order('applied_at', { ascending: false }).limit(100);
-            if (statusFilter === 'active') query = query.eq('is_active', true);
-            else if (statusFilter === 'removed') query = query.eq('is_active', false);
-            var { data: strikes, error } = await query;
-            var container = document.getElementById('strike-history');
-            if (error) { container.innerHTML = '<div class="text-red-500">Error: ' + error.message + '</div>'; return; }
-            if (!strikes || strikes.length === 0) { container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin strikes en el historial</div>'; return; }
-            
-            var playerIds = strikes.map(function(s) { return s.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
-            var strikeTypeIds = strikes.map(function(s) { return s.strike_type_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
-            var matchIds = strikes.map(function(s) { return s.match_id; }).filter(function(v) { return v !== null; });
-            var adminIds = strikes.map(function(s) { return s.applied_by; }).filter(function(v) { return v !== null; });
-            var sectionIds = strikes.map(function(s) { return s.rule_section_id; }).filter(function(v) { return v !== null; });
-            
-            var promises = [];
-            promises.push(supabase.from('players').select('id, current_username').in('id', playerIds));
-            promises.push(supabase.from('strike_types').select('*').in('id', strikeTypeIds));
-            if (matchIds.length > 0) promises.push(supabase.from('matches').select('id, name').in('id', matchIds));
-            else promises.push(Promise.resolve({ data: [] }));
-            if (adminIds.length > 0) promises.push(supabase.from('admin_users').select('id, display_name').in('id', adminIds));
-            else promises.push(Promise.resolve({ data: [] }));
-            if (sectionIds.length > 0) promises.push(supabase.from('rule_sections').select('id, section_number, title').in('id', sectionIds));
-            else promises.push(Promise.resolve({ data: [] }));
-            
-            var results = await Promise.all(promises);
-            var playersMap = {}; (results[0].data || []).forEach(function(p) { playersMap[p.id] = p; });
-            var typesMap = {}; (results[1].data || []).forEach(function(t) { typesMap[t.id] = t; });
-            var matchesMap = {}; (results[2].data || []).forEach(function(m) { matchesMap[m.id] = m; });
-            var adminsMap = {}; (results[3].data || []).forEach(function(a) { adminsMap[a.id] = a; });
-            var sectionsMap = {}; (results[4].data || []).forEach(function(s) { sectionsMap[s.id] = s; });
-            
-            container.innerHTML = strikes.map(function(s) {
-                var typeObj = typesMap[s.strike_type_id] || {};
-                var sevClass = typeObj.severity === 1 ? 'sev-1' : typeObj.severity === 2 ? 'sev-2' : 'sev-3';
-                var isActive = s.is_active !== false;
-                var playerName = playersMap[s.player_id] ? playersMap[s.player_id].current_username : 'Jugador ' + s.player_id;
-                var adminName = s.applied_by && adminsMap[s.applied_by] ? adminsMap[s.applied_by].display_name : (s.applied_by ? 'Admin desconocido' : 'Sistema');
-                var matchName = s.match_id && matchesMap[s.match_id] ? matchesMap[s.match_id].name : 'General';
-                var ruleLabel = s.rule_section_id && sectionsMap[s.rule_section_id] ? (sectionsMap[s.rule_section_id].section_number + ' ' + sectionsMap[s.rule_section_id].title) : '';
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4 ' + sevClass + ' strike-card"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800">' + playerName + '</span><span class="text-xs text-slate-500">ID: ' + s.player_id + '</span><span class="px-2 py-0.5 rounded text-xs ' + (isActive ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500') + ' font-bold">' + (isActive ? 'ACTIVO' : 'REMOVIDO') + '</span></div><span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span></div>' +
-                    (ruleLabel ? '<p class="text-xs text-blue-600 font-bold mb-1">&#128220; ' + ruleLabel + '</p>' : '') +
-                    '<p class="text-sm text-slate-600"><span class="font-bold">' + (typeObj.code || '?') + ':</span> ' + (s.reason || 'Sin razon') + '</p><p class="text-xs text-slate-500 mt-1">&#127918; ' + matchName + '</p><p class="text-xs text-slate-400 mt-1">&#128100; Aplicado por: <span class="font-medium text-slate-500">' + adminName + '</span></p>' + (s.notes ? '<p class="text-xs text-slate-400 mt-1 italic">&#128221; ' + s.notes + '</p>' : '') +
-                    '<div class="flex gap-3 mt-3">' + (isActive ? '<button onclick="removeStrike(\'' + s.id + '\')" class="text-xs text-red-500 font-bold hover:text-red-700">&#10060; Remover strike</button>' : '') + (isActive ? '<button onclick="editStrike(\'' + s.id + '\')" class="text-xs text-blue-600 font-bold hover:text-blue-700">&#9999;&#65039; Editar strike</button>' : '') + '</div></div>';
-            }).join('');
-        }
-
-        async function editStrike(strikeId) {
-            var { data: strike, error } = await supabase.from('player_strikes').select('*').eq('id', strikeId).single();
-            if (error || !strike) { showToast('Error cargando strike', 'error'); return; }
-            if (strike.is_active === false) { showToast('No se puede editar un strike removido', 'warning'); return; }
-            var promises = [];
-            promises.push(supabase.from('players').select('id, current_username').eq('id', strike.player_id).single());
-            promises.push(supabase.from('strike_types').select('*').eq('id', strike.strike_type_id).single());
-            if (strike.match_id) promises.push(supabase.from('matches').select('id, name').eq('id', strike.match_id).single());
-            else promises.push(Promise.resolve({ data: null }));
-            if (strike.applied_by) promises.push(supabase.from('admin_users').select('id, display_name').eq('id', strike.applied_by).single());
-            else promises.push(Promise.resolve({ data: null }));
-            var results = await Promise.all(promises);
-            var player = results[0].data || {};
-            var strikeType = results[1].data || {};
-            var match = results[2].data || null;
-            var admin = results[3].data || null;
-            var enrichedStrike = { id: strike.id, player_id: strike.player_id, player: player, strike_type_id: strike.strike_type_id, strike_type: strikeType, match: match, applied_by: strike.applied_by, applied_by_admin: admin, applied_at: strike.applied_at, reason: strike.reason, notes: strike.notes, is_active: strike.is_active };
-            openEditStrikeModal(enrichedStrike);
-        }
-
-        async function removeStrike(strikeId) {
-            if (!confirmAction('Remover este strike?')) return;
-            try {
-                var sessionData = await supabase.auth.getSession();
-                var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
-                var { error } = await supabase.from('player_strikes').update({ is_active: false, removed_at: new Date().toISOString(), removed_by: adminId }).eq('id', strikeId);
-                if (error) showToast('Error: ' + error.message, 'error');
-                else { showToast('Strike removido', 'success'); loadStrikeHistory(); }
-            } catch (err) { showToast('Error: ' + err.message, 'error'); }
-        }
-
-        init();
-    </script>
+init();
+</script>
 </body>
 </html>
