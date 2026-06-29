@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solicitar Liderazgo - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js?v=14"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js?v=14"></script>
+<script src="assets/js/base.js?v=14"></script>
+<script src="assets/js/auth.js?v=14"></script>
+<meta name="theme-color" content="#0a0e27">
+</head>
+<body class="min-h-screen" style="background: #0a0e27; color: #e8eaf6;">
+<div id="admin-nav"></div>
+
+<div class="max-w-2xl mx-auto px-4 py-8">
+
+<!-- Paso 1: Verificar identidad -->
+<div id="step-verify" class="rounded-2xl p-8" style="background: #11183a; border: 1px solid #1a237e;">
+    <div class="text-center">
+        <div class="text-5xl mb-4">🏳️</div>
+        <h1 class="text-2xl font-bold text-white mb-2">Solicitar Liderazgo de Alianza</h1>
+        <p class="text-sm mb-6" style="color: #9fa8da;">¿Eres líder de una alianza en Supremacy 1914? Solicita tu cargo.</p>
+    </div>
+
+    <div id="verify-form" class="space-y-4">
+        <div>
+            <label class="block text-xs font-bold mb-1.5" style="color: #ff8f00;">Tu ID de Jugador</label>
+            <input type="number" id="req-player-id" class="w-full px-4 py-3 rounded-lg text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;" placeholder="Ej: 3729481">
+            <p class="text-xs mt-1" style="color: #9fa8da;">Tu ID de jugador en Supremacy 1914</p>
+        </div>
+        <div>
+            <label class="block text-xs font-bold mb-1.5" style="color: #ff8f00;">Nombre de Usuario</label>
+            <input type="text" id="req-username" class="w-full px-4 py-3 rounded-lg text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;" placeholder="Ej: GeneralPatton">
+        </div>
+        <button onclick="verifyPlayer()" class="w-full px-4 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Verificar Identidad →</button>
+    </div>
+
+    <div id="verify-result" class="hidden mt-4 rounded-lg p-4" style="background: rgba(46,125,50,0.1); border: 1px solid rgba(46,125,50,0.2);">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">✓</span>
+            <span class="font-bold" style="color: #4caf50;">Jugador verificado</span>
+        </div>
+        <p class="text-xs" style="color: #9fa8da;">Puedes continuar con tu solicitud.</p>
+    </div>
+</div>
+
+<!-- Paso 2: Datos de la alianza -->
+<div id="step-alliance" class="hidden rounded-2xl p-8" style="background: #11183a; border: 1px solid #1a237e;">
+    <h2 class="text-xl font-bold text-white mb-4">Datos de tu Alianza</h2>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-xs font-bold mb-1.5" style="color: #ff8f00;">Nombre de la Alianza</label>
+            <input type="text" id="req-alliance-name" class="w-full px-4 py-3 rounded-lg text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;" placeholder="Ej: Imperio Latino">
+        </div>
+        <div>
+            <label class="block text-xs font-bold mb-1.5" style="color: #ff8f00;">Tag (2-10 caracteres)</label>
+            <input type="text" id="req-alliance-tag" class="w-full px-4 py-3 rounded-lg text-white uppercase" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;" placeholder="Ej: IL" maxlength="10">
+        </div>
+        <div>
+            <label class="block text-xs font-bold mb-1.5" style="color: #ff8f00;">Evidencia (screenshot URL)</label>
+            <input type="url" id="req-evidence" class="w-full px-4 py-3 rounded-lg text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; outline: none;" placeholder="https://imgur.com/tu-screenshot">
+            <p class="text-xs mt-1" style="color: #9fa8da;">Sube un screenshot que demuestre que eres líder (panel de alianza, etc.)</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="showStep('step-verify')" class="px-4 py-3 rounded-lg font-bold text-sm transition" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #9fa8da;">← Atrás</button>
+            <button onclick="submitRequest()" class="flex-1 px-4 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Enviar Solicitud</button>
+        </div>
+    </div>
+</div>
+
+<!-- Paso 3: Confirmación -->
+<div id="step-confirm" class="hidden text-center py-12">
+    <div class="text-6xl mb-4">⏳</div>
+    <h2 class="text-2xl font-bold text-white mb-2">Solicitud Enviada</h2>
+    <p class="text-sm mb-6 max-w-md mx-auto" style="color: #9fa8da;">Tu solicitud está pendiente de revisión. Un admin verificará que efectivamente seas líder de la alianza.</p>
+    <div class="flex flex-wrap justify-center gap-3">
+        <a href="index.html" class="px-6 py-3 rounded-xl font-bold text-sm transition" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Volver al inicio</a>
+        <a href="rankings.html" class="px-6 py-3 rounded-xl font-bold text-sm transition" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #e8eaf6;">Ver Rankings</a>
+    </div>
+</div>
+
+<div id="error-msg" class="hidden mt-4 rounded-lg p-4" style="background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.2);">
+    <p class="text-sm font-bold" style="color: #ef5350;"></p>
+</div>
+
+</div>
+
+<script>
+var verifiedPlayer = null;
+
+function showStep(stepId) {
+    ['step-verify', 'step-alliance', 'step-confirm'].forEach(function(id) {
+        document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(stepId).classList.remove('hidden');
+    window.scrollTo(0,0);
+}
+
+function showError(msg) {
+    var el = document.getElementById('error-msg');
+    el.querySelector('p').textContent = msg;
+    el.classList.remove('hidden');
+}
+
+async function verifyPlayer() {
+    var playerId = document.getElementById('req-player-id').value.trim();
+    var username = document.getElementById('req-username').value.trim();
+    if (!playerId || !username) { showError('Completa todos los campos'); return; }
+
+    try {
+        var { data: player } = await supabase.from('players').select('id, current_username, current_alliance_id')
+            .eq('id', parseInt(playerId)).maybeSingle();
+
+        if (!player) {
+            // Crear jugador si no existe
+            var { error: insertErr } = await supabase.from('players').insert({
+                id: parseInt(playerId),
+                current_username: username,
+                status: 'active'
+            });
+            if (insertErr) { showError('Error creando jugador: ' + insertErr.message); return; }
+            player = { id: parseInt(playerId), current_username: username };
+        }
+
+        verifiedPlayer = player;
+        document.getElementById('verify-result').classList.remove('hidden');
+        setTimeout(function() { showStep('step-alliance'); }, 800);
+    } catch(e) {
+        showError('Error: ' + e.message);
+    }
+}
+
+async function submitRequest() {
+    var name = document.getElementById('req-alliance-name').value.trim();
+    var tag = document.getElementById('req-alliance-tag').value.trim().toUpperCase();
+    var evidence = document.getElementById('req-evidence').value.trim();
+
+    if (!name || !tag) { showError('Nombre y tag son obligatorios'); return; }
+    if (tag.length < 2 || tag.length > 10) { showError('Tag debe tener 2-10 caracteres'); return; }
+
+    try {
+        // Verificar que no exista solicitud pendiente
+        var { data: existing } = await supabase.from('alliance_leader_requests')
+            .select('id')
+            .eq('player_id', verifiedPlayer.id)
+            .in('status', ['pending','under_review','needs_info'])
+            .maybeSingle();
+
+        if (existing) { showError('Ya tienes una solicitud en revisión. Espera respuesta.'); return; }
+
+        var { error } = await supabase.from('alliance_leader_requests').insert({
+            player_id: verifiedPlayer.id,
+            display_name: verifiedPlayer.current_username,
+            supremacy_player_id: verifiedPlayer.id,
+            alliance_name: name,
+            alliance_tag: tag,
+            evidence_url: evidence || null,
+            status: 'pending'
+        });
+
+        if (error) { showError('Error: ' + error.message); return; }
+        showStep('step-confirm');
+    } catch(e) {
+        showError('Error: ' + e.message);
+    }
+}
+</script>
+</body>
+</html>
