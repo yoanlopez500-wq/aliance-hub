@@ -6,10 +6,10 @@
 <title>Gestionar Reportes - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=5"></script>
-<script src="../assets/js/base.js?v=5"></script>
-<script src="../assets/js/auth.js?v=5"></script>
-<script src="../assets/js/pwa-utils.js?v=5"></script>
+<script src="../assets/js/config.js?v=13"></script>
+<script src="../assets/js/base.js?v=13"></script>
+<script src="../assets/js/auth.js?v=13"></script>
+<script src="../assets/js/pwa-utils.js?v=13"></script>
 <style>
 .modal{display:none}.modal.active{display:flex}
 .status-pending{background:#fef3c7;color:#92400e}
@@ -30,7 +30,7 @@
 <!-- Header -->
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
 <div>
-<h1 class="text-2xl font-bold text-slate-800">🚨 Reportes de Jugadores</h1>
+<h1 class="text-2xl font-bold text-slate-800">&#128680; Reportes de Jugadores</h1>
 <p class="text-sm text-slate-500">Gestionar reportes de trampas y comportamiento</p>
 </div>
 <div class="flex gap-2 flex-wrap">
@@ -43,15 +43,18 @@
 </select>
 <select id="filter-type" onchange="loadReports()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
 <option value="">Todos los tipos</option>
-<option value="gold_boost">💰 Oro/potenciadores</option>
-<option value="multis">👥 Multi-cuentas</option>
-<option value="team_kill">⚔️ Team Kill</option>
-<option value="abandono">🏳️ Abandono</option>
-<option value="toxico">💬 Toxico</option>
-<option value="bugs">🐛 Bugs/Exploits</option>
-<option value="colusion">🤝 Colusion</option>
-<option value="spam">📢 Spam</option>
-<option value="otro">❓ Otro</option>
+<option value="gold_boost">&#128178; Oro/potenciadores</option>
+<option value="multis">&#128101; Multi-cuentas</option>
+<option value="team_kill">&#9876;&#65039; Team Kill</option>
+<option value="abandono">&#127987;&#65039; Abandono</option>
+<option value="toxico">&#128172; Toxico</option>
+<option value="bugs">&#128027; Bugs/Exploits</option>
+<option value="colusion">&#129309; Colusion</option>
+<option value="spam">&#128226; Spam</option>
+<option value="otro">&#10067; Otro</option>
+</select>
+<select id="filter-rule" onchange="loadReports()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
+<option value="">Todas las reglas</option>
 </select>
 </div>
 </div>
@@ -87,21 +90,26 @@
 <div id="report-detail-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 <div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-red-700 to-red-900 rounded-t-2xl">
-<h2 class="text-lg font-bold text-white">🚨 Detalle del Reporte</h2>
-<button onclick="closeDetailModal()" class="text-slate-400 hover:text-white text-xl">✕</button>
+<h2 class="text-lg font-bold text-white">&#128680; Detalle del Reporte</h2>
+<button onclick="closeDetailModal()" class="text-slate-400 hover:text-white text-xl">&#10005;</button>
 </div>
 <div class="p-5 space-y-4">
 <div id="detail-content"></div>
 <div id="detail-evidence" class="flex gap-2 flex-wrap"></div>
+<!-- Precedents suggestion -->
+<div id="detail-precedents" class="hidden rounded-lg p-3" style="background:#fef3c7;border:1px solid #fde68a">
+<p class="text-xs font-bold text-amber-800 mb-1">&#9878;&#65039; Precedentes similares</p>
+<div id="precedents-list-detail" class="space-y-1 text-xs text-amber-900"></div>
+</div>
 <div class="border-t pt-4">
 <label class="block text-xs font-medium text-slate-700 mb-1">Respuesta / Notas internas</label>
 <textarea id="detail-response" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Notas para el equipo o respuesta al jugador..."></textarea>
 </div>
 <div class="flex gap-2 flex-wrap">
-<button onclick="updateReportStatus('investigating')" class="px-3 py-2 bg-blue-500 text-white rounded-lg font-bold text-xs hover:bg-blue-400">🔍 Investigar</button>
-<button onclick="openStrikeFromReport()" class="px-3 py-2 bg-red-500 text-white rounded-lg font-bold text-xs hover:bg-red-400">⚡ Aplicar Strike</button>
-<button onclick="updateReportStatus('resolved')" class="px-3 py-2 bg-green-500 text-white rounded-lg font-bold text-xs hover:bg-green-400">✓ Resolver</button>
-<button onclick="updateReportStatus('dismissed')" class="px-3 py-2 bg-slate-500 text-white rounded-lg font-bold text-xs hover:bg-slate-400">✕ Descartar</button>
+<button onclick="updateReportStatus('investigating')" class="px-3 py-2 bg-blue-500 text-white rounded-lg font-bold text-xs hover:bg-blue-400">&#128269; Investigar</button>
+<button onclick="openStrikeFromReport()" class="px-3 py-2 bg-red-500 text-white rounded-lg font-bold text-xs hover:bg-red-400">&#9889; Aplicar Strike</button>
+<button onclick="updateReportStatus('resolved')" class="px-3 py-2 bg-green-500 text-white rounded-lg font-bold text-xs hover:bg-green-400">&#10003; Resolver</button>
+<button onclick="updateReportStatus('dismissed')" class="px-3 py-2 bg-slate-500 text-white rounded-lg font-bold text-xs hover:bg-slate-400">&#10005; Descartar</button>
 </div>
 </div>
 </div></div>
@@ -110,15 +118,20 @@
 <div id="strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 <div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-red-700 to-red-900 rounded-t-2xl">
-<h2 class="text-lg font-bold text-white">⚡ Aplicar Strike</h2>
-<button onclick="closeStrikeModal()" class="text-slate-400 hover:text-white text-xl">✕</button>
+<h2 class="text-lg font-bold text-white">&#9889; Aplicar Strike</h2>
+<button onclick="closeStrikeModal()" class="text-slate-400 hover:text-white text-xl">&#10005;</button>
 </div>
 <form id="strike-form" class="p-5 space-y-4">
 <input type="hidden" id="st-player-id">
 <input type="hidden" id="st-match-id">
+<input type="hidden" id="st-report-id">
 <div class="bg-slate-50 rounded-lg p-3">
 <p class="text-sm font-medium text-slate-700">Jugador: <span id="st-player-name" class="font-bold">-</span></p>
 <p class="text-xs text-slate-500">Partida: <span id="st-match-name" class="font-bold">-</span></p>
+</div>
+<div>
+<label class="block text-xs font-medium text-slate-700 mb-1">Regla violada *</label>
+<select id="st-rule-section" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">-- Seleccionar regla --</option></select>
 </div>
 <div>
 <label class="block text-xs font-medium text-slate-700 mb-1">Tipo de Strike *</label>
@@ -134,7 +147,7 @@
 <input type="text" id="st-notes" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Evidencia, contexto, etc.">
 </div>
 <div class="flex gap-3">
-<button type="submit" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-500 text-sm">⚡ Aplicar Strike</button>
+<button type="submit" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-500 text-sm">&#9889; Aplicar Strike</button>
 <button type="button" onclick="closeStrikeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300">Cancelar</button>
 </div>
 </form>
@@ -152,17 +165,18 @@ var currentReportId = null;
 var currentReportData = null;
 var allStrikeTypes = [];
 var allReports = [];
+var ruleSectionsCache = [];
 
 var typeLabels = {
-    gold_boost: '💰 Oro, potenciadores o heroes',
-    multis: '👥 Multi-cuentas',
-    team_kill: '⚔️ Team Kill',
-    abandono: '🏳️ Abandono',
-    toxico: '💬 Toxico',
-    bugs: '🐛 Bugs/Exploits',
-    colusion: '🤝 Colusion',
-    spam: '📢 Spam',
-    otro: '❓ Otro'
+    gold_boost: '&#128178; Oro/potenciadores',
+    multis: '&#128101; Multi-cuentas',
+    team_kill: '&#9876;&#65039; Team Kill',
+    abandono: '&#127987;&#65039; Abandono',
+    toxico: '&#128172; Toxico',
+    bugs: '&#128027; Bugs/Exploits',
+    colusion: '&#129309; Colusion',
+    spam: '&#128226; Spam',
+    otro: '&#10067; Otro'
 };
 
 var typeColors = {
@@ -178,11 +192,40 @@ var typeColors = {
 };
 
 var statusLabels = {
-    pending: '⏳ Pendiente',
-    investigating: '🔍 En investigacion',
-    resolved: '✓ Resuelto',
-    dismissed: '✕ Descartado'
+    pending: '&#9203; Pendiente',
+    investigating: '&#128269; En investigacion',
+    resolved: '&#10003; Resuelto',
+    dismissed: '&#10005; Descartado'
 };
+
+async function loadRuleSections() {
+    try {
+        var { data } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
+        ruleSectionsCache = data || [];
+        // Populate filter dropdown
+        var sel = document.getElementById('filter-rule');
+        var opts = '<option value="">Todas las reglas</option>';
+        var roots = ruleSectionsCache.filter(function(s) { return !s.parent_id; });
+        var childMap = {};
+        ruleSectionsCache.filter(function(s) { return s.parent_id; }).forEach(function(s) {
+            if (!childMap[s.parent_id]) childMap[s.parent_id] = [];
+            childMap[s.parent_id].push(s);
+        });
+        roots.forEach(function(r) {
+            var children = childMap[r.id] || [];
+            children.forEach(function(c) {
+                opts += '<option value="' + c.id + '">' + (c.section_number ? c.section_number + ' ' : '') + c.title + '</option>';
+            });
+            if (children.length === 0) {
+                opts += '<option value="' + r.id + '">' + (r.section_number ? r.section_number + ' ' : '') + r.title + '</option>';
+            }
+        });
+        sel.innerHTML = opts;
+        // Populate strike modal dropdown
+        var strikeSel = document.getElementById('st-rule-section');
+        strikeSel.innerHTML = '<option value="">-- Seleccionar regla --</option>' + opts.replace('<option value="">Todas las reglas</option>', '');
+    } catch(e) { console.error('[Reports] Error cargando reglas:', e); }
+}
 
 async function loadStrikeTypes() {
     var { data: types } = await supabase.from('strike_types').select('*').order('severity');
@@ -216,10 +259,12 @@ async function loadReports() {
     try {
         var statusFilter = document.getElementById('filter-status').value;
         var typeFilter = document.getElementById('filter-type').value;
+        var ruleFilter = document.getElementById('filter-rule').value;
 
         var query = supabase.from('player_reports').select('*').order('created_at', { ascending: false });
         if (statusFilter) query = query.eq('status', statusFilter);
         if (typeFilter) query = query.eq('report_type', typeFilter);
+        if (ruleFilter) query = query.eq('rule_section_id', ruleFilter);
 
         var { data: reports, error } = await query;
         if (error) throw error;
@@ -232,19 +277,22 @@ async function loadReports() {
             return;
         }
 
-        // Cargar datos relacionados: jugadores y partidas
         var playerIds = [];
         var matchIds = [];
+        var ruleIds = [];
         allReports.forEach(function(r) {
             if (r.player_id) playerIds.push(r.player_id);
             if (r.reported_player_id) playerIds.push(r.reported_player_id);
             if (r.match_id) matchIds.push(r.match_id);
+            if (r.rule_section_id) ruleIds.push(r.rule_section_id);
         });
         playerIds = playerIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
         matchIds = matchIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
+        ruleIds = ruleIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
 
         var playersMap = {};
         var matchesMap = {};
+        var rulesMap = {};
 
         if (playerIds.length > 0) {
             var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
@@ -254,17 +302,23 @@ async function loadReports() {
             var { data: matches } = await supabase.from('matches').select('id, name').in('id', matchIds);
             (matches || []).forEach(function(m) { matchesMap[m.id] = m; });
         }
+        if (ruleIds.length > 0) {
+            var { data: rules } = await supabase.from('rule_sections').select('id, section_number, title').in('id', ruleIds);
+            (rules || []).forEach(function(r) { rulesMap[r.id] = r; });
+        }
 
         container.innerHTML = allReports.map(function(r) {
             var reporter = playersMap[r.player_id] || {};
             var reported = playersMap[r.reported_player_id] || {};
             var match = matchesMap[r.match_id] || {};
+            var rule = rulesMap[r.rule_section_id] || null;
             var typeLabel = typeLabels[r.report_type] || r.report_type;
             var typeColor = typeColors[r.report_type] || 'bg-slate-100 text-slate-600';
             var statusLabel = statusLabels[r.status] || r.status;
             var statusClass = 'status-' + r.status;
 
-            var evidenceCount = r.evidence_urls && r.evidence_urls.length > 0 ? '<span class="text-xs text-slate-400 ml-2">📷 ' + r.evidence_urls.length + '</span>' : '';
+            var evidenceCount = r.evidence_urls && r.evidence_urls.length > 0 ? '<span class="text-xs text-slate-400 ml-2">&#128247; ' + r.evidence_urls.length + '</span>' : '';
+            var ruleBadge = rule ? '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 ml-2 font-bold">&#128220; ' + (rule.section_number || '') + ' ' + rule.title + '</span>' : '';
 
             return '<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition cursor-pointer" onclick="openDetail(\'' + r.id + '\')">' +
                 '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">' +
@@ -272,13 +326,13 @@ async function loadReports() {
                         '<div class="flex items-center gap-2 flex-wrap mb-1">' +
                             '<span class="px-2 py-0.5 rounded text-xs font-bold ' + typeColor + '">' + typeLabel + '</span>' +
                             '<span class="px-2 py-0.5 rounded text-xs font-bold ' + statusClass + '">' + statusLabel + '</span>' +
-                            evidenceCount +
+                            evidenceCount + ruleBadge +
                         '</div>' +
                         '<p class="text-sm font-medium text-slate-800 truncate">' + (reported.current_username || r.reported_player_name || 'Jugador ' + r.reported_player_id) + ' reportado por ' + (reporter.current_username || r.player_name || 'Jugador ' + r.player_id) + '</p>' +
                         '<p class="text-xs text-slate-500 truncate">' + (match.name || 'Partida ' + r.match_id) + ' | ' + formatDateTime(r.created_at) + '</p>' +
                     '</div>' +
                     '<div class="flex-shrink-0 self-end sm:self-center">' +
-                        '<span class="text-xs text-slate-400">→</span>' +
+                        '<span class="text-xs text-slate-400">&#8594;</span>' +
                     '</div>' +
                 '</div>' +
                 '<p class="text-xs text-slate-600 mt-2 line-clamp-2">' + (r.description || '') + '</p>' +
@@ -296,7 +350,6 @@ async function openDetail(reportId) {
     if (!report) return;
     currentReportData = report;
 
-    // Cargar datos relacionados
     var reporter = {};
     var reported = {};
     if (report.player_id) {
@@ -308,10 +361,13 @@ async function openDetail(reportId) {
         if (p) reported = p;
     }
     var { data: match } = await supabase.from('matches').select('id, name').eq('id', report.match_id).single();
+    var rule = report.rule_section_id ? ruleSectionsCache.find(function(s) { return s.id === report.rule_section_id; }) : null;
 
     var typeLabel = typeLabels[report.report_type] || report.report_type;
     var statusLabel = statusLabels[report.status] || report.status;
     var typeColor = typeColors[report.report_type] || 'bg-slate-100 text-slate-600';
+
+    var ruleHTML = rule ? '<p class="text-xs text-blue-600 font-bold mt-1">&#128220; Regla violada: ' + (rule.section_number || '') + ' ' + rule.title + '</p>' : '';
 
     document.getElementById('detail-content').innerHTML =
         '<div class="flex items-center gap-2 flex-wrap mb-3">' +
@@ -323,10 +379,10 @@ async function openDetail(reportId) {
             '<p><span class="text-slate-500">Reportero:</span> <span class="font-bold">' + (reporter.current_username || report.player_name || 'Jugador ' + report.player_id) + '</span> (ID: ' + report.player_id + ')</p>' +
             '<p><span class="text-slate-500">Partida:</span> <a href="match-detail.html?id=' + report.match_id + '" class="font-bold text-amber-600 hover:underline">' + (match?.name || 'Partida ' + report.match_id) + '</a></p>' +
             '<p><span class="text-slate-500">Fecha:</span> ' + formatDateTime(report.created_at) + '</p>' +
+            ruleHTML +
         '</div>' +
         '<div class="mt-3"><p class="text-xs text-slate-500 font-medium mb-1">Descripcion:</p><p class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3">' + (report.description || '-') + '</p></div>';
 
-    // Evidencia
     var evidenceDiv = document.getElementById('detail-evidence');
     if (report.evidence_urls && report.evidence_urls.length > 0) {
         evidenceDiv.innerHTML = '<p class="text-xs text-slate-500 font-medium w-full mb-1">Evidencia:</p>' + report.evidence_urls.map(function(url, idx) {
@@ -336,8 +392,30 @@ async function openDetail(reportId) {
         evidenceDiv.innerHTML = '';
     }
 
+    // Load precedents for this rule section
+    if (report.rule_section_id) {
+        loadPrecedentsForReport(report.rule_section_id);
+    } else {
+        document.getElementById('detail-precedents').classList.add('hidden');
+    }
+
     document.getElementById('detail-response').value = report.admin_response || '';
     document.getElementById('report-detail-modal').classList.add('active');
+}
+
+async function loadPrecedentsForReport(sectionId) {
+    try {
+        var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', sectionId).order('created_at', { ascending: false }).limit(3);
+        if (data && data.length > 0) {
+            document.getElementById('detail-precedents').classList.remove('hidden');
+            document.getElementById('precedents-list-detail').innerHTML = data.map(function(p) {
+                var sevColor = p.severity === 'severe' ? 'text-red-700' : (p.severity === 'moderate' ? 'text-orange-700' : 'text-green-700');
+                return '<div class="font-medium">' + p.title + ' <span class="' + sevColor + '">[' + p.severity + ']</span></div><div class="opacity-75">Resolucion: ' + p.resolution + '</div>';
+            }).join('');
+        } else {
+            document.getElementById('detail-precedents').classList.add('hidden');
+        }
+    } catch(e) { document.getElementById('detail-precedents').classList.add('hidden'); }
 }
 
 function closeDetailModal() {
@@ -363,8 +441,13 @@ function openStrikeFromReport() {
     if (!currentReportData) return;
     document.getElementById('st-player-id').value = currentReportData.reported_player_id;
     document.getElementById('st-match-id').value = currentReportData.match_id;
+    document.getElementById('st-report-id').value = currentReportData.id;
     document.getElementById('st-player-name').textContent = currentReportData.reported_player_name || currentReportData.reported_player_id;
     document.getElementById('st-match-name').textContent = currentReportData.match_id;
+    // Auto-select rule section if report has one
+    if (currentReportData.rule_section_id) {
+        document.getElementById('st-rule-section').value = currentReportData.rule_section_id;
+    }
     document.getElementById('st-reason').value = '';
     document.getElementById('st-notes').value = '';
     closeDetailModal();
@@ -379,17 +462,18 @@ document.getElementById('strike-form').addEventListener('submit', async function
     e.preventDefault();
     var playerId = parseInt(document.getElementById('st-player-id').value);
     var matchId = document.getElementById('st-match-id').value;
+    var reportId = document.getElementById('st-report-id').value;
+    var ruleSectionId = document.getElementById('st-rule-section').value;
     var typeId = document.getElementById('st-strike-type').value;
     var reason = document.getElementById('st-reason').value.trim();
     var notes = document.getElementById('st-notes').value.trim() || null;
+    if (!ruleSectionId) { showToast('Selecciona la regla violada', 'warning'); return; }
     if (!typeId || !reason) { showToast('Completa todos los campos', 'warning'); return; }
     try {
         var { error } = await supabase.from('player_strikes').insert({
-            player_id: playerId,
-            match_id: matchId,
-            strike_type_id: typeId,
-            reason: reason,
-            notes: notes
+            player_id: playerId, match_id: matchId, strike_type_id: typeId,
+            rule_section_id: ruleSectionId, report_id: reportId || null,
+            reason: reason, notes: notes
         });
         if (error) throw error;
         showToast('Strike aplicado', 'success');
@@ -408,6 +492,7 @@ function closeLightbox() {
     document.getElementById('lightbox').classList.remove('active');
 }
 
+loadRuleSections();
 loadStrikeTypes();
 loadStats();
 loadReports();
