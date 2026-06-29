@@ -1,4 +1,4 @@
-// assets/js/auth.js v4.1 - Tailwind + Fluid Mode + Session Persistence + Error Resilience
+// assets/js/auth.js v4.2 - Fluid nav SIEMPRE con ambas sesiones + retry
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -318,7 +318,11 @@ var ROLE_PANELS = {
     }
 };
 
-// ===================== NAVEGACION CON TRY/CATCH + FALLBACK =====================
+// ===================== NAVEGACION: Fluid dual siempre + retry =====================
+// v4.2 cambio clave: si ambas sesiones existen, SIEMPRE se muestra nav dual con ambos botones,
+// sin importar si estas en pagina admin o publica. Ademas retry si supabase tarda.
+window.__ahNavRetryCount = 0;
+
 async function initAdminNav() {
     var nav = document.getElementById('admin-nav');
     if (!nav) return;
@@ -333,14 +337,21 @@ async function initAdminNav() {
         var isAdminPage = document.body.getAttribute('data-role') === 'admin';
         var isLeaderPage = document.body.getAttribute('data-role') === 'alliance_leader';
 
-        // Fluid mode: ADMIN + JUGADOR
+        // ====== DUAL MODE: ADMIN + JUGADOR ======
+        // Siempre muestra AMBOS botones, sin importar la pagina
         if (adminSession && isPlayer) {
             var admin = await getAdminRole();
-            if (isAdminPage || isLeaderPage) {
-                renderAdminNav(nav, adminSession, admin || { role: 'moderator' }, true);
-            } else {
-                renderFluidNav(nav, adminSession, admin || { role: 'moderator' }, playerData);
-            }
+            renderFluidNav(nav, adminSession, admin || { role: 'moderator' }, playerData, isAdminPage || isLeaderPage);
+            return;
+        }
+
+        // Si tenemos jugador pero supabase.auth tardo/fallo, reintentar
+        if (isPlayer && !adminSession && window.__ahNavRetryCount < 3) {
+            window.__ahNavRetryCount++;
+            console.log('[Auth] Retry nav detection #' + window.__ahNavRetryCount);
+            setTimeout(function() { initAdminNav(); }, 500);
+            // Mientras tanto renderizar nav de jugador basico
+            renderPlayerNav(nav, playerData, null);
             return;
         }
 
@@ -368,7 +379,6 @@ async function initAdminNav() {
 
     } catch (err) {
         console.error('[Auth] initAdminNav error:', err);
-        // FALLBACK: siempre renderizar algo
         var playerData = (typeof getPlayerData === 'function') ? getPlayerData() : {};
         var isPlayer = !!(playerData && playerData.playerId && playerData.token);
         if (isPlayer) {
@@ -379,11 +389,16 @@ async function initAdminNav() {
     }
 }
 
-// ====== FLUID NAV: Admin + Jugador ======
-function renderFluidNav(nav, session, admin, playerData) {
+// ====== FLUID NAV: Admin + Jugador - SIEMPRE ambos botones ======
+function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     var role = (admin && admin.role) || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
     var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
+
+    // Link del logo: si estamos en pagina admin, va al admin home. Si no, al dashboard.
+    var logoLink = onAdminPage
+        ? ahPath(role === 'alliance_leader' ? 'leader-dashboard.html' : 'admin/index.html')
+        : ahPath('dashboard.html');
 
     var mkLink = function(l) {
         var devBadge = l.devBadge ? '<span class="text-[9px] px-1 py-0.5 rounded font-bold ml-1 bg-orange-500 text-white">DEV</span>' : '';
@@ -396,9 +411,10 @@ function renderFluidNav(nav, session, admin, playerData) {
     nav.innerHTML =
         '<nav class="sticky top-0 z-50 bg-slate-900 border-b border-indigo-900/50">' +
             '<div class="max-w-7xl mx-auto px-3 sm:px-4 py-3">' +
+                // Row 1: Logo + dual switch buttons
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-2 min-w-0">' +
-                        '<a href="' + ahPath('dashboard.html') + '" class="text-lg font-bold flex items-center gap-2 text-orange-400 shrink-0">' +
+                        '<a href="' + logoLink + '" class="text-lg font-bold flex items-center gap-2 text-orange-400 shrink-0">' +
                             '<span>&#9876;&#65039;</span><span class="hidden sm:inline">Alliance Hub</span>' +
                         '</a>' +
                         '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + ' text-white shrink-0">' + panel.label + '</span>' +
@@ -416,12 +432,15 @@ function renderFluidNav(nav, session, admin, playerData) {
                         '</div>' +
                     '</div>' +
                 '</div>' +
+                // Row 2: Admin links (context-aware)
                 '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') + '</div>' +
             '</div>' +
         '</nav>';
+
+    try { startNotifPolling(); } catch(e) {}
 }
 
-// ====== ADMIN NAV ======
+// ====== ADMIN NAV (solo admin, sin jugador) ======
 function renderAdminNav(nav, session, admin, hasPlayer) {
     var role = (admin && admin.role) || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
@@ -434,14 +453,9 @@ function renderAdminNav(nav, session, admin, hasPlayer) {
     var mainLinks = panel.navLinks.filter(function(l) { return l.section === 'main'; });
     var toolsLinks = panel.navLinks.filter(function(l) { return l.section === 'tools'; });
 
-    var switchBtn = hasPlayer
-        ? '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Modo Jugador</button>'
-        : '';
-
     var logoutHTML = '<div class="relative group">' +
         '<button class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white transition">Salir &#9662;</button>' +
         '<div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl z-50 bg-slate-900 border border-indigo-900/50 overflow-hidden">' +
-            (hasPlayer ? '<button onclick="logout()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-slate-300">Cerrar sesion admin</button>' : '') +
             '<button onclick="logoutAll()" class="block w-full text-left px-3 py-2 text-xs hover:bg-white/5 text-red-400">Salir de todo</button>' +
         '</div></div>';
 
@@ -460,7 +474,7 @@ function renderAdminNav(nav, session, admin, hasPlayer) {
                         '</a>' +
                         '<span class="text-[10px] px-2 py-1 rounded font-bold ' + panel.badgeClass + ' text-white shrink-0">' + panel.label + '</span>' +
                     '</div>' +
-                    '<div class="flex items-center gap-1.5 shrink-0">' + notifHTML + switchBtn + logoutHTML + '</div>' +
+                    '<div class="flex items-center gap-1.5 shrink-0">' + notifHTML + logoutHTML + '</div>' +
                 '</div>' +
                 '<div class="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">' + mainLinks.map(mkLink).join('') +
                     (toolsLinks.length ? '<div class="w-px mx-1 bg-white/10 shrink-0"></div>' + toolsLinks.map(mkLink).join('') : '') +
@@ -475,6 +489,7 @@ function renderAdminNav(nav, session, admin, hasPlayer) {
 function renderPlayerNav(nav, playerData, adminSession) {
     var name = (playerData && playerData.displayName) ? playerData.displayName : 'Jugador';
 
+    // Si adminSession es truthy, mostrar boton de admin
     var adminBtn = '';
     if (adminSession) {
         adminBtn = '<button onclick="switchToAdminMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-600 hover:bg-orange-500 text-white">&#128202; Admin</button>';
@@ -552,11 +567,13 @@ function renderPublicNav(nav) {
 
 try {
     supabase.auth.onAuthStateChange(function(event, session) {
+        window.__ahNavRetryCount = 0;
         initAdminNav();
     });
 } catch(e) { console.error('[Auth] onAuthStateChange error:', e); }
 
 document.addEventListener('DOMContentLoaded', function() {
+    window.__ahNavRetryCount = 0;
     initAdminNav().catch(function(e) {
         console.error('[Auth] DOMContentLoaded init error:', e);
         var nav = document.getElementById('admin-nav');
