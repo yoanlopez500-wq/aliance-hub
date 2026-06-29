@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor de Sanciones - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=13"></script>
+<script src="../assets/js/base.js?v=13"></script>
+<script src="../assets/js/auth.js?v=13"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>
+.formula-card{cursor:pointer;transition:all .15s}
+.formula-card:hover{background:rgba(255,255,255,0.04)}
+.formula-card.selected{border-color:#ff6f00!important;background:rgba(255,111,0,0.05)}
+</style>
+</head>
+<body class="min-h-screen" style="background:#0a0e27;color:#e8eaf6" data-role="admin">
+<div id="admin-nav"></div>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+<div>
+<h1 class="text-2xl font-bold text-white">&#9881;&#65039; Motor de Sanciones</h1>
+<p class="text-sm" style="color:#9fa8da">Define como se calculan las penalidades de strikes. Solo superadmin.</p>
+</div>
+<div class="flex gap-2">
+<a href="strikes.html" class="px-4 py-2 rounded-lg text-xs font-bold" style="background:#1a237e;color:white">&#9889; Panel Strikes</a>
+<a href="rules-editor.html" class="px-4 py-2 rounded-lg text-xs font-bold" style="background:#1a237e;color:white">&#128220; Editor Reglas</a>
+</div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- LEFT: Formula Library -->
+<div>
+<div class="rounded-xl p-4 mb-4" style="background:#11183a;border:1px solid #1a237e">
+<div class="flex items-center justify-between mb-3">
+<h2 class="font-bold text-white text-sm">&#128218; Libreria de Formulas</h2>
+<button onclick="openFormulaModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">&#10133; Nueva</button>
+</div>
+<div id="formulas-list" class="space-y-2">
+<div class="text-center py-4 text-sm" style="color:#9fa8da">Cargando...</div>
+</div>
+</div>
+
+<!-- Variables reference -->
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e">
+<h3 class="font-bold text-white text-sm mb-2">&#128161; Variables Disponibles</h3>
+<div class="grid grid-cols-2 gap-1 text-xs" style="color:#9fa8da">
+<div><span class="text-amber-400 font-mono">kills</span> - Bajas totales</div>
+<div><span class="text-amber-400 font-mono">deaths</span> - Muertes totales</div>
+<div><span class="text-amber-400 font-mono">strikes</span> - Strikes activos</div>
+<div><span class="text-amber-400 font-mono">severity</span> - Severidad (1-3)</div>
+<div><span class="text-amber-400 font-mono">games_played</span> - Partidas</div>
+<div><span class="text-amber-400 font-mono">match_kills</span> - Kills partida</div>
+<div><span class="text-amber-400 font-mono">current_kd</span> - KD actual</div>
+<div><span class="text-amber-400 font-mono">points</span> - Reputacion</div>
+</div>
+<p class="text-xs mt-2" style="color:#9fa8da;opacity:0.5">Usa operadores: + - * / ^ max() min() round() ? : (ternario)</p>
+</div>
+</div>
+
+<!-- RIGHT: Simulator -->
+<div>
+<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e">
+<h2 class="font-bold text-white text-sm mb-4">&#127922; Simulador</h2>
+<div class="grid grid-cols-2 gap-3 mb-4">
+<div><label class="text-xs" style="color:#9fa8da">Bajas totales</label><input type="number" id="sim-kills" value="15420" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+<div><label class="text-xs" style="color:#9fa8da">Muertes</label><input type="number" id="sim-deaths" value="8920" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+<div><label class="text-xs" style="color:#9fa8da">Strikes activos</label><input type="number" id="sim-strikes" value="2" min="0" max="10" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+<div><label class="text-xs" style="color:#9fa8da">Severidad (1-3)</label><input type="number" id="sim-severity" value="2" min="1" max="3" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+<div><label class="text-xs" style="color:#9fa8da">Kills partida (opt)</label><input type="number" id="sim-match-kills" value="340" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+<div><label class="text-xs" style="color:#9fa8da">Partidas jugadas</label><input type="number" id="sim-games" value="45" class="w-full px-3 py-2 rounded-lg text-sm text-white" style="background:rgba(255,255,255,0.05);border:1px solid #1a237e"></div>
+</div>
+<button onclick="runSimulation()" class="w-full py-2.5 rounded-lg font-bold text-sm mb-4" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">&#9654; Ejecutar Simulacion</button>
+
+<div id="sim-results" class="hidden">
+<h3 class="text-xs font-bold mb-2" style="color:#9fa8da">Resultados por formula:</h3>
+<div id="sim-results-list" class="space-y-2"></div>
+</div>
+</div>
+
+<!-- Active sanctions log -->
+<div class="rounded-xl p-4 mt-4" style="background:#11183a;border:1px solid #1a237e">
+<h3 class="font-bold text-white text-sm mb-3">&#128200; Ultimas Sanciones Aplicadas</h3>
+<div id="sanctions-log" class="space-y-2 max-h-64 overflow-y-auto text-xs"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MODAL: Formula -->
+<div id="formula-modal" class="fixed inset-0 bg-black/50 z-50 items-center justify-center p-4 hidden">
+<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+<div class="p-6 border-b flex items-center justify-between">
+<h2 class="text-xl font-bold text-slate-800" id="f-modal-title">Nueva Formula</h2>
+<button onclick="closeFormulaModal()" class="text-slate-400 hover:text-slate-600 text-xl">&#10005;</button>
+</div>
+<form id="formula-form" class="p-6 space-y-4">
+<input type="hidden" id="f-id">
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+<input type="text" id="f-name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Ej: Kill Percentage"></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label>
+<textarea id="f-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Explicacion de lo que hace esta formula..."></textarea></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Formula Kills * <span class="text-xs text-slate-400">(usa variables: kills, strikes, severity, etc.)</span></label>
+<textarea id="f-kills" required rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm" placeholder="kills * max(0.5, 1 - strikes * 0.1)"></textarea></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Formula Puntos (reputacion)</label>
+<textarea id="f-points" rows="1" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm" placeholder="-severity * 10"></textarea></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Formula Estado (opcional)</label>
+<textarea id="f-status" rows="1" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm" placeholder="strikes >= 3 ? 'suspended' : null"></textarea></div>
+<div><label class="block text-sm font-medium text-slate-700 mb-1">Variables JSON (opcional)</label>
+<textarea id="f-vars" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs" placeholder='{"min_multiplier": 0.5, "per_strike": 0.1}'></textarea></div>
+<div class="flex gap-3 pt-4">
+<button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button>
+<button type="button" onclick="closeFormulaModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
+</div>
+</form>
+</div></div>
+
+<script>
+requireAdmin();
+requireMinRole('superadmin');
+var allFormulas = [];
+var selectedFormulaId = null;
+
+// ============================================================
+// FORMULA ENGINE: Ejecuta formulas de texto con variables
+// ============================================================
+function executeFormula(formulaText, vars) {
+    if (!formulaText || !formulaText.trim()) return null;
+    try {
+        var expr = formulaText.trim();
+        // Reemplazar variables
+        for (var key in vars) {
+            if (vars.hasOwnProperty(key)) {
+                expr = expr.replace(new RegExp('\\b' + key + '\\b', 'g'), String(vars[key]));
+            }
+        }
+        // Operadores seguros
+        expr = expr.replace(/\^/g, '**');
+        expr = expr.replace(/\bround\b/g, 'Math.round');
+        expr = expr.replace(/\bmax\b/g, 'Math.max');
+        expr = expr.replace(/\bmin\b/g, 'Math.min');
+        // Ternario: a ? b : c -> a ? b : c (ya es valido JS)
+        // Evaluar en scope vacio
+        return new Function('return ' + expr)();
+    } catch(e) {
+        console.error('[FormulaEngine] Error en formula:', formulaText, e);
+        return null;
+    }
+}
+
+function runSimulation() {
+    var vars = {
+        kills: parseInt(document.getElementById('sim-kills').value) || 0,
+        deaths: parseInt(document.getElementById('sim-deaths').value) || 1,
+        strikes: parseInt(document.getElementById('sim-strikes').value) || 0,
+        severity: parseInt(document.getElementById('sim-severity').value) || 1,
+        match_kills: parseInt(document.getElementById('sim-match-kills').value) || 0,
+        games_played: parseInt(document.getElementById('sim-games').value) || 0,
+        current_kd: 0,
+        points: 0,
+        status: 'active'
+    };
+    vars.current_kd = vars.deaths > 0 ? vars.kills / vars.deaths : vars.kills;
+
+    var container = document.getElementById('sim-results-list');
+    document.getElementById('sim-results').classList.remove('hidden');
+
+    container.innerHTML = allFormulas.filter(function(f) { return f.is_active; }).map(function(f) {
+        var killsResult = executeFormula(f.formula_kills, vars);
+        var pointsResult = executeFormula(f.formula_points, vars);
+        var statusResult = executeFormula(f.formula_status, vars);
+
+        var killsDisplay = killsResult !== null ? killsResult.toLocaleString() : 'Error';
+        var penaltyPct = vars.kills > 0 && killsResult !== null ? Math.round((1 - killsResult / vars.kills) * 100) : 0;
+        var penaltyColor = penaltyPct >= 50 ? 'text-red-400' : (penaltyPct >= 20 ? 'text-orange-400' : 'text-green-400');
+        var isSelected = selectedFormulaId === f.id;
+
+        return '<div class="formula-card rounded-lg p-3 ' + (isSelected ? 'selected' : '') + '" style="border:1px solid #1a237e" onclick="selectFormula(\'' + f.id + '\')">' +
+            '<div class="flex items-center justify-between"><span class="text-sm font-bold text-white">' + f.name + '</span>' +
+            (f.is_preset ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">PRESET</span>' : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-green-900/30 text-green-400">CUSTOM</span>') + '</div>' +
+            '<div class="flex items-center gap-3 mt-1 text-xs"><span style="color:#9fa8da">Bajas: ' + killsDisplay + '</span><span class="' + penaltyColor + ' font-bold">-' + penaltyPct + '%</span>' +
+            (pointsResult !== null ? '<span style="color:#9fa8da">Pts: ' + (pointsResult > 0 ? '+' : '') + pointsResult + '</span>' : '') +
+            (statusResult ? '<span class="text-red-400 font-bold">&#9888; ' + statusResult + '</span>' : '') + '</div>' +
+            '<div class="text-xs mt-1" style="color:#9fa8da;opacity:0.5">' + f.formula_kills + '</div></div>';
+    }).join('');
+}
+
+function selectFormula(id) {
+    selectedFormulaId = id;
+    runSimulation(); // re-render con highlight
+}
+
+// ============================================================
+// CRUD Formulas
+// ============================================================
+async function loadFormulas() {
+    try {
+        var { data, error } = await supabase.from('sanction_formulas').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        allFormulas = data || [];
+        renderFormulasList();
+    } catch(e) { console.error('[Sanctions] Error:', e); }
+}
+
+function renderFormulasList() {
+    var container = document.getElementById('formulas-list');
+    if (allFormulas.length === 0) { container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da">Sin formulas</div>'; return; }
+    container.innerHTML = allFormulas.map(function(f) {
+        var badge = f.is_preset ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">PRESET</span>' : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-green-900/30 text-green-400">CUSTOM</span>';
+        var activeBadge = f.is_active ? '' : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 ml-1">INACTIVA</span>';
+        return '<div class="rounded-lg p-3 flex items-center justify-between group" style="background:rgba(255,255,255,0.03);border:1px solid #1a237e">' +
+            '<div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">' + f.name + ' ' + badge + activeBadge + '</div>' +
+            '<div class="text-xs mt-0.5" style="color:#9fa8da;opacity:0.6">' + f.formula_kills + '</div></div>' +
+            '<div class="flex items-center gap-1 ml-2">' +
+                '<button onclick="editFormula(\'' + f.id + '\')" class="text-xs px-2 py-1 rounded hover:bg-white/10" style="color:#ff8f00">&#9999;&#65039;</button>' +
+                (!f.is_preset ? '<button onclick="deleteFormula(\'' + f.id + '\')" class="text-xs px-2 py-1 rounded hover:bg-white/10" style="color:#ef5350">&#128465;&#65039;</button>' : '') +
+            '</div></div>';
+    }).join('');
+}
+
+function openFormulaModal() {
+    editingId = null;
+    document.getElementById('formula-form').reset();
+    document.getElementById('f-id').value = '';
+    document.getElementById('f-modal-title').textContent = '&#10133; Nueva Formula';
+    document.getElementById('formula-modal').classList.remove('hidden');
+    document.getElementById('formula-modal').classList.add('flex');
+}
+function closeFormulaModal() { document.getElementById('formula-modal').classList.add('hidden'); document.getElementById('formula-modal').classList.remove('flex'); }
+
+var editingId = null;
+function editFormula(id) {
+    var f = allFormulas.find(function(x) { return x.id === id; });
+    if (!f) return;
+    editingId = id;
+    document.getElementById('f-id').value = f.id;
+    document.getElementById('f-name').value = f.name;
+    document.getElementById('f-desc').value = f.description || '';
+    document.getElementById('f-kills').value = f.formula_kills;
+    document.getElementById('f-points').value = f.formula_points || '';
+    document.getElementById('f-status').value = f.formula_status || '';
+    document.getElementById('f-vars').value = f.variables ? JSON.stringify(f.variables, null, 2) : '';
+    document.getElementById('f-modal-title').textContent = '&#9999;&#65039; Editar Formula';
+    document.getElementById('formula-modal').classList.remove('hidden');
+    document.getElementById('formula-modal').classList.add('flex');
+}
+
+async function deleteFormula(id) {
+    var f = allFormulas.find(function(x) { return x.id === id; });
+    if (f && f.is_preset) { showToast('No puedes borrar formulas preset', 'warning'); return; }
+    if (!confirmAction('Eliminar esta formula?')) return;
+    try { await supabase.from('sanction_formulas').delete().eq('id', id); loadFormulas(); showToast('Eliminada', 'success'); }
+    catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+document.getElementById('formula-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var vars = {};
+    try { var v = document.getElementById('f-vars').value.trim(); if (v) vars = JSON.parse(v); } catch(e) { showToast('JSON invalido en variables', 'warning'); return; }
+    var data = {
+        name: document.getElementById('f-name').value.trim(),
+        description: document.getElementById('f-desc').value.trim() || null,
+        formula_kills: document.getElementById('f-kills').value.trim(),
+        formula_points: document.getElementById('f-points').value.trim() || null,
+        formula_status: document.getElementById('f-status').value.trim() || null,
+        variables: vars,
+        is_active: true
+    };
+    try {
+        if (editingId) { await supabase.from('sanction_formulas').update(data).eq('id', editingId); showToast('Formula actualizada', 'success'); }
+        else { await supabase.from('sanction_formulas').insert([data]); showToast('Formula creada', 'success'); }
+        closeFormulaModal(); loadFormulas();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+// Load sanctions log
+async function loadSanctionsLog() {
+    try {
+        var { data } = await supabase.from('player_sanctions').select('*, players(current_username), sanction_formulas(name)').order('created_at', { ascending: false }).limit(20);
+        var container = document.getElementById('sanctions-log');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-2" style="color:#9fa8da">Sin sanciones aplicadas</div>'; return; }
+        container.innerHTML = data.map(function(s) {
+            var name = s.players ? s.players.current_username : 'ID:' + s.player_id;
+            var pct = s.penalty_pct || 0;
+            var color = pct >= 50 ? 'text-red-400' : (pct >= 20 ? 'text-orange-400' : 'text-green-400');
+            return '<div class="flex items-center justify-between p-2 rounded" style="background:rgba(255,255,255,0.03)">' +
+                '<span class="text-white">' + name + '</span>' +
+                '<span class="' + color + '">-' + pct + '%</span>' +
+                '<span style="color:#9fa8da">' + (s.sanction_formulas ? s.sanction_formulas.name : '?') + '</span></div>';
+        }).join('');
+    } catch(e) { document.getElementById('sanctions-log').innerHTML = '<div style="color:#9fa8da">Error cargando log</div>'; }
+}
+
+loadFormulas();
+loadSanctionsLog();
+</script>
+</body>
+</html>

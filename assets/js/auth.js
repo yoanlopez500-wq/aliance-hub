@@ -255,6 +255,7 @@ var ROLE_PANELS = {
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
+            { href: 'admin/rules-editor.html', label: '&#128220; Reglas', section: 'tools' },
             { href: 'chat.html', label: '&#128172; Chat', section: 'comms' },
         ],
         quickActions: [
@@ -276,6 +277,7 @@ var ROLE_PANELS = {
             { href: 'admin/admins.html', label: '&#128101; Admins', section: 'tools' },
             { href: 'admin/strikes.html', label: '&#9889; Strikes', section: 'tools' },
             { href: 'admin/reports.html', label: '&#128680; Reportes', section: 'tools' },
+            { href: 'admin/rules-editor.html', label: '&#128220; Reglas', section: 'tools' },
             { href: 'chat.html', label: '&#128172; Chat', section: 'comms' },
         ],
         quickActions: [{ label: '&#10133; Nueva Partida', action: 'openMatchModal()', color: 'amber' }]
@@ -488,6 +490,7 @@ function renderPublicNav(nav) {
                     '<span>&#9876;&#65039;</span><span>Alliance Hub</span>' +
                 '</a>' +
                 '<div class="flex items-center gap-2">' +
+                    '<a href="' + ahPath('rules.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: rgba(255,255,255,0.08); color: #e8eaf6;">&#128220; Reglas</a>' +
                     '<a href="' + ahPath('course/') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #1a237e; color: white;">&#127891; Curso de Certificacion</a>' +
                     '<a href="' + ahPath('login.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #ff6f00; color: white;">Admin Login</a>' +
                     '<a href="' + ahPath('login-player.html') + '" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background: #2e7d32; color: white;">Jugador Login</a>' +

@@ -18,8 +18,21 @@
     <div id="admin-nav"></div>
     <div class="max-w-6xl mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-ah-text mb-2">&#127942; Rankings</h1>
-        <p class="text-ah-muted mb-6">Estadisticas globales, por alianza, por liga y duelos</p>
+        <p class="text-ah-muted mb-6">Estadisticas globales con penalizaciones de strikes aplicadas</p>
         <div id="error-banner" class="hidden mb-4 rounded-xl p-4 border border-red-800/30 bg-red-900/20 text-red-300 text-sm font-medium"></div>
+
+        <!-- Leyenda de penalizaciones -->
+        <div class="mb-4 rounded-xl p-3 border border-ah-border" style="background:#11183a;">
+            <p class="text-xs text-ah-muted font-bold mb-2">&#9889; Sistema de Penalizaciones por Strikes</p>
+            <div class="flex flex-wrap gap-3 text-xs text-ah-muted/70">
+                <span><span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1"></span>0 strikes = 100% kills</span>
+                <span><span class="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>1 strike = 90% kills (-10%)</span>
+                <span><span class="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1"></span>2 strikes = 70% kills (-30%)</span>
+                <span><span class="inline-block w-2 h-2 rounded-full bg-red-400 mr-1"></span>3+ strikes = 50% kills (-50%)</span>
+                <span class="text-ah-muted/40 ml-auto">Muertes no afectadas</span>
+            </div>
+        </div>
+
         <div class="flex gap-2 mb-6 border-b border-ah-border overflow-x-auto scrollbar-hide">
             <button onclick="showTab('players')" id="tab-players" class="px-4 py-3 text-sm font-bold text-ah-accent border-b-2 border-ah-accent whitespace-nowrap">&#128100; Jugadores</button>
             <button onclick="showTab('alliances')" id="tab-alliances" class="px-4 py-3 text-sm font-bold text-ah-muted hover:text-ah-text whitespace-nowrap">&#127988; Alianzas</button>
@@ -41,14 +54,15 @@
                             <th class="text-left p-3 text-ah-muted">Jugador</th>
                             <th class="text-left p-3 text-ah-muted">Alianza</th>
                             <th class="text-right p-3 text-ah-muted">Partidas</th>
-                            <th class="text-right p-3 text-ah-muted">Bajas</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas Orig.</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas Efect.</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
                             <th class="text-right p-3 text-ah-muted">KD</th>
                             <th class="text-right p-3 text-ah-muted text-xs" title="Strikes / Penalidad">&#9889;</th>
                         </tr>
                     </thead>
                     <tbody id="players-tbody">
-                        <tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                        <tr><td colspan="10" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -63,14 +77,14 @@
                             <th class="text-left p-3 text-ah-muted">Alianza</th>
                             <th class="text-left p-3 text-ah-muted">Tag</th>
                             <th class="text-right p-3 text-ah-muted">Jugadores</th>
-                            <th class="text-right p-3 text-ah-muted">Bajas</th>
+                            <th class="text-right p-3 text-ah-muted">Bajas Efect.</th>
                             <th class="text-right p-3 text-ah-muted">Muertes</th>
                             <th class="text-right p-3 text-ah-muted">KD</th>
                             <th class="text-right p-3 text-ah-muted">Partidas</th>
                         </tr>
                     </thead>
                     <tbody id="alliances-tbody">
-                        <tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Cargando...</td></tr>
+                        <tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -143,6 +157,10 @@
 
         // Kills efectivas = kills reales - anuladas - penalidad de strikes
         function effectiveKills(player) {
+            // 1. Motor de sanciones (player_sanctions)
+            var sanc = sanctionsCache[player.id];
+            if (sanc && sanc.kills_after != null) return Math.round(sanc.kills_after);
+            // 2. Fallback hardcoded por strikes
             var total = player.total_kills || 0;
             var nullified = nullifiedCache[player.id] || 0;
             var strikes = strikeCache[player.id] || 0;
@@ -170,7 +188,7 @@
         }
 
         async function loadData() {
-            // 1. Cargar alliances en mapa (para join en cliente)
+            // 1. Cargar alliances en mapa
             try {
                 var res = await supabase.from('alliances').select('id, name, tag').order('name');
                 if (res.error) throw res.error;
@@ -221,7 +239,7 @@
         async function loadRankings() {
             try {
                 var allianceFilter = document.getElementById('filter-alliance').value;
-                var query = supabase.from('players').select('id, current_username, current_alliance_id, total_kills, total_deaths, games_played, status, last_seen');
+                var query = supabase.from('players').select('id, current_username, current_alliance_id, total_kills, total_deaths, games_played, status, last_seen, strikes');
                 if (allianceFilter) query = query.eq('current_alliance_id', allianceFilter);
                 var res = await query.order('total_kills', { ascending: false }).limit(100);
                 if (res.error) throw res.error;
@@ -232,7 +250,7 @@
 
                 var tbody = document.getElementById('players-tbody');
                 if (players.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
                     document.getElementById('alliances-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ah-muted/70">Sin datos</td></tr>';
                     return;
                 }
@@ -257,18 +275,16 @@
                     '</tr>';
                 }).join('');
 
-                // Alianzas (agrupar players ya cargados)
+                // Alianzas
                 var grouped = {};
                 players.forEach(function(p) {
                     var aid = p.current_alliance_id;
                     if (!aid) return;
-                    if (!grouped[aid]) grouped[aid] = { id: aid, name: allianceMap[aid]?.name || '???', tag: allianceMap[aid]?.tag || '-', effKills: 0, deaths: 0, players: 0, games: 0, nullified: 0 };
-                    var eff = effectiveKills(p);
-                    grouped[aid].effKills += eff;
+                    if (!grouped[aid]) grouped[aid] = { id: aid, name: allianceMap[aid]?.name || '???', tag: allianceMap[aid]?.tag || '-', effKills: 0, deaths: 0, players: 0, games: 0 };
+                    grouped[aid].effKills += effectiveKills(p);
                     grouped[aid].deaths += p.total_deaths || 0;
                     grouped[aid].players++;
                     grouped[aid].games += p.games_played || 0;
-                    grouped[aid].nullified += nullifiedCache[p.id] || 0;
                 });
                 var sorted = Object.values(grouped).sort(function(a, b) {
                     var kda = a.deaths > 0 ? a.effKills / a.deaths : a.effKills;
@@ -277,15 +293,12 @@
                 });
                 document.getElementById('alliances-tbody').innerHTML = sorted.map(function(a, i) {
                     var kd = a.deaths > 0 ? (a.effKills / a.deaths).toFixed(2) : a.effKills;
-                    var killsDisplay = a.nullified > 0
-                        ? '<span class="kill-nullified">' + (a.effKills + a.nullified).toLocaleString() + '</span> <span class="text-orange-400 text-xs">(' + a.effKills.toLocaleString() + ')</span>'
-                        : a.effKills.toLocaleString();
                     return '<tr class="border-b border-ah-border hover:bg-ah-card/50">' +
                         '<td class="p-3 font-bold ' + (i < 3 ? 'text-ah-accent' : 'text-ah-muted') + '">' + (i + 1) + '</td>' +
                         '<td class="p-3 font-medium text-ah-text">' + a.name + '</td>' +
                         '<td class="p-3 text-ah-muted">' + a.tag + '</td>' +
                         '<td class="p-3 text-right">' + a.players + '</td>' +
-                        '<td class="p-3 text-right text-green-400 font-bold">' + killsDisplay + '</td>' +
+                        '<td class="p-3 text-right text-green-400 font-bold">' + a.effKills.toLocaleString() + '</td>' +
                         '<td class="p-3 text-right text-red-400">' + a.deaths.toLocaleString() + '</td>' +
                         '<td class="p-3 text-right font-bold ' + (kd >= 1 ? 'text-green-400' : 'text-orange-400') + '">' + kd + '</td>' +
                         '<td class="p-3 text-right">' + a.games + '</td>' +
@@ -294,7 +307,7 @@
 
             } catch(e) {
                 console.error('[Rankings] loadRankings:', e);
-                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ' + (e.message || 'cargando jugadores') + '</td></tr>';
+                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Error: ' + (e.message || 'cargando jugadores') + '</td></tr>';
                 document.getElementById('alliances-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error</td></tr>';
             }
         }
