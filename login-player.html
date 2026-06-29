@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrar - Alliance Hub</title>
-<script src="assets/js/theme.js?v=12"></script>
+<script src="assets/js/theme.js?v=13"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=12"></script>
-<script src="assets/js/base.js?v=12"></script>
-<script src="assets/js/auth.js?v=12"></script>
+<script src="assets/js/config.js?v=13"></script>
+<script src="assets/js/base.js?v=13"></script>
+<script src="assets/js/auth.js?v=13"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -121,6 +121,27 @@ function resetToLogin() {
     showView('login');
 }
 
+// ====== AUTO-LOGIN (PWA + Browser) ======
+async function autoLoginPlayer() {
+    var savedId = localStorage.getItem('ah_v2_player_id');
+    var savedName = localStorage.getItem('ah_v2_display_name');
+    if (!savedId || !savedName) return;
+    try {
+        var { data: tok } = await supabase.from('player_tokens').select('token').eq('player_id', parseInt(savedId)).maybeSingle();
+        var currentDevice = getDeviceId();
+        if (tok && tok.token === currentDevice) {
+            window.location.href = 'dashboard.html';
+        }
+    } catch(e) {
+        console.log('[AutoLogin] No se pudo verificar:', e);
+    }
+}
+
+// pageshow handler para bfcache (PWA)
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) autoLoginPlayer();
+});
+
 // ====== LOGIN ======
 document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -131,31 +152,31 @@ document.getElementById('login-form').addEventListener('submit', async function(
     try {
         var { data: player, error: pErr } = await supabase.from('players').select('id').eq('id', parseInt(playerId)).maybeSingle();
         if (pErr) throw pErr;
+        if (!player) {
+            var { error: createErr } = await supabase.from('players').insert({
+                id: parseInt(playerId), current_username: username, status: 'active'
+            });
+            if (createErr && createErr.code !== '23505') throw createErr;
+        }
 
         localStorage.setItem('ah_v2_player_id', playerId);
         localStorage.setItem('ah_v2_display_name', username);
         pendingPlayerId = playerId;
         pendingUsername = username;
 
-        // Verificar si tiene preguntas de seguridad
         var { data: sec, error: sErr } = await supabase.from('player_security').select('*').eq('player_id', parseInt(playerId)).maybeSingle();
         if (sErr && sErr.code !== 'PGRST116') throw sErr;
 
-        if (!sec) {
-            showView('setup-security');
-            return;
-        }
+        if (!sec) { showView('setup-security'); return; }
 
-        // Verificar dispositivo (token = device_id)
         var { data: tok, error: tErr } = await supabase.from('player_tokens').select('token').eq('player_id', parseInt(playerId)).maybeSingle();
         if (tErr && tErr.code !== 'PGRST116') throw tErr;
 
         var currentDevice = getDeviceId();
         if (tok && tok.token && tok.token !== currentDevice) {
-            // Dispositivo nuevo
             document.getElementById('sec-check-name').textContent = username + ' (ID: ' + playerId + ')';
-            document.getElementById('sec-q-1').textContent = sec.question_1;
-            document.getElementById('sec-q-2').textContent = sec.question_2;
+            document.getElementById('sec-q-1').textContent = 'Pregunta 1: ' + sec.question_1;
+            document.getElementById('sec-q-2').textContent = 'Pregunta 2: ' + sec.question_2;
             showView('security-check');
             return;
         }
@@ -179,7 +200,8 @@ document.getElementById('security-setup-form').addEventListener('submit', async 
 
     try {
         var { error: s1 } = await supabase.from('player_security').insert({
-            player_id: parseInt(pendingPlayerId), answer_1: ans1, answer_2: ans2
+            player_id: parseInt(pendingPlayerId), question_1: 'Cual es el nombre de tu primera alianza en Supremacy 1914?', answer_1: ans1,
+            question_2: 'Cual es tu pais favorito en Supremacy 1914?', answer_2: ans2
         });
         if (s1) throw s1;
 
@@ -236,6 +258,8 @@ async function doLogin(playerId, username) {
         showView('login');
     }
 }
+
+document.addEventListener('DOMContentLoaded', autoLoginPlayer);
 </script>
 </body>
 </html>
