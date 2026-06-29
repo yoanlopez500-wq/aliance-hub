@@ -6,10 +6,10 @@
 <title>Partidas - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=10"></script>
-<script src="../assets/js/base.js?v=10"></script>
-<script src="../assets/js/auth.js?v=10"></script>
-<script src="../assets/js/pwa-utils.js?v=10"></script>
+<script src="../assets/js/config.js?v=12"></script>
+<script src="../assets/js/base.js?v=12"></script>
+<script src="../assets/js/auth.js?v=12"></script>
+<script src="../assets/js/pwa-utils.js?v=12"></script>
 <style>.modal { display: none; } .modal.active { display: flex; }</style>
 <meta name="theme-color" content="#0f172a">
 </head>
@@ -62,6 +62,14 @@
 <div><label class="block text-sm font-medium text-slate-700 mb-1">ID Supremacy</label><input type="text" id="m-game-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
 </div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Descripcion</label><textarea id="m-desc" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></textarea></div>
+
+<!-- NEW: Rules URL field -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">&#128220; Enlace de Reglas</label>
+    <input type="url" id="m-rules-url" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="https://docs.google.com/... o enlace a PDF (opcional, usa las reglas globales si se deja vacio)">
+    <p class="text-xs text-slate-400 mt-1">Deja vacio para usar las <a href="strikes.html" class="text-blue-600 hover:underline">reglas globales</a>. Soporta Google Docs, Word, PDF.</p>
+</div>
+
 <div class="grid grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Alianza</label><select id="m-alliance" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Sin alianza --</option></select></div>
 <div><label class="block text-sm font-medium text-slate-700 mb-1">Max Jugadores</label><input type="number" id="m-max" min="2" max="500" value="10" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"></div>
@@ -152,9 +160,10 @@ function renderMatches(matches) {
         var approvalBadge = m.requires_approval ? '<span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">&#128065;</span>' : '';
         var privateBadge = m.is_private ? '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">&#128274;</span>' : '';
         var winnerBadge = m.winners_declared ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">&#127942;</span>' : '';
+        var rulesBadge = m.rules_url ? '<span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700" title="Tiene reglas propias">&#128220;</span>' : '';
         return '<div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition">' +
             '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">' +
-                '<div class="flex-1"><div class="flex items-center gap-2 mb-1 flex-wrap">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + approvalBadge + privateBadge + winnerBadge + '</div>' +
+                '<div class="flex-1"><div class="flex items-center gap-2 mb-1 flex-wrap">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + approvalBadge + privateBadge + winnerBadge + rulesBadge + '</div>' +
                 '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
                 '<p class="text-sm text-slate-500">' + (m.description || '') + (allianceLabel ? ' &#8226; ' + allianceLabel : '') + '</p>' +
                 '<p class="text-xs text-slate-400 mt-1">&#128101; ' + m.max_players + ' max &#8226; ' + formatDate(m.created_at) + (m.game_id ? ' &#8226; &#127918; ID: ' + m.game_id : '') + '</p></div>' +
@@ -176,6 +185,7 @@ function editMatch(id) {
     document.getElementById('m-type').value = match.match_type || 'internal';
     document.getElementById('m-game-id').value = match.game_id || '';
     document.getElementById('m-desc').value = match.description || '';
+    document.getElementById('m-rules-url').value = match.rules_url || '';
     document.getElementById('m-alliance').value = match.alliance_id || '';
     document.getElementById('m-max').value = match.max_players || 10;
     document.getElementById('m-password').value = match.password || '';
@@ -197,6 +207,7 @@ document.getElementById('match-form').addEventListener('submit', async function(
     var data = {
         name: document.getElementById('m-name').value, match_type: document.getElementById('m-type').value,
         game_id: document.getElementById('m-game-id').value || null, description: document.getElementById('m-desc').value || null,
+        rules_url: document.getElementById('m-rules-url').value.trim() || null,
         alliance_id: document.getElementById('m-alliance').value || null, alliance_a_id: document.getElementById('m-alliance-a').value || null,
         alliance_b_id: document.getElementById('m-alliance-b').value || null, max_players: parseInt(document.getElementById('m-max').value) || 10,
         password: document.getElementById('m-password').value || null, is_private: document.getElementById('m-private').checked,
