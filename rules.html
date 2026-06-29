@@ -4,243 +4,55 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reglas - Alliance Hub</title>
-<script src="assets/js/theme.js?v=14"></script>
+<script src="assets/js/theme.js?v=15"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=14"></script>
-<script src="assets/js/base.js?v=14"></script>
-<script src="assets/js/auth.js?v=14"></script>
+<script src="assets/js/config.js?v=15"></script>
+<script src="assets/js/base.js?v=15"></script>
+<script src="assets/js/auth.js?v=15"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
-.visibility-badge {
-    display: inline-block;
-    font-size: 9px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    margin-left: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+.visibility-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 4px; margin-left: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .vis-public { background: rgba(76,175,80,0.15); color: #4caf50; }
 .vis-player { background: rgba(33,150,243,0.15); color: #2196f3; }
 .vis-official { background: rgba(0,150,136,0.15); color: #009688; }
 .vis-leader { background: rgba(255,152,0,0.15); color: #ff9800; }
 .vis-admin { background: rgba(156,39,176,0.15); color: #9c27b0; }
 .vis-superadmin { background: rgba(244,67,54,0.15); color: #f44336; }
-.training-badge {
-    display: inline-block;
-    font-size: 9px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    margin-left: 4px;
-    font-weight: 700;
-    background: rgba(255,111,0,0.15);
-    color: #ff8f00;
-}
+.training-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 4px; margin-left: 4px; font-weight: 700; background: rgba(255,111,0,0.15); color: #ff8f00; }
 </style>
 </head>
 <body class="min-h-screen" style="background:#0a0e27;color:#e8eaf6" data-role="public">
 <div id="admin-nav"></div>
-
 <div class="max-w-4xl mx-auto px-4 py-8">
 <div class="text-center mb-8">
 <h1 class="text-3xl font-bold text-white">📜 Reglas de Alliance Hub</h1>
 <p class="text-sm mt-2" style="color:#9fa8da">Normativa oficial para todas las partidas y eventos</p>
 </div>
-
-<!-- Visibilidad actual del usuario -->
 <div id="visibility-indicator" class="hidden mb-4 text-center">
-<span class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background: rgba(255,111,0,0.1); border: 1px solid rgba(255,111,0,0.2); color: #ff8f00;">
-    👁️ Viendo como: <span id="visibility-role-label"></span>
-</span>
+<span class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background: rgba(255,111,0,0.1); border: 1px solid rgba(255,111,0,0.2); color: #ff8f00;">👁️ Viendo como: <span id="visibility-role-label"></span></span>
 </div>
-
-<!-- Training banner -->
 <div id="training-banner" class="hidden mb-6 rounded-xl p-4" style="background: rgba(255,111,0,0.08); border: 1px solid rgba(255,111,0,0.2);">
 <div class="flex items-center justify-between flex-wrap gap-2">
-    <div>
-        <p class="text-sm font-bold" style="color: #ff8f00;">📚 Secciones de Capacitación</p>
-        <p class="text-xs" style="color: #9fa8da;">Material exclusivo para tu cargo.</p>
-    </div>
-    <button onclick="downloadTrainingPDF()" class="px-4 py-2 rounded-lg text-xs font-bold bg-orange-500 hover:bg-orange-400 text-white transition">📥 Descargar PDF</button>
+<div><p class="text-sm font-bold" style="color: #ff8f00;">📚 Secciones de Capacitación</p><p class="text-xs" style="color: #9fa8da;">Material exclusivo para tu cargo.</p></div>
+<button onclick="downloadTrainingPDF()" class="px-4 py-2 rounded-lg text-xs font-bold bg-orange-500 hover:bg-orange-400 text-white transition">📥 Descargar PDF</button>
 </div>
 </div>
-
-<!-- Search -->
 <div class="mb-6">
 <div class="relative">
 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-lg" style="color:#9fa8da">🔍</span>
 <input type="text" id="rule-search" oninput="filterRules()" class="w-full pl-10 pr-4 py-3 rounded-xl text-white" style="background:#11183a;border:1px solid #1a237e" placeholder="Buscar regla...">
 </div></div>
-
-<!-- Rules Content -->
 <div id="rules-content"><div class="text-center py-8" style="color:#9fa8da">Cargando reglas...</div></div>
-
-<!-- Last Updated -->
 <div id="last-updated" class="text-center mt-6 text-xs" style="color:#9fa8da;opacity:0.5"></div>
 </div>
-
 <script>
-var allSections = [];
-var userVisibilityRole = 'public';
-var trainingSections = [];
-
-async function loadRules() {
-try {
-    // 1. Resolver rol de visibilidad del usuario
-    if (typeof resolveUserVisibilityRole === 'function') {
-        userVisibilityRole = await resolveUserVisibilityRole();
-    } else {
-        // Fallback: detectar jugador logueado
-        userVisibilityRole = hasPlayerSession() ? 'player' : 'public';
-    }
-
-    // Mostrar indicador de visibilidad
-    var roleLabels = { public: 'Público', player: 'Jugador', official: 'Oficial', leader: 'Líder', admin: 'Admin', superadmin: 'Super Admin' };
-    var visLabel = document.getElementById('visibility-role-label');
-    var visIndicator = document.getElementById('visibility-indicator');
-    if (visLabel && visIndicator) {
-        visLabel.textContent = roleLabels[userVisibilityRole] || userVisibilityRole;
-        visIndicator.classList.remove('hidden');
-    }
-
-    // 2. Cargar todas las secciones activas
-    var { data, error } = await supabase.from('rule_sections')
-        .select('*')
-        .eq('is_active', true)
-        .order('order_index');
-    if (error) throw error;
-
-    // 3. Filtrar por visibilidad
-    var visibleSections = (data || []).filter(function(s) {
-        var vis = s.visibility || 'public';
-        if (typeof canSeeRuleSection === 'function') {
-            return canSeeRuleSection(userVisibilityRole, vis);
-        }
-        // Fallback simple
-        var order = { public: 0, player: 1, official: 2, leader: 3, admin: 4, superadmin: 5 };
-        return (order[userVisibilityRole] || 0) >= (order[vis] || 0);
-    });
-
-    allSections = visibleSections;
-    renderRules(allSections);
-
-    // 4. Detectar secciones de capacitación
-    trainingSections = visibleSections.filter(function(s) { return s.training_for; });
-    if (trainingSections.length > 0) {
-        var banner = document.getElementById('training-banner');
-        if (banner) banner.classList.remove('hidden');
-    }
-
-    // 5. Last updated (de todas las secciones, no solo visibles)
-    var { data: latest } = await supabase.from('rule_sections')
-        .select('updated_at')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-    if (latest && latest.length > 0) {
-        document.getElementById('last-updated').textContent = 'Última actualización: ' + formatDateTime(latest[0].updated_at);
-    }
-} catch(e) {
-    console.error('[Rules]', e);
-    document.getElementById('rules-content').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglas</div>';
-}
-}
-
-function renderRules(sections) {
-var container = document.getElementById('rules-content');
-if (sections.length === 0) {
-    container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e"><div class="text-4xl mb-3">📝</div><p style="color:#9fa8da">Las reglas aún no han sido configuradas.</p></div>';
-    return;
-}
-
-var visibilityLabels = {
-    public: { label: 'Público', class: 'vis-public' },
-    player: { label: 'Jugador', class: 'vis-player' },
-    official: { label: 'Oficial', class: 'vis-official' },
-    leader: { label: 'Líder', class: 'vis-leader' },
-    admin: { label: 'Admin', class: 'vis-admin' },
-    superadmin: { label: 'Super', class: 'vis-superadmin' }
-};
-
-// Group by parent
-var rootSections = sections.filter(function(s) { return !s.parent_id; });
-var childMap = {};
-sections.filter(function(s) { return s.parent_id; }).forEach(function(s) {
-    if (!childMap[s.parent_id]) childMap[s.parent_id] = [];
-    childMap[s.parent_id].push(s);
-});
-
-container.innerHTML = rootSections.map(function(root) {
-    var children = childMap[root.id] || [];
-    var vis = visibilityLabels[root.visibility] || visibilityLabels.public;
-    var trainBadge = root.training_for ? '<span class="training-badge">📚 CAP: ' + root.training_for + '</span>' : '';
-
-    var childrenHTML = children.map(function(c) {
-        var cVis = visibilityLabels[c.visibility] || visibilityLabels.public;
-        var cTrain = c.training_for ? '<span class="training-badge">📚 CAP: ' + c.training_for + '</span>' : '';
-        return '<div class="mt-4 pl-4 border-l-2 border-amber-500/30">' +
-            '<h4 class="font-bold text-amber-400 text-sm">' + (c.section_number ? c.section_number + ' ' : '') + c.title +
-            '<span class="visibility-badge ' + cVis.class + '">' + cVis.label + '</span>' + cTrain + '</h4>' +
-            '<div class="text-sm mt-1 leading-relaxed" style="color:#e8eaf6;opacity:0.85">' + formatContent(c.content) + '</div></div>';
-    }).join('');
-
-    return '<div class="mb-6 rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e">' +
-        '<h3 class="text-lg font-bold text-white">' + (root.section_number ? '<span class="text-amber-400">' + root.section_number + '</span> ' : '') + root.title +
-        '<span class="visibility-badge ' + vis.class + '">' + vis.label + '</span>' + trainBadge + '</h3>' +
-        '<div class="text-sm mt-2 leading-relaxed" style="color:#e8eaf6;opacity:0.9">' + formatContent(root.content) + '</div>' +
-        childrenHTML +
-        '</div>';
-}).join('');
-}
-
-function formatContent(text) {
-if (!text) return '';
-text = text.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>');
-text = text.replace(/\n/g, '<br>');
-return text;
-}
-
-function filterRules() {
-var q = document.getElementById('rule-search').value.toLowerCase();
-if (!q) { renderRules(allSections); return; }
-var filtered = allSections.filter(function(s) {
-    return (s.title && s.title.toLowerCase().indexOf(q) !== -1) ||
-        (s.content && s.content.toLowerCase().indexOf(q) !== -1) ||
-        (s.section_number && s.section_number.toLowerCase().indexOf(q) !== -1);
-});
-renderRules(filtered);
-}
-
-async function downloadTrainingPDF() {
-    if (trainingSections.length === 0) return;
-    // Generar HTML limpio para PDF
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Capacitación Alliance Hub</title>' +
-        '<style>body{font-family:Arial,sans-serif;padding:40px;line-height:1.6;color:#333}' +
-        'h1{color:#ff6f00;border-bottom:2px solid #ff6f00;padding-bottom:10px}' +
-        'h2{color:#333;margin-top:30px;border-left:4px solid #ff6f00;padding-left:12px}' +
-        'h3{color:#555;margin-top:20px}.badge{font-size:10px;padding:2px 8px;border-radius:4px;background:#ff6f00;color:#fff}' +
-        '.footer{text-align:center;margin-top:40px;font-size:11px;color:#999}' +
-        '</style></head><body>' +
-        '<h1>📚 Manual de Capacitación - Alliance Hub</h1>' +
-        '<p>Generado: ' + new Date().toLocaleDateString() + '</p><hr>';
-
-    trainingSections.forEach(function(s) {
-        html += '<h2>' + (s.section_number ? s.section_number + ' ' : '') + s.title + '</h2>';
-        html += '<p><span class="badge">' + (s.training_for || 'General').toUpperCase() + '</span></p>';
-        html += '<div>' + (s.content || '').replace(/\n/g, '<br>') + '</div>';
-    });
-
-    html += '<div class="footer">Alliance Hub - alliancehub.app</div></body></html>';
-
-    // Abrir en nueva pestaña para imprimir a PDF
-    var win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    setTimeout(function() { win.print(); }, 500);
-}
-
+var allSections=[],userVisibilityRole='public',trainingSections=[];
+async function loadRules(){try{if(typeof resolveUserVisibilityRole==='function')userVisibilityRole=await resolveUserVisibilityRole();else userVisibilityRole=hasPlayerSession()?'player':'public';var roleLabels={public:'Público',player:'Jugador',official:'Oficial',leader:'Líder',admin:'Admin',superadmin:'Super Admin'};var visLabel=document.getElementById('visibility-role-label');var visIndicator=document.getElementById('visibility-indicator');if(visLabel&&visIndicator){visLabel.textContent=roleLabels[userVisibilityRole]||userVisibilityRole;visIndicator.classList.remove('hidden')}var{data,error}=await supabase.from('rule_sections').select('*').eq('is_active',true).order('order_index');if(error)throw error;var visibleSections=(data||[]).filter(function(s){var vis=s.visibility||'public';if(typeof canSeeRuleSection==='function')return canSeeRuleSection(userVisibilityRole,vis);var order={public:0,player:1,official:2,leader:3,admin:4,superadmin:5};return(order[userVisibilityRole]||0)>=(order[vis]||0)});allSections=visibleSections;renderRules(allSections);trainingSections=visibleSections.filter(function(s){return s.training_for});if(trainingSections.length>0){var banner=document.getElementById('training-banner');if(banner)banner.classList.remove('hidden')}var{data:latest}=await supabase.from('rule_sections').select('updated_at').eq('is_active',true).order('updated_at',{ascending:false}).limit(1);if(latest&&latest.length>0)document.getElementById('last-updated').textContent='Última actualización: '+formatDateTime(latest[0].updated_at)}catch(e){console.error('[Rules]',e);document.getElementById('rules-content').innerHTML='<div class="text-center py-8 text-red-400">Error cargando reglas</div>'}}
+function renderRules(sections){var container=document.getElementById('rules-content');if(sections.length===0){container.innerHTML='<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e"><div class="text-4xl mb-3">📝</div><p style="color:#9fa8da">Las reglas aún no han sido configuradas.</p></div>';return}var visibilityLabels={public:{label:'Público',class:'vis-public'},player:{label:'Jugador',class:'vis-player'},official:{label:'Oficial',class:'vis-official'},leader:{label:'Líder',class:'vis-leader'},admin:{label:'Admin',class:'vis-admin'},superadmin:{label:'Super',class:'vis-superadmin'}};var rootSections=sections.filter(function(s){return!s.parent_id});var childMap={};sections.filter(function(s){return s.parent_id}).forEach(function(s){if(!childMap[s.parent_id])childMap[s.parent_id]=[];childMap[s.parent_id].push(s)});container.innerHTML=rootSections.map(function(root){var children=childMap[root.id]||[];var vis=visibilityLabels[root.visibility]||visibilityLabels.public;var trainBadge=root.training_for?'<span class="training-badge">📚 CAP: '+root.training_for+'</span>':'';var childrenHTML=children.map(function(c){var cVis=visibilityLabels[c.visibility]||visibilityLabels.public;var cTrain=c.training_for?'<span class="training-badge">📚 CAP: '+c.training_for+'</span>':'';return'<div class="mt-4 pl-4 border-l-2 border-amber-500/30"><h4 class="font-bold text-amber-400 text-sm">'+(c.section_number?c.section_number+' ':'')+c.title+'<span class="visibility-badge '+cVis.class+'">'+cVis.label+'</span>'+cTrain+'</h4><div class="text-sm mt-1 leading-relaxed" style="color:#e8eaf6;opacity:0.85">'+formatContent(c.content)+'</div></div>'}).join('');return'<div class="mb-6 rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e"><h3 class="text-lg font-bold text-white">'+(root.section_number?'<span class="text-amber-400">'+root.section_number+'</span> ':'')+root.title+'<span class="visibility-badge '+vis.class+'">'+vis.label+'</span>'+trainBadge+'</h3><div class="text-sm mt-2 leading-relaxed" style="color:#e8eaf6;opacity:0.9">'+formatContent(root.content)+'</div>'+childrenHTML+'</div>'}).join('')}
+function formatContent(text){if(!text)return'';text=text.replace(/\*\*(.+?)\*\*/g,'<strong class="text-white">$1</strong>');text=text.replace(/\n/g,'<br>');return text}
+function filterRules(){var q=document.getElementById('rule-search').value.toLowerCase();if(!q){renderRules(allSections);return}var filtered=allSections.filter(function(s){return(s.title&&s.title.toLowerCase().indexOf(q)!==-1)||(s.content&&s.content.toLowerCase().indexOf(q)!==-1)||(s.section_number&&s.section_number.toLowerCase().indexOf(q)!==-1)});renderRules(filtered)}
+async function downloadTrainingPDF(){if(trainingSections.length===0)return;var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Capacitación Alliance Hub</title><style>body{font-family:Arial,sans-serif;padding:40px;line-height:1.6;color:#333}h1{color:#ff6f00;border-bottom:2px solid #ff6f00;padding-bottom:10px}h2{color:#333;margin-top:30px;border-left:4px solid #ff6f00;padding-left:12px}h3{color:#555;margin-top:20px}.badge{font-size:10px;padding:2px 8px;border-radius:4px;background:#ff6f00;color:#fff}.footer{text-align:center;margin-top:40px;font-size:11px;color:#999}</style></head><body><h1>📚 Manual de Capacitación - Alliance Hub</h1><p>Generado: '+new Date().toLocaleDateString()+'</p><hr>';trainingSections.forEach(function(s){html+='<h2>'+(s.section_number?s.section_number+' ':'')+s.title+'</h2>';html+='<p><span class="badge">'+(s.training_for||'General').toUpperCase()+'</span></p>';html+='<div>'+(s.content||'').replace(/\n/g,'<br>')+'</div>'});html+='<div class="footer">Alliance Hub - alliancehub.app</div></body></html>';var win=window.open('','_blank');win.document.write(html);win.document.close();setTimeout(function(){win.print()},500)}
 loadRules();
 </script>
 </body>
