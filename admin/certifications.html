@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Certificaciones - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=15"></script>
+<script src="../assets/js/theme.js?v=16"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=15"></script>
-<script src="../assets/js/base.js?v=15"></script>
-<script src="../assets/js/auth.js?v=15"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
 <style>
 body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e27; color: #e8eaf6; }
 .fade-in { animation: fadeIn 0.4s ease-out; }
@@ -23,13 +26,11 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6f00
 </head>
 <body style="min-height: 100vh;" data-role="admin">
 <div id="admin-nav"></div>
-
 <div class="max-w-6xl mx-auto px-4 py-6 fade-in">
-
     <div class="flex flex-wrap items-center justify-between mb-6 gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">&#127891; Certificaciones</h1>
-            <p style="color: #9fa8da;" class="text-sm">Solicitudes de lideres de alianza que completaron el curso</p>
+            <p style="color: #9fa8da;" class="text-sm">Solicitudes de lideres de alianza pendientes de revision</p>
         </div>
         <div class="flex gap-2">
             <select id="filter-status" onchange="loadRequests()" class="px-3 py-2 rounded-lg text-sm text-white" style="background: #11183a; border: 1px solid #1a237e;">
@@ -42,12 +43,14 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6f00
             <button onclick="loadRequests()" class="px-3 py-2 rounded-lg text-sm font-bold text-white transition active:scale-[0.98]" style="background: #1a237e;">&#128260; Recargar</button>
         </div>
     </div>
-
-    <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
             <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Pendientes</p>
             <p class="text-2xl font-bold" style="color: #ff8f00;" id="stat-pending">-</p>
+        </div>
+        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
+            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">En revision</p>
+            <p class="text-2xl font-bold" style="color: #2196f3;" id="stat-review">-</p>
         </div>
         <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
             <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Aprobados</p>
@@ -57,166 +60,42 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6f00
             <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Rechazados</p>
             <p class="text-2xl font-bold" style="color: #ef5350;" id="stat-rejected">-</p>
         </div>
-        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Total</p>
-            <p class="text-2xl font-bold text-white" id="stat-total">-</p>
-        </div>
     </div>
-
-    <div id="requests-list" class="space-y-3"><div class="text-center py-8" style="color: #9fa8da;">Cargando solicitudes...</div></div>
-
+    <div id="requests-list">Cargando...</div>
 </div>
-
-<!-- Review Modal -->
-<div id="review-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7);" onclick="if(event.target===this)closeReviewModal()">
-    <div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background: #11183a; border: 1px solid #1a237e;">
-        <div class="p-6 border-b flex items-center justify-between" style="border-color: #1a237e;">
-            <h2 class="text-xl font-bold text-white">Revisar Solicitud</h2>
-            <button onclick="closeReviewModal()" class="text-2xl transition" style="color: #9fa8da;">&times;</button>
-        </div>
-        <div id="review-content" class="p-6 space-y-4"></div>
-    </div>
-</div>
-
 <script>
-requireMinRole('event_admin');
-
-var allRequests = [];
-var currentRequestId = null;
-
-async function init() { await loadStats(); await loadRequests(); }
-
-async function loadStats() {
-    var { data: all } = await supabase.from('certification_requests').select('status');
-    if (!all) return;
-    var counts = { pending: 0, approved: 0, rejected: 0, under_review: 0 };
-    all.forEach(function(r) { if (counts[r.status] !== undefined) counts[r.status]++; });
-    document.getElementById('stat-pending').textContent = counts.pending;
-    document.getElementById('stat-approved').textContent = counts.approved;
-    document.getElementById('stat-rejected').textContent = counts.rejected;
-    document.getElementById('stat-total').textContent = all.length;
-}
-
 async function loadRequests() {
-    var statusFilter = document.getElementById('filter-status').value;
-    var container = document.getElementById('requests-list');
-    container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">Cargando...</div>';
-
-    var query = supabase.from('certification_requests').select('*').order('created_at', { ascending: false });
-    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
-
-    var { data, error } = await query;
-    if (error) { container.innerHTML = '<div class="text-center py-8" style="color: #ef5350;">Error: ' + error.message + '</div>'; return; }
-
-    allRequests = data || [];
-    if (allRequests.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;"><div class="text-4xl mb-2">&#127891;</div><p>No hay solicitudes en este filtro.</p></div>';
-        return;
-    }
-
-    container.innerHTML = allRequests.map(function(r) {
-        var statusClasses = { pending: 'status-pending', under_review: 'status-review', approved: 'status-approved', rejected: 'status-rejected' };
-        var statusLabels = { pending: '&#9203; Pendiente', under_review: '&#128269; En revision', approved: '&#9989; Aprobado', rejected: '&#10060; Rechazado' };
-        var sc = statusClasses[r.status] || 'status-pending';
-        var sl = statusLabels[r.status] || r.status;
-
-        return '<div class="rounded-xl p-4 transition cursor-pointer hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;" onclick="openReviewModal(\'' + r.id + '\')">' +
-            '<div class="flex flex-col md:flex-row md:items-center justify-between gap-3">' +
-                '<div class="flex items-center gap-3 flex-1">' +
-                    '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' + (r.display_name ? r.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
-                    '<div class="min-w-0">' +
-                        '<p class="font-bold text-white text-sm truncate">' + (r.display_name || 'Solicitante') + '</p>' +
-                        '<p class="text-xs truncate" style="color: #9fa8da;">ID: ' + r.supremacy_player_id + ' &middot; ' + r.alliance_name + ' [' + r.alliance_tag + ']</p></div></div>' +
-                '<div class="flex items-center gap-2 flex-shrink-0 flex-wrap">' +
-                    '<span class="text-xs px-2 py-1 rounded font-bold ' + sc + '">' + sl + '</span>' +
-                    '<span class="text-xs px-2 py-1 rounded" style="background: rgba(255,215,0,0.1); color: #ffd700;">' + (r.quiz_score || 0) + '% quiz</span>' +
-                    '<span class="text-xs" style="color: #9fa8da;">' + new Date(r.created_at).toLocaleDateString() + '</span></div></div>' +
-            '<div class="mt-2 pt-2 flex gap-2 flex-wrap" style="border-top: 1px solid #1a237e;">' +
-                '<span class="text-xs px-2 py-1 rounded" style="background: rgba(255,255,255,0.05); color: #9fa8da;">Codigo: ' + (r.certificate_code || 'N/A') + '</span></div></div>';
-    }).join('');
-}
-
-function openReviewModal(requestId) {
-    var r = allRequests.find(function(x) { return x.id === requestId; });
-    if (!r) return;
-    currentRequestId = requestId;
-
-    var statusLabels = { pending: '&#9203; Pendiente', under_review: '&#128269; En revision', approved: '&#9989; Aprobado', rejected: '&#10060; Rechazado' };
-    var canEdit = r.status === 'pending' || r.status === 'under_review';
-
-    document.getElementById('review-content').innerHTML =
-        '<div class="text-center mb-4">' +
-            '<div class="w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-bold mx-auto mb-2" style="background: linear-gradient(135deg, #1a237e, #283593);">' + (r.display_name ? r.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
-            '<h3 class="text-lg font-bold text-white">' + r.display_name + '</h3>' +
-            '<p style="color: #9fa8da;">ID Jugador: ' + r.supremacy_player_id + '</p></div>' +
-        '<div class="rounded-lg p-4 space-y-2" style="background: rgba(255,255,255,0.03);">' +
-            '<div class="flex justify-between text-sm"><span style="color: #9fa8da;">Alianza:</span><span class="font-medium text-white">' + r.alliance_name + ' [' + r.alliance_tag + ']</span></div>' +
-            '<div class="flex justify-between text-sm"><span style="color: #9fa8da;">Score del Quiz:</span><span class="font-bold" style="color: #ff8f00;">' + (r.quiz_score || 0) + '%</span></div>' +
-            '<div class="flex justify-between text-sm"><span style="color: #9fa8da;">Estado:</span><span>' + (statusLabels[r.status] || r.status) + '</span></div>' +
-            '<div class="flex justify-between text-sm"><span style="color: #9fa8da;">Codigo:</span><span class="font-mono text-xs" style="color: #ffd700;">' + (r.certificate_code || 'N/A') + '</span></div>' +
-            '<div class="flex justify-between text-sm"><span style="color: #9fa8da;">Solicitado:</span><span>' + new Date(r.created_at).toLocaleString() + '</span></div></div>' +
-        (canEdit ?
-            '<div class="space-y-3 pt-2">' +
-                '<p class="text-sm font-medium" style="color: #9fa8da;">Acciones:</p>' +
-                '<div class="flex gap-2">' +
-                    '<button onclick="updateRequest(\'approved\')" class="flex-1 font-semibold py-3 rounded-xl transition active:scale-[0.98]" style="background: linear-gradient(135deg, #2e7d32, #4caf50); color: white;">&#9989; Aprobar y Crear Alianza</button>' +
-                    '<button onclick="updateRequest(\'rejected\')" class="flex-1 font-semibold py-3 rounded-xl transition active:scale-[0.98]" style="background: linear-gradient(135deg, #c62828, #ef5350); color: white;">&#10060; Rechazar</button></div>' +
-                '<div id="reject-reason-container" class="hidden">' +
-                    '<textarea id="reject-reason" rows="2" class="w-full rounded-lg p-3 text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;" placeholder="Razon del rechazo (opcional)"></textarea>' +
-                    '<button onclick="confirmReject()" class="mt-2 w-full py-2 rounded-lg text-sm font-bold text-white transition active:scale-[0.98]" style="background: #c62828;">Confirmar Rechazo</button></div>' +
-                '<button onclick="updateRequest(\'under_review\')" class="w-full py-2 rounded-lg text-sm font-medium transition active:scale-[0.98]" style="background: rgba(33,150,243,0.15); color: #2196f3; border: 1px solid rgba(33,150,243,0.3);">&#128269; Marcar En Revision</button></div>'
-        : '<div class="rounded-lg p-3 mt-2 text-center text-sm" style="background: rgba(255,255,255,0.03); color: #9fa8da;">Esta solicitud ya fue ' + (r.status === 'approved' ? 'aprobada' : 'rechazada') + '. No se pueden realizar mas acciones.</div>') +
-        (r.rejection_reason ? '<div class="rounded-lg p-3 mt-2" style="background: rgba(198,40,40,0.1); border: 1px solid rgba(198,40,40,0.3);"><p class="text-xs" style="color: #ef5350;"><strong>Razon:</strong> ' + r.rejection_reason + '</p></div>' : '');
-
-    document.getElementById('review-modal').classList.remove('hidden');
-}
-
-function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); currentRequestId = null; }
-
-async function updateRequest(newStatus) {
-    if (!currentRequestId) return;
-    if (newStatus === 'rejected') { document.getElementById('reject-reason-container').classList.remove('hidden'); return; }
-    if (newStatus === 'approved') {
-        var req = allRequests.find(function(x) { return x.id === currentRequestId; });
-        if (!confirm('&#191;Aprobar esta solicitud? Se creara la alianza "' + req.alliance_name + '".')) return;
-    }
+    var list = document.getElementById('requests-list');
+    list.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">Cargando...</div>';
     try {
-        var session = await supabase.auth.getSession();
-        var { error } = await supabase.from('certification_requests')
-            .update({ status: newStatus, reviewed_by: session.data.session.user.id, reviewed_at: new Date().toISOString() })
-            .eq('id', currentRequestId);
+        var status = document.getElementById('filter-status').value;
+        var q = supabase.from('alliance_leader_requests').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+        if (status !== 'all') q = q.eq('status', status);
+        var { data, error, count } = await q;
         if (error) throw error;
-
-        if (newStatus === 'approved') {
-            var req = allRequests.find(function(x) { return x.id === currentRequestId; });
-            if (req) {
-                var { data: newAlliance, error: allyError } = await supabase.from('alliances')
-                    .insert({ name: req.alliance_name, tag: req.alliance_tag, status: 'active' })
-                    .select().single();
-                if (allyError) { if(typeof showToast==='function') showToast('Aprobado pero error creando alianza: ' + allyError.message, 'warning'); }
-                else { if(typeof showToast==='function') showToast('&#9989; Alianza "' + req.alliance_name + '" creada. Asignala al admin en Admins.', 'success'); }
-            }
-        } else { if(typeof showToast==='function') showToast('Solicitud actualizada', 'success'); }
-
-        closeReviewModal(); await loadStats(); await loadRequests();
-    } catch(err) { if(typeof showToast==='function') showToast('Error: ' + err.message, 'error'); }
+        document.getElementById('stat-pending').textContent = '-';
+        document.getElementById('stat-review').textContent = '-';
+        document.getElementById('stat-approved').textContent = '-';
+        document.getElementById('stat-rejected').textContent = '-';
+        var stats = await supabase.from('alliance_leader_requests').select('status');
+        if (stats.data) {
+            var counts = { pending: 0, under_review: 0, approved: 0, rejected: 0 };
+            stats.data.forEach(function(s) { if (counts[s.status] !== undefined) counts[s.status]++; });
+            document.getElementById('stat-pending').textContent = counts.pending;
+            document.getElementById('stat-review').textContent = counts.under_review;
+            document.getElementById('stat-approved').textContent = counts.approved;
+            document.getElementById('stat-rejected').textContent = counts.rejected;
+        }
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e; color: #9fa8da;">No hay solicitudes</div>'; return; }
+        list.innerHTML = '<div class="space-y-3">' + data.map(function(r) {
+            var statusClass = r.status === 'pending' ? 'status-pending' : r.status === 'under_review' ? 'status-review' : r.status === 'approved' ? 'status-approved' : 'status-rejected';
+            var statusLabel = r.status === 'pending' ? 'PENDIENTE' : r.status === 'under_review' ? 'EN REVISION' : r.status === 'approved' ? 'APROBADO' : 'RECHAZADO';
+            return '<div class="rounded-xl p-5" style="background: #11183a; border: 1px solid #1a237e;"><div class="flex items-start justify-between gap-3"><div class="flex-1"><h3 class="font-bold text-lg text-white">' + r.alliance_name + ' <span style="color: #9fa8da;">[' + r.alliance_tag + ']</span></h3><p class="text-sm mt-1" style="color: #9fa8da;">Solicitante: <strong class="text-white">' + r.requester_username + '</strong> (ID: ' + r.requester_player_id + ')</p>' + (r.alliance_description ? '<p class="text-sm mt-2" style="color: #9fa8da;">' + r.alliance_description + '</p>' : '') + '<div class="flex gap-4 mt-2 text-xs" style="color: #9fa8da;"><span>&#128101; Miembros: ' + (r.member_count || '?') + '</span><span>&#128172; Discord: ' + (r.discord_handle || '-') + '</span><span>&#128197; ' + formatDate(r.created_at) + '</span></div></div><span class="px-3 py-1 rounded-full text-xs font-bold ' + statusClass + '">' + statusLabel + '</span></div>' + (r.rejection_reason ? '<p class="text-sm mt-2" style="color: #ef5350;">Motivo: ' + r.rejection_reason + '</p>' : '') + '</div>';
+        }).join('') + '</div>';
+    } catch(e) { console.error('[Certifications]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
 }
-
-async function confirmReject() {
-    if (!currentRequestId) return;
-    var reason = document.getElementById('reject-reason').value;
-    try {
-        var session = await supabase.auth.getSession();
-        var { error } = await supabase.from('certification_requests')
-            .update({ status: 'rejected', rejection_reason: reason, reviewed_by: session.data.session.user.id, reviewed_at: new Date().toISOString() })
-            .eq('id', currentRequestId);
-        if (error) throw error;
-        if(typeof showToast==='function') showToast('Solicitud rechazada', 'success');
-        closeReviewModal(); await loadStats(); await loadRequests();
-    } catch(err) { if(typeof showToast==='function') showToast('Error: ' + err.message, 'error'); }
-}
-
-init();
+requireAdmin();
+loadRequests();
 </script>
 </body>
 </html>

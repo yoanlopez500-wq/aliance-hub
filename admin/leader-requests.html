@@ -3,54 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Solicitudes de Liderazgo - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=15"></script>
+<script src="../assets/js/theme.js?v=16"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=15"></script>
-<script src="../assets/js/base.js?v=15"></script>
-<script src="../assets/js/auth.js?v=15"></script>
-<meta name="theme-color" content="#0f172a">
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen text-slate-200" data-role="admin">
+<body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<h1 class="text-3xl font-bold text-white mb-2">📋 Solicitudes de Liderazgo</h1>
-<p class="text-slate-400 mb-6">Revisa y aprueba solicitudes de líderes de alianza.</p>
-<div class="flex gap-2 mb-6 flex-wrap">
-<button onclick="filterRequests('all')" id="f-all" class="px-4 py-2 rounded-lg text-sm font-bold bg-orange-500 text-white">Todas</button>
-<button onclick="filterRequests('pending')" id="f-pending" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600">⏳ Pendientes</button>
-<button onclick="filterRequests('under_review')" id="f-under_review" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600">🔍 En revisión</button>
-<button onclick="filterRequests('approved')" id="f-approved" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600">✓ Aprobadas</button>
-<button onclick="filterRequests('rejected')" id="f-rejected" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600">✗ Rechazadas</button>
+<h1 class="text-2xl font-bold mb-2">&#127941; Solicitudes de Liderazgo</h1>
+<p class="text-sm mb-6" style="color:#9fa8da;">Revision y aprobacion de solicitudes para liderar alianzas.</p>
+<div class="flex gap-2 mb-6">
+<select id="filter-status" onchange="loadRequests()" class="px-3 py-2 rounded-lg text-sm" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;">
+<option value="all">Todos</option>
+<option value="pending" selected>Pendientes</option>
+<option value="under_review">En revision</option>
+<option value="approved">Aprobados</option>
+<option value="rejected">Rechazados</option>
+</select>
+<button onclick="loadRequests()" class="px-3 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#fff;">&#128260; Recargar</button>
 </div>
-<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-<table class="w-full text-sm">
-<thead class="bg-slate-700/50"><tr><th class="text-left p-3 text-slate-400">Jugador</th><th class="text-left p-3 text-slate-400">Alianza</th><th class="text-left p-3 text-slate-400">Tag</th><th class="text-left p-3 text-slate-400">Evidencia</th><th class="text-left p-3 text-slate-400">Estado</th><th class="text-left p-3 text-slate-400">Fecha</th><th class="text-left p-3 text-slate-400">Acciones</th></tr></thead>
-<tbody id="requests-tbody"><tr><td colspan="7" class="text-center py-8 text-slate-500">Cargando...</td></tr></tbody>
-</table>
-</div>
-</div>
-<div id="review-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7);">
-<div class="bg-slate-800 rounded-2xl border border-slate-700 max-w-lg w-full shadow-2xl">
-<div class="p-5 border-b border-slate-700"><h3 class="text-lg font-bold text-white">Revisar Solicitud</h3></div>
-<div class="p-5 space-y-4"><div id="review-details" class="text-sm text-slate-300 space-y-2"></div><div><label class="block text-xs font-bold text-slate-400 mb-1">Respuesta / Razón</label><textarea id="review-reason" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" rows="3" placeholder="Razón de la decisión..."></textarea></div></div>
-<div class="p-5 border-t border-slate-700 flex gap-3">
-<button onclick="closeReviewModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-600 text-white hover:bg-slate-500">Cancelar</button>
-<button onclick="processReview('rejected')" class="px-4 py-2 rounded-lg text-sm font-bold bg-red-500 text-white hover:bg-red-400">Rechazar</button>
-<button onclick="processReview('approved')" class="flex-1 px-4 py-2 rounded-lg text-sm font-bold bg-green-500 text-white hover:bg-green-400">✓ Aprobar y Generar Invite</button>
-</div>
-</div>
+<div id="requests-list">Cargando...</div>
 </div>
 <script>
-requireMinRole('event_admin');
-var currentFilter='all',allRequests=[],reviewingId=null;
-async function loadRequests(){var query=supabase.from('alliance_leader_requests').select('*').order('created_at',{ascending:false});if(currentFilter!=='all')query=query.eq('status',currentFilter);var{data,error}=await query;if(error){document.getElementById('requests-tbody').innerHTML='<tr><td colspan="7" class="text-center py-8 text-red-400">Error: '+error.message+'</td></tr>';return}allRequests=data||[];renderRequests()}
-function renderRequests(){var tbody=document.getElementById('requests-tbody');if(allRequests.length===0){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-slate-500">Sin solicitudes</td></tr>';return}var statusColors={pending:'bg-yellow-900/30 text-yellow-400',under_review:'bg-blue-900/30 text-blue-400',approved:'bg-green-900/30 text-green-400',rejected:'bg-red-900/30 text-red-400',needs_info:'bg-orange-900/30 text-orange-400'};var statusLabels={pending:'⏳ Pendiente',under_review:'🔍 En revisión',approved:'✓ Aprobada',rejected:'✗ Rechazada',needs_info:'❓ Necesita info'};tbody.innerHTML=allRequests.map(function(r){var sc=statusColors[r.status]||'bg-slate-700 text-slate-400';var evidenceLink=r.evidence_url?'<a href="'+r.evidence_url+'" target="_blank" rel="noopener" class="text-orange-400 hover:underline">🔗 Ver</a>':'<span class="text-slate-500">-</span>';var actions='';if(r.status==='pending'||r.status==='under_review'||r.status==='needs_info')actions='<button onclick="openReview(\''+r.id+'\')" class="px-3 py-1 rounded text-xs font-bold bg-orange-500 text-white hover:bg-orange-400">Revisar</button>';else if(r.status==='approved')actions='<span class="text-xs text-green-400">✓ Completada</span>';else actions='<span class="text-xs text-red-400">✗ Rechazada</span>';return'<tr class="border-b border-slate-700/50 hover:bg-slate-700/30"><td class="p-3"><p class="font-medium text-white">'+r.display_name+'</p><p class="text-xs text-slate-500">ID: '+r.player_id+'</p></td><td class="p-3 text-white">'+r.alliance_name+'</td><td class="p-3"><span class="text-xs font-mono bg-slate-700 px-2 py-1 rounded text-slate-300">'+r.alliance_tag+'</span></td><td class="p-3">'+evidenceLink+'</td><td class="p-3"><span class="text-xs px-2 py-1 rounded font-bold '+sc+'">'+statusLabels[r.status]+'</span></td><td class="p-3 text-xs text-slate-500">'+formatDate(r.created_at)+'</td><td class="p-3">'+actions+'</td></tr>'}).join('')}
-function filterRequests(status){currentFilter=status;['all','pending','under_review','approved','rejected'].forEach(function(s){var btn=document.getElementById('f-'+s);if(s===status){btn.className='px-4 py-2 rounded-lg text-sm font-bold bg-orange-500 text-white'}else{btn.className='px-4 py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600'}});loadRequests()}
-function openReview(id){var req=allRequests.find(function(r){return r.id===id});if(!req)return;reviewingId=id;document.getElementById('review-details').innerHTML='<p><strong class="text-white">Jugador:</strong> '+req.display_name+' (ID: '+req.player_id+')</p><p><strong class="text-white">Alianza:</strong> '+req.alliance_name+' ['+req.alliance_tag+']</p><p><strong class="text-white">Evidencia:</strong> '+(req.evidence_url?'<a href="'+req.evidence_url+'" target="_blank" class="text-orange-400 hover:underline">Ver screenshot</a>':'Sin evidencia')+'</p>';document.getElementById('review-modal').classList.remove('hidden')}
-function closeReviewModal(){document.getElementById('review-modal').classList.add('hidden');reviewingId=null}
-async function processReview(decision){if(!reviewingId)return;var reason=document.getElementById('review-reason').value.trim();try{var sessionData=await supabase.auth.getSession();var adminId=sessionData.data.session.user.id;if(decision==='approved'){var code='LDR-'+Math.random().toString(36).substring(2,8).toUpperCase();var{data:invite}=await supabase.from('admin_invites').insert({code:code,role:'alliance_leader',created_by:adminId,expires_at:new Date(Date.now()+7*24*60*60*1000).toISOString()}).select().single();await supabase.from('alliance_leader_requests').update({status:'approved',reviewed_by:adminId,reviewed_at:new Date().toISOString(),rejection_reason:reason||null,invite_code_used:invite.id}).eq('id',reviewingId);showToast('✓ Solicitud aprobada. Código: '+code,'success')}else{await supabase.from('alliance_leader_requests').update({status:'rejected',reviewed_by:adminId,reviewed_at:new Date().toISOString(),rejection_reason:reason||'Solicitud rechazada'}).eq('id',reviewingId);showToast('✗ Solicitud rechazada','warning')}closeReviewModal();loadRequests()}catch(e){showToast('Error: '+e.message,'error')}}
+async function loadRequests() {
+    var list = document.getElementById('requests-list');
+    list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Cargando...</div>';
+    try {
+        var status = document.getElementById('filter-status').value;
+        var q = supabase.from('alliance_leader_requests').select('*').order('created_at', { ascending: false });
+        if (status !== 'all') q = q.eq('status', status);
+        var { data, error } = await q;
+        if (error) throw error;
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay solicitudes</div>'; return; }
+        list.innerHTML = '<div class="space-y-3">' + data.map(function(r) {
+            var statusBadge = r.status === 'pending' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">PENDIENTE</span>' : r.status === 'under_review' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN REVISION</span>' : r.status === 'approved' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">APROBADO</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">RECHAZADO</span>';
+            var actions = r.status === 'pending' || r.status === 'under_review' ? '<div class="flex gap-2 mt-3"><button onclick="approveRequest(' + r.requester_player_id + ', \'' + r.alliance_name.replace(/'/g, "\\'") + '\', \'' + r.alliance_tag + '\', ' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:#2e7d32;color:#fff;">Aprobar</button><button onclick="rejectRequest(' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(198,40,40,0.8);color:#fff;">Rechazar</button></div>' : '';
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-start justify-between"><div><h3 class="font-bold text-lg">' + r.alliance_name + ' [' + r.alliance_tag + ']</h3><p class="text-sm" style="color:#9fa8da;">Solicitante: ' + r.requester_username + ' (ID: ' + r.requester_player_id + ')</p><p class="text-xs mt-1" style="color:#9fa8da;">' + (r.alliance_description || 'Sin descripcion') + '</p></div>' + statusBadge + '</div><p class="text-xs mt-2" style="color:#9fa8da;">Miembros: ' + (r.member_count || '?') + ' | Discord: ' + (r.discord_handle || '-') + ' | ' + formatDate(r.created_at) + '</p>' + actions + '</div>';
+        }).join('') + '</div>';
+    } catch(e) { console.error('[Requests]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
+}
+async function approveRequest(playerId, allianceName, allianceTag, requestId) {
+    if (!confirm('Aprobar esta solicitud? Se creara la alianza y se asignara al jugador como lider.')) return;
+    try {
+        var { data: existing } = await supabase.from('alliances').select('id').eq('name', allianceName).maybeSingle();
+        var allianceId;
+        if (existing) { allianceId = existing.id; }
+        else {
+            var { data: newAlliance, error: ae } = await supabase.from('alliances').insert({ name: allianceName, tag: allianceTag, status: 'active' }).select('id').single();
+            if (ae) throw ae;
+            allianceId = newAlliance.id;
+        }
+        await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
+        var { data: { session } } = await supabase.auth.getSession();
+        await supabase.from('alliance_leader_requests').update({ status: 'approved', reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', requestId);
+        showToast('Solicitud aprobada. Alianza creada y lider asignado.', 'success');
+        loadRequests();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+async function rejectRequest(requestId) {
+    var reason = prompt('Motivo del rechazo (opcional):');
+    try {
+        var { data: { session } } = await supabase.auth.getSession();
+        await supabase.from('alliance_leader_requests').update({ status: 'rejected', reviewed_by: session.user.id, reviewed_at: new Date().toISOString(), rejection_reason: reason || null }).eq('id', requestId);
+        showToast('Solicitud rechazada.', 'info');
+        loadRequests();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+requireAdmin();
 loadRequests();
 </script>
 </body>

@@ -1,172 +1,105 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motor de Sanciones - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=16"></script>
-    <script src="../assets/js/base.js?v=16"></script>
-    <script src="../assets/js/auth.js?v=16"></script>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Motor de Sanciones - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.formula-card{cursor:pointer;transition:all .15s}
+.formula-card:hover{border-color:#ff6f00!important;}
+input,textarea,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
+input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
+#formula-modal input, #formula-modal textarea, #formula-modal select{color:#0f172a!important;background:#fff!important;border-color:#cbd5e1!important;}
+</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-white mb-6">&#128737; Motor de Sanciones</h1>
-
-        <!-- Calcular sancion -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">Calcular Sancion</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">ID del Jugador</label>
-                    <input type="number" id="s-player-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">Kills actuales</label>
-                    <input type="number" id="s-kills" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">Penalidad (%)</label>
-                    <input type="number" id="s-penalty" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" value="10">
-                </div>
-            </div>
-            <button onclick="calculateSanction()" class="mt-3 px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Calcular</button>
-            <div id="s-result" class="mt-3 hidden p-3 bg-slate-50 rounded-lg"></div>
-        </div>
-
-        <!-- Aplicar sancion -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h2 class="font-bold text-slate-800 mb-3">Aplicar Sancion Manual</h2>
-            <form id="sanction-form" class="space-y-3">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">ID del Jugador *</label>
-                        <input type="number" id="sm-player-id" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Penalidad % *</label>
-                        <select id="sm-penalty" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                            <option value="10">10% (1 strike)</option>
-                            <option value="30">30% (2 strikes)</option>
-                            <option value="50">50% (3+ strikes)</option>
-                            <option value="custom">Personalizado</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Kills antes</label>
-                        <input type="number" id="sm-kills-before" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                    </div>
-                </div>
-                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg font-bold text-sm hover:bg-red-400">Aplicar Sancion</button>
-            </form>
-        </div>
-
-        <!-- Sanciones recientes -->
-        <h2 class="text-lg font-bold text-white mb-3">&#128203; Sanciones Recientes</h2>
-        <div id="sanctions-list" class="space-y-2">
-            <div class="text-center py-4 text-slate-400">Cargando...</div>
-        </div>
-    </div>
-
-    <script>
-        if (!hasAdminSession()) { window.location.href = 'login.html'; }
-
-        async function calculateSanction() {
-            var playerId = parseInt(document.getElementById('s-player-id').value);
-            var kills = parseInt(document.getElementById('s-kills').value);
-            var penalty = parseInt(document.getElementById('s-penalty').value);
-            var resultDiv = document.getElementById('s-result');
-
-            if (!playerId || isNaN(kills) || isNaN(penalty)) {
-                showToast('Completa todos los campos', 'error');
-                return;
-            }
-
-            var killsAfter = Math.round(kills * (1 - penalty / 100));
-            resultDiv.classList.remove('hidden');
-            resultDiv.innerHTML = '<p class="text-sm"><strong>Kills originales:</strong> ' + kills + '</p>' +
-                '<p class="text-sm"><strong>Penalidad:</strong> -' + penalty + '%</p>' +
-                '<p class="text-sm"><strong>Kills despues:</strong> <span class="text-green-600 font-bold">' + killsAfter + '</span></p>' +
-                '<p class="text-sm"><strong>Kills perdidas:</strong> <span class="text-red-500">' + (kills - killsAfter) + '</span></p>';
-        }
-
-        document.getElementById('sanction-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            var playerId = parseInt(document.getElementById('sm-player-id').value);
-            var penaltySelect = document.getElementById('sm-penalty').value;
-            var penaltyPct = penaltySelect === 'custom' ? parseInt(prompt('Penalidad %:') || 0) : parseInt(penaltySelect);
-            var killsBefore = parseInt(document.getElementById('sm-kills-before').value) || 0;
-
-            if (!playerId || !penaltyPct) { showToast('Datos incompletos', 'error'); return; }
-
-            // Si no se proporcionaron kills, obtenerlas de la BD
-            if (!killsBefore) {
-                var { data: player } = await supabase.from('players').select('total_kills').eq('id', playerId).single();
-                killsBefore = player ? player.total_kills : 0;
-            }
-
-            var killsAfter = Math.round(killsBefore * (1 - penaltyPct / 100));
-
-            var sessionData = await supabase.auth.getSession();
-            var adminId = sessionData.data.session ? sessionData.data.session.user.id : null;
-
-            var { error } = await supabase.from('player_sanctions').insert({
-                player_id: playerId,
-                kills_before: killsBefore,
-                kills_after: killsAfter,
-                penalty_pct: penaltyPct,
-                formula_used: 'Manual: kills * (1 - ' + penaltyPct + '/100)',
-                applied_by: adminId
-            });
-
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('Sancion aplicada', 'success');
-            loadSanctions();
-        });
-
-        async function loadSanctions() {
-            var { data: sanctions, error } = await supabase
-                .from('player_sanctions')
-                .select('*, player:players(current_username)')
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            var container = document.getElementById('sanctions-list');
-            if (error || !sanctions || sanctions.length === 0) {
-                container.innerHTML = '<div class="text-center py-6 text-slate-400 bg-white rounded-xl border">Sin sanciones registradas</div>';
-                return;
-            }
-
-            container.innerHTML = sanctions.map(function(s) {
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
-                    '<div class="flex items-center justify-between">' +
-                        '<div>' +
-                            '<p class="font-bold text-slate-800 text-sm">' + (s.player?.current_username || 'ID:' + s.player_id) + '</p>' +
-                            '<p class="text-sm text-slate-600">Kills: ' + s.kills_before + ' &rarr; <span class="text-green-600 font-bold">' + s.kills_after + '</span> (-' + s.penalty_pct + '%)</p>' +
-                            '<p class="text-xs text-slate-400">' + (s.formula_used || 'Manual') + '</p>' +
-                        '</div>' +
-                        '<button onclick="revertSanction(\'' + s.id + '\', ' + s.player_id + ', ' + s.kills_before + ')" class="px-3 py-1 bg-slate-200 text-slate-600 rounded text-xs font-bold hover:bg-slate-300">Revertir</button>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-        }
-
-        async function revertSanction(id, playerId, originalKills) {
-            if (!confirm('¿Revertir esta sancion? Las kills volveran a ' + originalKills)) return;
-
-            var { error } = await supabase.from('player_sanctions').delete().eq('id', id);
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-
-            showToast('Sancion revertida', 'success');
-            loadSanctions();
-        }
-
-        loadSanctions();
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="flex items-center justify-between mb-6">
+<div><h1 class="text-2xl font-bold">&#9878;&#65039; Motor de Sanciones</h1><p class="text-sm" style="color:#9fa8da;">CRUD de formulas, simulador y motor de ejecucion.</p></div>
+<button onclick="openModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nueva Formula</button>
+</div>
+<div class="grid md:grid-cols-3 gap-4 mb-6">
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Formulas Activas</p><p class="text-2xl font-bold" style="color:#ff8f00;" id="stat-active">-</p></div>
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Sanciones Aplicadas</p><p class="text-2xl font-bold" style="color:#ef5350;" id="stat-applied">-</p></div>
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Penalizacion Total</p><p class="text-2xl font-bold" style="color:#ce93d8;" id="stat-total">-</p></div>
+</div>
+<div id="formulas-list" class="space-y-3">Cargando...</div>
+<div class="mt-8 pt-6" style="border-top:1px solid #1a237e;">
+<h2 class="text-xl font-bold mb-4">&#9889; Simulador</h2>
+<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">
+<div class="flex gap-4 flex-wrap">
+<div class="flex-1 min-w-[200px]"><label class="block text-sm mb-1" style="color:#9fa8da;">Kills del jugador</label><input type="number" id="sim-kills" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="100" oninput="runSimulator()"></div>
+<div class="flex-1 min-w-[200px]"><label class="block text-sm mb-1" style="color:#9fa8da;">Strikes</label><input type="number" id="sim-strikes" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="1" min="0" oninput="runSimulator()"></div>
+<div class="flex-1 min-w-[200px]"><label class="block text-sm mb-1" style="color:#9fa8da;">Kills anuladas</label><input type="number" id="sim-nullified" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="0" min="0" oninput="runSimulator()"></div>
+</div>
+<div id="sim-result" class="mt-4 p-3 rounded-lg hidden" style="background:#0a0e27;border:1px solid #1a237e;"></div>
+</div>
+</div>
+</div>
+<div id="formula-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#fff;color:#0f172a;">
+<h3 id="modal-title" class="text-lg font-bold mb-4" style="color:#0f172a;">Nueva Formula</h3>
+<input type="hidden" id="formula-id">
+<div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Nombre *</label><input type="text" id="f-name" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: Strike Leve"></div>
+<div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Descripcion</label><textarea id="f-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Condicion (strikes) *</label><input type="number" id="f-strikes" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="1, 2, 3..."></div>
+<div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Penalizacion % *</label><input type="number" id="f-penalty" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="10, 30, 50..."></div>
+<div class="mb-4"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Formula de calculo</label><select id="f-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="percentage">Porcentaje de kills</option><option value="fixed">Valor fijo</option><option value="kd_ratio">Basado en K/D</option></select></div>
+<div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#e2e8f0;color:#0f172a;">Cancelar</button><button onclick="saveFormula()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button></div>
+</div></div>
+<script>
+var formulasCache = [];
+async function loadFormulas() {
+    try {
+        var { data, error } = await supabase.from('strike_types').select('*').order('severity');
+        if (error) throw error;
+        formulasCache = data || [];
+        var list = document.getElementById('formulas-list');
+        document.getElementById('stat-active').textContent = data ? data.filter(function(f) { return f.is_active; }).length : 0;
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">No hay formulas. Crea la primera.</div>'; return; }
+        list.innerHTML = '<div class="grid md:grid-cols-2 gap-3">' + data.map(function(f) {
+            var sevColor = f.severity === 1 ? '#4caf50' : f.severity === 2 ? '#ff8f00' : '#ef5350';
+            var sevLabel = f.severity === 1 ? 'LEVE' : f.severity === 2 ? 'MEDIO' : 'GRAVE';
+            return '<div class="formula-card rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><h3 class="font-bold">' + f.name + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span></div><p class="text-sm mb-2" style="color:#9fa8da;">' + (f.description || 'Sin descripcion') + '</p><p class="text-xs" style="color:#9fa8da;"><strong style="color:#ff8f00;">Penalizacion:</strong> ' + (f.legend || '-') + '</p><div class="flex gap-2 mt-3"><button onclick="editFormula(\'' + f.id + '\')" class="px-2 py-1 rounded text-xs font-bold" style="background:#1a237e;color:#fff;">Editar</button></div></div>';
+        }).join('') + '</div>';
+        loadSanctionsStats();
+    } catch(e) { console.error('[SanctionsEngine]', e); }
+}
+async function loadSanctionsStats() {
+    try { var { data, error } = await supabase.from('player_sanctions').select('*'); if (error) throw error; document.getElementById('stat-applied').textContent = data ? data.length : 0; var total = 0; if (data) data.forEach(function(s) { total += s.penalty_pct || 0; }); document.getElementById('stat-total').textContent = total + '%'; } catch(e) { console.error('[SanctionsStats]', e); }
+}
+function runSimulator() {
+    var kills = parseInt(document.getElementById('sim-kills').value) || 0;
+    var strikes = parseInt(document.getElementById('sim-strikes').value) || 0;
+    var nullified = parseInt(document.getElementById('sim-nullified').value) || 0;
+    if (kills <= 0) { document.getElementById('sim-result').classList.add('hidden'); return; }
+    var killsWN = Math.max(0, kills - nullified);
+    var penalty = 0;
+    if (strikes === 1) penalty = 10;
+    else if (strikes === 2) penalty = 30;
+    else if (strikes >= 3) penalty = 50;
+    var effKills = Math.round(killsWN * (1 - penalty / 100));
+    var resultDiv = document.getElementById('sim-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.innerHTML = '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center"><div><div class="text-xs" style="color:#9fa8da;">Kills originales</div><div class="text-xl font-bold">' + kills + '</div></div><div><div class="text-xs" style="color:#9fa8da;">Kills anuladas</div><div class="text-xl font-bold text-red-400">-' + nullified + '</div></div><div><div class="text-xs" style="color:#9fa8da;">Penalizacion</div><div class="text-xl font-bold text-orange-400">-' + penalty + '%</div></div><div><div class="text-xs" style="color:#9fa8da;">Kills efectivas</div><div class="text-xl font-bold text-green-400">' + effKills + '</div></div></div>';
+}
+function openModal() { document.getElementById('formula-modal').classList.remove('hidden'); document.getElementById('modal-title').textContent = 'Nueva Formula'; document.getElementById('formula-id').value = ''; document.getElementById('f-name').value = ''; document.getElementById('f-desc').value = ''; document.getElementById('f-strikes').value = ''; document.getElementById('f-penalty').value = ''; }
+function closeModal() { document.getElementById('formula-modal').classList.add('hidden'); }
+async function editFormula(id) { try { var { data, error } = await supabase.from('strike_types').select('*').eq('id', id).single(); if (error) throw error; document.getElementById('formula-modal').classList.remove('hidden'); document.getElementById('modal-title').textContent = 'Editar Formula'; document.getElementById('formula-id').value = data.id; document.getElementById('f-name').value = data.name; document.getElementById('f-desc').value = data.description || ''; document.getElementById('f-strikes').value = data.severity; document.getElementById('f-penalty').value = data.severity * 10; } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function saveFormula() { var id = document.getElementById('formula-id').value; var name = document.getElementById('f-name').value.trim(); var desc = document.getElementById('f-desc').value.trim(); var severity = parseInt(document.getElementById('f-strikes').value) || 1; var penalty = parseInt(document.getElementById('f-penalty').value) || 0; if (!name) { showToast('Nombre obligatorio', 'error'); return; } try { if (id) { var { error } = await supabase.from('strike_types').update({ name, description: desc, severity, legend: '-' + penalty + '% kills' }).eq('id', id); } else { var { error } = await supabase.from('strike_types').insert({ name, description: desc, severity, code: 'custom_' + Date.now(), legend: '-' + penalty + '% kills', is_active: true, nullifies_kills: penalty >= 50 }); } if (error) throw error; showToast('Guardado', 'success'); closeModal(); loadFormulas(); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+requireAdmin();
+loadFormulas();
+</script>
 </body>
 </html>
