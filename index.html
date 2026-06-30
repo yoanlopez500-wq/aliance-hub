@@ -26,6 +26,8 @@
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
 <script src="assets/js/config.js?v=16"></script>
+<script src="assets/js/base.js?v=16"></script>
+<script src="assets/js/auth.js?v=16"></script>
 <script>
 (function() {
     var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
@@ -50,18 +52,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 .feature-card{border:1px solid #1a237e}.feature-card:hover{border-color:#ff6f00}
 </style>
 </head>
-<body>
-<nav style="background:#0a0e27;border-bottom:1px solid #1a237e" class="sticky top-0 z-50">
-<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-<a href="index.html" class="text-lg font-bold flex items-center gap-2" style="color:#ff8f00"><span>&#9876;&#65039;</span><span>Alliance Hub</span></a>
-<div class="flex items-center gap-2">
-<a href="apply-leader.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98] hidden sm:inline-block" style="background:#1a237e;color:#fff">&#127941; Liderar Alianza</a>
-<a href="rankings.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:rgba(255,255,255,.05);color:#e8eaf6">&#127942; Rankings</a>
-<a href="rules.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98] hidden sm:inline-block" style="background:rgba(255,255,255,.05);color:#e8eaf6">&#128220; Reglas</a>
-<a href="login.html" class="px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-[0.98]" style="background:#ff6f00;color:#fff">Admin</a>
-</div>
-</div>
-</nav>
+<body data-role="public">
+<div id="admin-nav"></div>
 <section class="relative overflow-hidden py-20 px-4" style="background:#0a0e27">
 <div class="hero-glow" style="background:#ff6f00;top:-200px;right:-100px"></div>
 <div class="hero-glow" style="background:#1a237e;bottom:-200px;left:-100px"></div>
@@ -126,6 +118,23 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </div>
 </div>
 </section>
+<section class="py-16" style="background:#11183a;border-top:1px solid #1a237e">
+<div class="max-w-6xl mx-auto px-4">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-3xl font-bold">&#128220; Reglamento</h2>
+<a href="rules.html" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Ver completo &#8594;</a>
+</div>
+<div id="landing-rules" class="grid md:grid-cols-2 gap-4 mb-8">
+<div class="text-center py-8" style="color:#9fa8da;">Cargando reglamento...</div>
+</div>
+<div class="mt-6 pt-6" style="border-top:1px solid #1a237e;">
+<h3 class="text-xl font-bold mb-4">&#9878;&#65039; Precedentes y Jurisprudencia</h3>
+<div id="landing-precedents" class="grid md:grid-cols-2 gap-3">
+<div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando precedentes...</div>
+</div>
+</div>
+</div>
+</section>
 <footer style="background:#0a0e27;border-top:1px solid #1a237e" class="py-8">
 <div class="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
 <div class="flex items-center gap-2"><span class="text-lg font-bold" style="color:#ff8f00">&#9876;&#65039; Alliance Hub</span></div>
@@ -149,6 +158,31 @@ async function loadStats() {
     } catch(e) { console.error('[Stats]', e); }
 }
 loadStats();
+
+async function loadLandingRules() {
+    try {
+        var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index').limit(6);
+        if (error) throw error;
+        var container = document.getElementById('landing-rules');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="col-span-2 text-center py-8 rounded-xl" style="background:#0a0e27;border:1px solid #1a237e;color:#9fa8da;">No hay reglas configuradas.</div>'; return; }
+        container.innerHTML = data.map(function(s) {
+            return '<div class="rounded-xl p-4 fade-in" style="background:#0a0e27;border:1px solid #1a237e;"><h3 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + '</h3><p class="text-sm" style="color:#9fa8da;">' + (s.content || '').substring(0, 150) + ((s.content || '').length > 150 ? '...' : '') + '</p></div>';
+        }).join('');
+        loadLandingPrecedents();
+    } catch(e) { console.error('[LandingRules]', e); document.getElementById('landing-rules').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error cargando reglamento</div>'; }
+}
+async function loadLandingPrecedents() {
+    try {
+        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4);
+        if (error) throw error;
+        var container = document.getElementById('landing-precedents');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="col-span-2 text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>'; return; }
+        container.innerHTML = data.map(function(p) {
+            return '<div class="rounded-lg p-3 fade-in" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-2"><span class="text-lg">&#9878;&#65039;</span><div><h4 class="font-bold text-sm" style="color:#ff8f00;">' + p.title + '</h4><p class="text-xs" style="color:#e8eaf6;">' + p.description + '</p></div></div></div>';
+        }).join('');
+    } catch(e) { console.error('[LandingPrecedents]', e); document.getElementById('landing-precedents').innerHTML = '<div class="col-span-2 text-center py-4 text-sm text-red-400">Error cargando precedentes</div>'; }
+}
+loadLandingRules();
 </script>
 <script src="sw-register.js?v=16.1"></script>
 </body>

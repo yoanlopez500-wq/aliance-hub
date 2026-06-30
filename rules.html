@@ -12,10 +12,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js?v=16"></script>
 <script src="assets/js/base.js?v=16"></script>
+<script src="assets/js/auth.js?v=16"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen" data-role="public">
 <div id="admin-nav"></div>
 <div class="max-w-4xl mx-auto px-4 py-8">
 <h1 class="text-3xl font-bold mb-2">&#128220; Reglamento de Alliance Hub</h1>
@@ -31,6 +32,7 @@
 </div>
 </div>
 </div>
+<script src="sw-register.js?v=16.1"></script>
 <script>
 async function loadRules() {
     try {
@@ -42,10 +44,6 @@ async function loadRules() {
             var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' : s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
             return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + (s.title + ' ' + s.content).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
         }).join('');
-        var { data: latest } = await supabase.from('rule_sections').select('updated_at').eq('is_active', true).order('updated_at', { ascending: false }).limit(1);
-        if (latest && latest[0]) {
-            container.insertAdjacentHTML('afterbegin', '<p class="text-xs mb-4" style="color:#9fa8da;">Ultima actualizacion: ' + formatDateTime(latest[0].updated_at) + '</p>');
-        }
         loadPrecedents();
     } catch(e) { console.error('[Rules]', e); document.getElementById('rules-container').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + e.message + '</div>'; }
 }
