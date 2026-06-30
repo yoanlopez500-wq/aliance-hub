@@ -1,51 +1,11 @@
-// assets/js/theme.js - Alliance Hub Theme System
-// Paleta de colores inspirada en AllianceHub Academy
-// Incluir ESTE archivo ANTES de cargar Tailwind CDN para activar la paleta ah-*
-
+// theme.js - Theme toggle + CSS variables
 (function() {
-    window.__AH_THEME = {
-        colors: {
-            bg: '#0a0e27',
-            card: '#11183a',
-            'card-hover': '#1a2347',
-            primary: '#1a237e',
-            'primary-light': '#283593',
-            accent: '#ff6f00',
-            'accent-light': '#ff8f00',
-            gold: '#ffd700',
-            text: '#e8eaf6',
-            'text-light': '#9fa8da',
-            border: '#1a237e',
-            success: '#2e7d32',
-            danger: '#c62828',
-        }
-    };
-
-    window.tailwind = window.tailwind || {};
-    window.tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    ah: window.__AH_THEME.colors
-                },
-                fontFamily: {
-                    sans: ['Inter', 'system-ui', 'sans-serif'],
-                },
-                animation: {
-                    'fade-in': 'fadeIn 0.4s ease-out',
-                    'slide-up': 'slideUp 0.3s ease-out',
-                },
-                keyframes: {
-                    fadeIn: {
-                        '0%': { opacity: '0', transform: 'translateY(12px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    },
-                    slideUp: {
-                        '0%': { opacity: '0', transform: 'translateY(20px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    }
-                }
-            }
-        }
-    };
+    var saved = localStorage.getItem('ah_theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    }
+    var style = document.createElement('style');
+    style.textContent = ':root{--ah-bg:#0a0e27;--ah-card:#11183a;--ah-text:#e8eaf6;--ah-muted:#9fa8da;--ah-border:#1a237e;--ah-accent:#ff8f00;} .dark{--ah-bg:#0a0e27;--ah-card:#11183a;--ah-text:#e8eaf6;--ah-muted:#9fa8da;--ah-border:#1a237e;--ah-accent:#ff8f00;} .bg-ah-bg{background:var(--ah-bg)} .bg-ah-card{background:var(--ah-card)} .text-ah-text{color:var(--ah-text)} .text-ah-muted{color:var(--ah-muted)} .border-ah-border{border-color:var(--ah-border)} .text-ah-accent{color:var(--ah-accent)}';
+    document.head.appendChild(style);
+    window.toggleTheme = function() { document.documentElement.classList.toggle('dark'); localStorage.setItem('ah_theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); };
 })();
