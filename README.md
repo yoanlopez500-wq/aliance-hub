@@ -1,83 +1,91 @@
-# Alliance Hub V2
+# Alliance Hub
 
-Plataforma de rankings, ligas y gestión para comunidades de **Supremacy 1914**.
+Plataforma de torneos, rankings y gestion de comunidades para Supremacy 1914.
 
-## Características
+## Flujos Principales
 
-- **5 tipos de partida**: Internas, Duelos (5v5), Públicas 31, Eventos 500, Rápidas (auto-delete)
-- **Sistema de ligas**: Jornadas, standings, bracket
-- **Jerarquía de admins**: Superadmin > Event Admin > Alliance Leader > Moderator
-- **Códigos de invitación**: Registro con Supremacy ID
-- **Lazy login**: Entrar solo con ID de jugador
-- **Chat**: Entre alianzas en duelos, canales por rol
-- **Reportes de chat**: Auditoría completa
-- **PWA**: Instalable, offline-capable
-- **Push notifications**: Via Supabase Edge Functions
-- **Sistema de aprobación**: Registros pendientes de aprobación
-- **Cache inteligente**: Con kill switch desde la BD
+### 1. Jugador (Sesion Pública)
+- **Landing** (`index.html`) - Estadisticas, features, preview del reglamento con precedentes
+- **Reglas** (`rules.html`) - Reglamento nativo desde `rule_sections` + precedentes/jurisprudencia desde `rule_precedents`
+- **Rankings** (`rankings.html`) - Rankings globales con kills efectivas (penalizadas por strikes/sanciones)
+- **Reportar** (`report.html`) - Reportar jugador seleccionando seccion del reglamento violada
+- **Solicitar Liderazgo** (`apply-leader.html`) - Formulario para registrar nueva alianza (reemplaza curso)
 
-## Estructura del Proyecto
+### 2. Jugador (Sesion Autenticada)
+- **Dashboard** (`dashboard.html`) - Lista de partidas disponibles
+- **Game** (`game.html`) - Detalle de partida con reglamento nativo cargado desde Supabase
+- **Player** (`player.html`) - Perfil publico con kills efectivas calculadas por strike penalty
+- **Chat** (`chat.html`) - Chat global
+- **Alianza** (`alliance-panel.html`) - Panel de alianza del jugador
 
-```
-/
-├── index.html              # Página pública principal
-├── login.html              # Login admin (email/password)
-├── login-player.html       # Login jugador (lazy, solo ID)
-├── reset-password.html     # Recuperar contraseña
-├── game.html               # Detalle de partida pública
-├── player.html             # Perfil de jugador público
-├── rankings.html           # Rankings globales y por filtro
-├── chat.html               # Chat entre alianzas
-├── 404.html                # SPA redirect para GitHub Pages
-├── alliance-panel.html     # Panel de alianza para miembros
-├── manifest.json           # PWA manifest
-├── service-worker.js       # SW con cache + push
-├── schema.sql              # Schema completo de Supabase
-├── README.md               # Este archivo
-│
-├── register/
-│   └── index.html          # Registro a partida (jugadores)
-│
-├── admin/
-│   ├── index.html          # Dashboard
-│   ├── matches.html        # CRUD partidas
-│   ├── match-detail.html   # Gestionar partida específica
-│   ├── players.html        # Gestión de jugadores
-│   ├── alliances.html      # CRUD alianzas
-│   ├── leagues.html        # Gestión de ligas
-│   ├── import.html         # Importar CSV de resultados
-│   ├── invites.html        # Generar códigos de invitación
-│   ├── admins.html         # Gestión de administradores
-│   ├── chat-reports.html   # Reportes de chat
-│   └── alliance-members.html # Miembros de alianza (para líderes)
-│
-└── assets/
-    ├── js/
-    │   ├── config.js         # Supabase config
-    │   ├── base.js           # Funciones compartidas + caché + login
-    │   ├── auth.js           # Auth admin + jerarquía + nav
-    │   └── pwa-utils.js      # Service worker + instalación
-    └── css/
-        └── style.css         # Overrides y animaciones
-```
+### 3. Admin (Panel de Control)
+#### Gestión Principal
+- **Dashboard** (`admin/index.html`) - Panel principal con estadisticas
+- **Partidas** (`admin/matches.html`) - CRUD de partidas
+- **Detalle Partida** (`admin/match-detail.html`) - Editar partida + importar CSV de resultados
+- **Jugadores** (`admin/players.html`) - Lista de jugadores con busqueda
 
-## Deploy en GitHub Pages
+#### Reglamento y Sanciones
+- **Editor de Reglamento** (`admin/rules-editor.html`) - CRUD de `rule_sections` + gestion de precedentes
+- **Motor de Sanciones** (`admin/sanctions-engine.html`) - Fórmulas de penalizacion + simulador
+- **Strikes** (`admin/strikes.html`) - Aplicar strikes conectados a secciones del reglamento
 
-1. Fork este repo
-2. En **Settings > Pages**: Source = Deploy from a branch, Branch = `main`, folder = `/` (root)
-3. Para rutas SPA: el `404.html` redirige automáticamente
+#### Reportes y Solicitudes
+- **Reportes** (`admin/reports.html`) - Gestion de reportes con filtro por regla + sugerencias de precedentes
+- **Certificaciones** (`admin/certifications.html`) - Vista de solicitudes de liderazgo
+- **Solicitudes de Liderazgo** (`admin/leader-requests.html`) - Aprobar/rechazar solicitudes de liderazgo
 
-## Configuración de Supabase
+#### Configuración
+- **Alianzas** (`admin/alliances.html`) - Gestion de alianzas
+- **Admins** (`admin/admins.html`) - Gestion de administradores
+- **Invitaciones** (`admin/invites.html`) - Codigos de invitacion
+- **Importar CSV** (`admin/import.html`) - Importar resultados masivos
 
-1. Crear proyecto en [Supabase](https://supabase.com)
-2. Ejecutar `schema.sql` en SQL Editor
-3. Copiar URL y anon key en `assets/js/config.js`
-4. Habilitar Auth (Email provider)
-5. Configurar RLS policies (ya están en el schema)
+## Arquitectura Técnica
 
-## Tecnologías
+### Frontend
+- HTML5 + Tailwind CSS (via CDN) + Vanilla JavaScript
+- Supabase Client v2 (`assets/js/config.js`)
+- Service Worker con Workbox (auto-update, network-first para HTML)
+- PWA con `manifest.json` e iconos
 
-- [Supabase](https://supabase.com) - Backend (Auth, Database, Realtime, Storage)
-- [Tailwind CSS](https://tailwindcss.com) - CDN para estilos
-- Vanilla JavaScript - Sin framework frontend
-- PWA - Service Worker + Manifest
+### JS Core
+| Archivo | Función |
+|---------|---------|
+| `assets/js/config.js` | Inicializacion de Supabase client |
+| `assets/js/base.js` | Utilidades (formatDate, showToast, getStatusBadge, etc.) |
+| `assets/js/auth.js` | Auth dual + navegación fluida + ROLE_PANELS |
+| `assets/js/theme.js` | Variables CSS del tema oscuro |
+| `assets/js/sw-register.js` | Registro inteligente del SW con detección de versiones |
+
+### Base de Datos (Supabase)
+- **Tablas principales**: `players`, `alliances`, `matches`, `match_registrations`, `match_results`
+- **Sistema de reglas**: `rule_sections` (jerarquico), `rule_precedents` (jurisprudencia)
+- **Sistema de strikes**: `player_strikes`, `strike_types`, `player_sanctions`
+- **Reportes**: `player_reports` (con `rule_section_id`)
+- **Solicitudes**: `alliance_leader_requests`
+- **Auth**: `admin_users`, `admin_invites`, `player_tokens`
+
+### Sistema de Penalizacion por Strikes
+Las kills efectivas se calculan restando strikes activos:
+- 1 strike = -10% kills
+- 2 strikes = -30% kills
+- 3+ strikes = -50% kills
+- El motor de sanciones (`admin/sanctions-engine.html`) permite crear fórmulas custom
+
+**IMPORTANTE**: `players.strikes` NO EXISTE. Siempre contar desde `player_strikes`.
+
+## Service Worker
+- **Workbox CDN** v7.1.0 con strategies:
+  - HTML: `NetworkFirst` (siempre fresco)
+  - JS/CSS: `StaleWhileRevalidate`
+  - Imagenes/Fuentes: `CacheFirst`
+  - Supabase API: `NetworkOnly`
+- Auto-limpieza de caches viejos al instalar
+- Deteccion de version via `sw-register.js`
+
+## Deploy
+- GitHub Pages: `https://yoanlopez500-wq.github.io/aliance-hub/`
+
+## Version
+**v16.1** - Sistema nativo de reglas, motor de sanciones, solicitud de liderazgo, Workbox SW
