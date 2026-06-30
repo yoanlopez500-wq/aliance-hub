@@ -1,141 +1,331 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Editor de Reglas - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=15"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=15"></script>
-<script src="../assets/js/base.js?v=15"></script>
-<script src="../assets/js/auth.js?v=15"></script>
-<meta name="theme-color" content="#0a0e27">
-<style>
-.drag-over{border:2px dashed #ff6f00!important}.rule-item{cursor:grab}.rule-item:active{cursor:grabbing}
-/* v5.2 FIX: Force dark text on all form inputs inside modals (white bg) */
-#section-modal input, #section-modal textarea, #section-modal select,
-#precedent-modal input, #precedent-modal textarea, #precedent-modal select {
-    color: #0f172a !important;
-    background-color: #ffffff !important;
-}
-#section-modal input::placeholder, #section-modal textarea::placeholder,
-#precedent-modal input::placeholder, #precedent-modal textarea::placeholder {
-    color: #94a3b8 !important;
-}
-/* Precedent cards */
-.precedent-card { background: rgba(255,255,255,0.03); border: 1px solid #1a237e; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Reglas - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js?v=16"></script>
+    <script src="../assets/js/base.js?v=16"></script>
+    <script src="../assets/js/auth.js?v=16"></script>
+    <style>
+        .rule-section { border-left: 3px solid #e2e8f0; }
+        .rule-section:hover { border-left-color: #f59e0b; }
+    </style>
+    <meta name="theme-color" content="#0f172a">
 </head>
-<body class="min-h-screen" style="background:#0a0e27;color:#e8eaf6" data-role="admin">
-<div id="admin-nav"></div>
-<div class="max-w-7xl mx-auto px-4 py-8">
-<div class="flex items-center justify-between mb-6">
-<div><h1 class="text-2xl font-bold text-white">📜 Editor de Reglas</h1><p class="text-sm" style="color:#9fa8da">Crear, editar y gestionar las reglas de Alliance Hub. Controla quién ve cada sección.</p></div>
-<div class="flex gap-2">
-<a href="strikes.html" class="px-4 py-2 rounded-lg text-xs font-bold transition" style="background:#1a237e;color:white">⚡ Panel Strikes</a>
-<button onclick="openSectionModal()" class="px-4 py-2 rounded-lg text-xs font-bold transition" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white">➕ Nueva Sección</button>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-<div class="lg:col-span-1"><div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e"><h2 class="font-bold text-white mb-3 text-sm">📋 Secciones</h2><div id="sections-list" class="space-y-2 max-h-[70vh] overflow-y-auto"><div class="text-center py-4 text-sm" style="color:#9fa8da">Cargando...</div></div></div></div>
-<div class="lg:col-span-2">
-<div id="editor-panel" class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e"><div class="text-center py-8"><div class="text-4xl mb-3">📝</div><p style="color:#9fa8da">Selecciona una sección para editar, o crea una nueva.</p></div></div>
-<div id="history-panel" class="hidden mt-4 rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e"><h3 class="font-bold text-white mb-3 text-sm">🕐 Historial de Cambios</h3><div id="history-list" class="space-y-2 max-h-48 overflow-y-auto text-sm"></div></div>
-<div id="precedents-panel" class="hidden mt-4 rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e"><h3 class="font-bold text-white mb-3 text-sm">⚖️ Precedentes Vinculados</h3><div id="precedents-list" class="space-y-2 text-sm"></div><button onclick="openPrecedentModal()" class="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(255,111,0,0.15);color:#ff8f00">➕ Crear Precedente</button></div>
-</div>
-</div>
-</div>
-<div id="section-modal" class="fixed inset-0 bg-black/50 z-50 items-center justify-center p-4 hidden">
-<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold text-slate-800" id="sec-modal-title">➕ Nueva Sección</h2><button onclick="closeSectionModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button></div>
-<form id="section-form" class="p-6 space-y-4">
-<input type="hidden" id="sec-id">
-<div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 mb-1">Número de Sección *</label><input type="text" id="sec-number" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Ej: 1, 2.1, 3.a"></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Orden</label><input type="number" id="sec-order" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" value="0"></div></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Título *</label><input type="text" id="sec-title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Ej: Uso de Goldmark"></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Contenido *</label><textarea id="sec-content" required rows="6" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Texto completo de la regla..."></textarea></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Sección Padre (opcional)</label><select id="sec-parent" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Ninguna (capítulo raíz) --</option></select></div>
-<div class="grid grid-cols-2 gap-4">
-<div><label class="block text-sm font-medium text-slate-700 mb-1">👁️ Visibilidad</label><select id="sec-visibility" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="public">🌍 Público (todos)</option><option value="player">🎮 Jugador (logueado)</option><option value="official">⭐ Oficial / Co-Líder</option><option value="leader">👑 Líder de Alianza</option><option value="admin">🛡️ Admin / Moderador</option><option value="superadmin">🔴 Solo Super Admin</option></select><p class="text-[10px] text-slate-400 mt-1">Quién puede ver esta sección</p></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">📚 Capacitación</label><select id="sec-training" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Ninguna --</option><option value="leader">👑 Líder de Alianza</option><option value="officer">⭐ Oficial</option><option value="admin">🛡️ Administrador</option><option value="moderator">⚖️ Moderador</option></select><p class="text-[10px] text-slate-400 mt-1">Si es material de capacitación</p></div>
-</div>
-<div class="flex items-center gap-2"><input type="checkbox" id="sec-active" checked class="rounded"><label class="text-sm text-slate-700">Activa</label></div>
-<div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button><button type="button" onclick="closeSectionModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button></div>
-</form>
-</div></div>
-<div id="precedent-modal" class="fixed inset-0 bg-black/50 z-50 items-center justify-center p-4 hidden">
-<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-6 border-b flex items-center justify-between"><h2 class="text-xl font-bold text-slate-800">⚖️ Nuevo Precedente</h2><button onclick="closePrecedentModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button></div>
-<form id="precedent-form" class="p-6 space-y-4">
-<input type="hidden" id="prec-rule-id">
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Título del Caso *</label><input type="text" id="prec-title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" placeholder="Ej: Uso de goldmark en partida #123"></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Descripción *</label><textarea id="prec-desc" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></textarea></div>
-<div><label class="block text-sm font-medium text-slate-700 mb-1">Resolución *</label><textarea id="prec-resolution" required rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></textarea></div>
-<div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-slate-700 mb-1">Severidad</label><select id="prec-severity" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="minor">Leve</option><option value="moderate">Moderada</option><option value="severe">Severa</option></select></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Strike</label><select id="prec-strike-type" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"><option value="">-- Ninguno --</option><option value="no_show">No-Show</option><option value="gold_use">Uso Goldmark</option><option value="multi_account">Multicuenta</option><option value="spy">Espionaje</option><option value="cheating">Trampa</option><option value="toxicity">Toxicidad</option></select></div></div>
-<div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Crear Precedente</button><button type="button" onclick="closePrecedentModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button></div>
-</form>
-</div></div>
-<script>
-requireAdmin();
-var allSections=[],editingId=null;
-async function loadSections(){try{var{data,error}=await supabase.from('rule_sections').select('*').order('order_index');if(error)throw error;allSections=data||[];renderSectionList();updateParentDropdown()}catch(e){console.error('[Rules] Error cargando:',e)}}
-function renderSectionList(){var container=document.getElementById('sections-list');if(allSections.length===0){container.innerHTML='<div class="text-center py-4 text-sm" style="color:#9fa8da">Sin secciones. Crea la primera.</div>';return}var visibilityLabels={public:'🌍',player:'🎮',official:'⭐',leader:'👑',admin:'🛡️',superadmin:'🔴'};container.innerHTML=allSections.map(function(s){var indent=s.parent_id?'pl-6 border-l-2 border-orange-500/30':'';var num=s.section_number?'<span class="text-amber-400 font-bold mr-2">'+s.section_number+'</span>':'';var inactive=s.is_active?'':'<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 ml-2">INACTIVA</span>';var visIcon=visibilityLabels[s.visibility]||'🌍';var trainBadge=s.training_for?'<span class="text-[9px] px-1.5 py-0.5 rounded font-bold ml-1" style="background:rgba(255,111,0,0.15);color:#ff8f00">📚 '+s.training_for+'</span>':'';return'<div class="rule-item '+indent+' rounded-lg p-3 transition hover:bg-white/5 flex items-center justify-between group" style="background:rgba(255,255,255,0.03);border:1px solid #1a237e" data-id="'+s.id+'" draggable="true">'+'<div class="flex-1 min-w-0 cursor-pointer" onclick="editSection(\''+s.id+'\')">'+'<div class="text-sm font-medium truncate">'+num+s.title+inactive+'</div>'+'<div class="text-xs mt-0.5 truncate" style="color:#9fa8da;opacity:0.6">'+visIcon+' '+(s.visibility||'public')+trainBadge+'</div></div>'+'<div class="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition">'+'<button onclick="editSection(\''+s.id+'\')" class="text-xs px-2 py-1 rounded hover:bg-white/10" style="color:#ff8f00">✏️</button>'+'<button onclick="deleteSection(\''+s.id+'\')" class="text-xs px-2 py-1 rounded hover:bg-white/10" style="color:#ef5350">🗑️</button></div></div>'}).join('');document.querySelectorAll('.rule-item').forEach(function(el){el.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain',el.dataset.id);el.style.opacity='0.5'});el.addEventListener('dragend',function(){this.style.opacity='1';document.querySelectorAll('.rule-item').forEach(function(x){x.classList.remove('drag-over')})});el.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over')});el.addEventListener('dragleave',function(){this.classList.remove('drag-over')});el.addEventListener('drop',function(e){e.preventDefault();var draggedId=e.dataTransfer.getData('text/plain');var targetId=this.dataset.id;if(draggedId!==targetId)reorderSection(draggedId,targetId)})})}
-function updateParentDropdown(){var sel=document.getElementById('sec-parent');var opts='<option value="">-- Ninguna (capítulo raíz) --</option>';allSections.filter(function(s){return!s.parent_id}).forEach(function(s){opts+='<option value="'+s.id+'">'+s.section_number+' '+s.title+'</option>'});sel.innerHTML=opts}
-async function reorderSection(draggedId,targetId){var dragged=allSections.find(function(s){return s.id===draggedId});var target=allSections.find(function(s){return s.id===targetId});if(!dragged||!target)return;var newOrder=target.order_index+1;try{await supabase.from('rule_sections').update({order_index:newOrder}).eq('id',draggedId);loadSections();showToast('Orden actualizado','success')}catch(e){showToast('Error: '+e.message,'error')}}
-function openSectionModal(){editingId=null;document.getElementById('section-form').reset();document.getElementById('sec-id').value='';document.getElementById('sec-modal-title').textContent='➕ Nueva Sección';document.getElementById('section-modal').classList.remove('hidden');document.getElementById('section-modal').classList.add('flex')}
-function closeSectionModal(){document.getElementById('section-modal').classList.add('hidden');document.getElementById('section-modal').classList.remove('flex')}
-function editSection(id){var s=allSections.find(function(x){return x.id===id});if(!s)return;editingId=id;document.getElementById('sec-id').value=s.id;document.getElementById('sec-number').value=s.section_number||'';document.getElementById('sec-order').value=s.order_index;document.getElementById('sec-title').value=s.title;document.getElementById('sec-content').value=s.content;document.getElementById('sec-parent').value=s.parent_id||'';document.getElementById('sec-active').checked=s.is_active;document.getElementById('sec-visibility').value=s.visibility||'public';document.getElementById('sec-training').value=s.training_for||'';document.getElementById('sec-modal-title').textContent='✏️ Editar Sección';document.getElementById('section-modal').classList.remove('hidden');document.getElementById('section-modal').classList.add('flex');loadHistory(id);loadPrecedents(id)}
-async function deleteSection(id){if(!confirm('¿Eliminar esta sección?'))return;try{await supabase.from('rule_sections').delete().eq('id',id);loadSections();showToast('Eliminada','success')}catch(e){showToast('Error: '+e.message,'error')}}
-document.getElementById('section-form').addEventListener('submit',async function(e){e.preventDefault();var data={section_number:document.getElementById('sec-number').value.trim(),order_index:parseInt(document.getElementById('sec-order').value)||0,title:document.getElementById('sec-title').value.trim(),content:document.getElementById('sec-content').value.trim(),parent_id:document.getElementById('sec-parent').value||null,is_active:document.getElementById('sec-active').checked,visibility:document.getElementById('sec-visibility').value||'public',training_for:document.getElementById('sec-training').value||null};try{if(editingId){await supabase.from('rule_sections').update(data).eq('id',editingId);showToast('Sección actualizada','success')}else{await supabase.from('rule_sections').insert([data]);showToast('Sección creada','success')}closeSectionModal();loadSections()}catch(e){showToast('Error: '+e.message,'error')}});
-async function loadHistory(sectionId){try{var{data}=await supabase.from('rule_section_history').select('*').eq('section_id',sectionId).order('changed_at',{ascending:false}).limit(10);var panel=document.getElementById('history-panel');var list=document.getElementById('history-list');if(data&&data.length>0){panel.classList.remove('hidden');list.innerHTML=data.map(function(h){return'<div class="p-2 rounded" style="background:rgba(255,255,255,0.03)"><span class="text-xs font-bold" style="color:#ff8f00">'+formatDateTime(h.changed_at)+'</span><span class="text-xs ml-2" style="color:#9fa8da">'+h.title+'</span></div>'}).join('')}else{panel.classList.add('hidden')}}catch(e){console.error('[Rules] History:',e)}}
+<body class="bg-slate-900 min-h-screen" data-role="admin">
+    <div id="admin-nav"></div>
 
-// v5.2 FIX: Enhanced precedents loading with helpful hints
-async function loadPrecedents(sectionId){
-    try{
-        var{data}=await supabase.from('rule_precedents').select('*').eq('rule_section_id',sectionId).order('created_at',{ascending:false});
-        var panel=document.getElementById('precedents-panel');
-        var list=document.getElementById('precedents-list');
-        document.getElementById('prec-rule-id').value=sectionId;
-        panel.classList.remove('hidden');
-        if(data&&data.length>0){
-            list.innerHTML=data.map(function(p){
-                var sevColor=p.severity==='severe'?'text-red-400':(p.severity==='moderate'?'text-orange-400':'text-green-400');
-                var sevLabel=p.severity==='severe'?'Grave':(p.severity==='moderate'?'Moderada':'Leve');
-                var strikeBadge=p.strike_type?'<span class="text-xs px-2 py-0.5 rounded font-bold ml-2" style="background:rgba(255,111,0,0.15);color:#ff8f00">⚡ '+p.strike_type+'</span>':'';
-                return'<div class="precedent-card">'+
-                    '<div class="flex items-center justify-between mb-1 flex-wrap gap-1">'+
-                        '<span class="font-medium text-white text-sm">'+p.title+'</span>'+
-                        '<span class="text-xs '+sevColor+' font-bold">['+sevLabel+']</span>'+strikeBadge+'</div>'+
-                    '<p class="text-xs mb-2" style="color:#9fa8da">'+p.description+'</p>'+
-                    '<div class="text-xs p-2 rounded" style="background:rgba(76,175,80,0.08);color:#81c784;border-left:3px solid #4caf50">'+p.resolution+'</div></div>';
-            }).join('');
-        } else {
-            // Find which sections DO have precedents
-            var allPrec = await supabase.from('rule_precedents').select('rule_section_id').order('created_at',{ascending:false});
-            var sectionIdsWithPrec = [];
-            if(allPrec.data){
-                allPrec.data.forEach(function(p){if(sectionIdsWithPrec.indexOf(p.rule_section_id)===-1)sectionIdsWithPrec.push(p.rule_section_id)});
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold text-white">&#128221; Editor de Reglas</h1>
+            <button onclick="openModal()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">+ Nueva Seccion</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Lista de reglas -->
+            <div>
+                <h2 class="text-lg font-bold text-white mb-3">&#128220; Secciones</h2>
+                <div id="rules-list" class="space-y-3">
+                    <div class="text-center py-8 text-slate-400">Cargando...</div>
+                </div>
+            </div>
+
+            <!-- Precedentes -->
+            <div>
+                <h2 class="text-lg font-bold text-white mb-3">&#9878; Precedentes</h2>
+                <button onclick="openPrecedentModal()" class="mb-3 px-3 py-1.5 bg-blue-500 text-white rounded text-xs font-bold hover:bg-blue-400">+ Nuevo Precedente</button>
+                <div id="precedents-list" class="space-y-3">
+                    <div class="text-center py-8 text-slate-400">Cargando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Seccion -->
+    <div id="section-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Nueva Seccion</h2>
+            <input type="hidden" id="edit-id">
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Numero de seccion (ej: 1.2)</label>
+                <input type="text" id="r-number" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="1.1">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Titulo *</label>
+                <input type="text" id="r-title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Contenido</label>
+                <textarea id="r-content" rows="5" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Seccion padre (opcional)</label>
+                <select id="r-parent" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+                    <option value="">Ninguna (raiz)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Orden</label>
+                <input type="number" id="r-order" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" value="0">
+            </div>
+            <div class="flex items-center gap-2 mb-4">
+                <input type="checkbox" id="r-active" checked class="rounded">
+                <label class="text-sm text-slate-700">Activa</label>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm hover:text-slate-800">Cancelar</button>
+                <button onclick="saveSection()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Precedente -->
+    <div id="precedent-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-lg w-full mx-4">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">Nuevo Precedente</h2>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Titulo *</label>
+                <input type="text" id="p-title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Descripcion</label>
+                <textarea id="p-desc" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Resolucion</label>
+                <textarea id="p-resolution" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Severidad</label>
+                <select id="p-severity" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+                    <option value="minor">Leve</option>
+                    <option value="moderate">Moderada</option>
+                    <option value="severe">Grave</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Seccion relacionada</label>
+                <select id="p-section" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
+                    <option value="">Ninguna</option>
+                </select>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closePrecedentModal()" class="px-4 py-2 text-slate-600 text-sm hover:text-slate-800">Cancelar</button>
+                <button onclick="savePrecedent()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold text-sm hover:bg-blue-400">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (!hasAdminSession()) { window.location.href = 'login.html'; }
+
+        async function loadRules() {
+            var { data: rules } = await supabase
+                .from('rule_sections')
+                .select('*')
+                .order('order_index', { ascending: true });
+
+            var container = document.getElementById('rules-list');
+            if (!rules || rules.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">No hay secciones configuradas</div>';
+                populateParentSelect([]);
+                return;
             }
-            var hintHTML = '';
-            if(sectionIdsWithPrec.length > 0){
-                var sectionNames = sectionIdsWithPrec.map(function(sid){
-                    var sec = allSections.find(function(s){return s.id===sid});
-                    return sec ? (sec.section_number||'')+' '+sec.title : '';
-                }).filter(function(n){return n}).join(', ');
-                hintHTML = '<p class="text-xs mt-2" style="color:#ff8f00">📌 Hay precedentes en: '+sectionNames+'</p>';
-            }
-            list.innerHTML='<div class="text-center py-4">'+
-                '<div class="text-2xl mb-1">⚖️</div>'+
-                '<p class="text-sm" style="color:#9fa8da">Sin precedentes para esta sección.</p>'+
-                hintHTML+'</div>';
+
+            // Build tree
+            var byId = {};
+            var roots = [];
+            rules.forEach(function(r) { byId[r.id] = r; r.children = []; });
+            rules.forEach(function(r) {
+                if (r.parent_id && byId[r.parent_id]) byId[r.parent_id].children.push(r);
+                else roots.push(r);
+            });
+
+            container.innerHTML = roots.map(function(r) { return renderRule(r, 0); }).join('');
+            populateParentSelect(rules);
+            populateSectionSelect(rules);
         }
-    }catch(e){console.error('[Rules] Precedents:',e)}
-}
 
-function openPrecedentModal(){document.getElementById('precedent-form').reset();document.getElementById('precedent-modal').classList.remove('hidden');document.getElementById('precedent-modal').classList.add('flex')}
-function closePrecedentModal(){document.getElementById('precedent-modal').classList.add('hidden');document.getElementById('precedent-modal').classList.remove('flex')}
-document.getElementById('precedent-form').addEventListener('submit',async function(e){e.preventDefault();var data={rule_section_id:document.getElementById('prec-rule-id').value,title:document.getElementById('prec-title').value.trim(),description:document.getElementById('prec-desc').value.trim(),resolution:document.getElementById('prec-resolution').value.trim(),severity:document.getElementById('prec-severity').value,strike_type:document.getElementById('prec-strike-type').value||null};try{await supabase.from('rule_precedents').insert([data]);showToast('Precedente creado','success');closePrecedentModal();loadPrecedents(data.rule_section_id)}catch(e){showToast('Error: '+e.message,'error')}});
-loadSections();
-</script>
+        function renderRule(r, level) {
+            var indent = level * 16;
+            var num = r.section_number ? '<span class="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded mr-2">' + r.section_number + '</span>' : '';
+            var activeBadge = r.is_active === false ? '<span class="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-500 ml-2">INACTIVA</span>' : '';
+            var children = r.children || [];
+
+            var html = '<div class="rule-section bg-white rounded-xl border border-slate-200 p-4 mb-2" style="margin-left:' + indent + 'px">' +
+                '<div class="flex items-start justify-between">' +
+                    '<div class="flex-1">' +
+                        '<h3 class="font-bold text-slate-800 text-sm">' + num + r.title + activeBadge + '</h3>' +
+                        '<p class="text-xs text-slate-500 mt-1">' + (r.content || '').substring(0, 100) + (r.content && r.content.length > 100 ? '...' : '') + '</p>' +
+                    '</div>' +
+                    '<div class="flex gap-2 ml-2">' +
+                        '<button onclick="editSection(\'' + r.id + '\')" class="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">Editar</button>' +
+                        '<button onclick="toggleSection(\'' + r.id + '\', ' + (r.is_active === false) + ')" class="px-2 py-1 text-xs ' + (r.is_active === false ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600') + ' rounded hover:bg-opacity-80">' + (r.is_active === false ? 'Activar' : 'Desactivar') + '</button>' +
+                    '</div>' +
+                '</div>';
+
+            if (children.length > 0) {
+                html += '<div class="mt-2 pt-2 border-t border-slate-100">';
+                children.forEach(function(c) { html += renderRule(c, level + 1); });
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function populateParentSelect(rules) {
+            var sel = document.getElementById('r-parent');
+            var opts = '<option value="">Ninguna (raiz)</option>';
+            rules.forEach(function(r) {
+                opts += '<option value="' + r.id + '">' + (r.section_number ? '[' + r.section_number + '] ' : '') + r.title + '</option>';
+            });
+            sel.innerHTML = opts;
+        }
+
+        function populateSectionSelect(rules) {
+            var sel = document.getElementById('p-section');
+            var opts = '<option value="">Ninguna</option>';
+            rules.forEach(function(r) {
+                opts += '<option value="' + r.id + '">' + (r.section_number ? '[' + r.section_number + '] ' : '') + r.title + '</option>';
+            });
+            sel.innerHTML = opts;
+        }
+
+        function openModal() {
+            document.getElementById('section-modal').classList.remove('hidden');
+            document.getElementById('section-modal').classList.add('flex');
+            document.getElementById('modal-title').textContent = 'Nueva Seccion';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('r-number').value = '';
+            document.getElementById('r-title').value = '';
+            document.getElementById('r-content').value = '';
+            document.getElementById('r-parent').value = '';
+            document.getElementById('r-order').value = '0';
+            document.getElementById('r-active').checked = true;
+        }
+
+        function closeModal() {
+            document.getElementById('section-modal').classList.add('hidden');
+            document.getElementById('section-modal').classList.remove('flex');
+        }
+
+        async function editSection(id) {
+            var { data: r } = await supabase.from('rule_sections').select('*').eq('id', id).single();
+            if (!r) return;
+
+            document.getElementById('section-modal').classList.remove('hidden');
+            document.getElementById('section-modal').classList.add('flex');
+            document.getElementById('modal-title').textContent = 'Editar Seccion';
+            document.getElementById('edit-id').value = r.id;
+            document.getElementById('r-number').value = r.section_number || '';
+            document.getElementById('r-title').value = r.title;
+            document.getElementById('r-content').value = r.content || '';
+            document.getElementById('r-parent').value = r.parent_id || '';
+            document.getElementById('r-order').value = r.order_index;
+            document.getElementById('r-active').checked = r.is_active !== false;
+        }
+
+        async function saveSection() {
+            var id = document.getElementById('edit-id').value;
+            var data = {
+                section_number: document.getElementById('r-number').value.trim() || null,
+                title: document.getElementById('r-title').value.trim(),
+                content: document.getElementById('r-content').value.trim() || null,
+                parent_id: document.getElementById('r-parent').value || null,
+                order_index: parseInt(document.getElementById('r-order').value) || 0,
+                is_active: document.getElementById('r-active').checked
+            };
+
+            if (!data.title) { showToast('Titulo es requerido', 'error'); return; }
+
+            var result;
+            if (id) {
+                result = await supabase.from('rule_sections').update(data).eq('id', id);
+            } else {
+                result = await supabase.from('rule_sections').insert([data]);
+            }
+
+            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
+            showToast('Seccion guardada', 'success');
+            closeModal();
+            loadRules();
+        }
+
+        async function toggleSection(id, activate) {
+            var { error } = await supabase.from('rule_sections').update({ is_active: activate }).eq('id', id);
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+            showToast(activate ? 'Seccion activada' : 'Seccion desactivada', 'success');
+            loadRules();
+        }
+
+        // Precedentes
+        function openPrecedentModal() {
+            document.getElementById('precedent-modal').classList.remove('hidden');
+            document.getElementById('precedent-modal').classList.add('flex');
+            document.getElementById('p-title').value = '';
+            document.getElementById('p-desc').value = '';
+            document.getElementById('p-resolution').value = '';
+            document.getElementById('p-severity').value = 'minor';
+            document.getElementById('p-section').value = '';
+        }
+
+        function closePrecedentModal() {
+            document.getElementById('precedent-modal').classList.add('hidden');
+            document.getElementById('precedent-modal').classList.remove('flex');
+        }
+
+        async function savePrecedent() {
+            var data = {
+                title: document.getElementById('p-title').value.trim(),
+                description: document.getElementById('p-desc').value.trim() || null,
+                resolution: document.getElementById('p-resolution').value.trim() || null,
+                severity: document.getElementById('p-severity').value,
+                rule_section_id: document.getElementById('p-section').value || null
+            };
+
+            if (!data.title) { showToast('Titulo es requerido', 'error'); return; }
+
+            var { error } = await supabase.from('rule_precedents').insert([data]);
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+            showToast('Precedente guardado', 'success');
+            closePrecedentModal();
+            loadPrecedents();
+        }
+
+        async function loadPrecedents() {
+            var { data: precedents } = await supabase
+                .from('rule_precedents')
+                .select('*, rule_section:rule_sections(title)')
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            var container = document.getElementById('precedents-list');
+            if (!precedents || precedents.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin precedentes registrados</div>';
+                return;
+            }
+
+            container.innerHTML = precedents.map(function(p) {
+                var sevColor = p.severity === 'minor' ? 'bg-yellow-100 text-yellow-700' :
+                               p.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
+                               'bg-red-100 text-red-700';
+                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
+                    '<div class="flex items-center gap-2 mb-1">' +
+                        '<span class="px-2 py-0.5 rounded text-xs ' + sevColor + ' font-bold">' + p.severity + '</span>' +
+                        '<span class="text-xs text-slate-400">' + (p.rule_section?.title || 'General') + '</span>' +
+                    '</div>' +
+                    '<h3 class="font-bold text-slate-800 text-sm">' + p.title + '</h3>' +
+                    '<p class="text-xs text-slate-600 mt-1">' + (p.description || '') + '</p>' +
+                    '<p class="text-xs text-amber-600 mt-1">&#9878; ' + (p.resolution || '') + '</p>' +
+                '</div>';
+            }).join('');
+        }
+
+        loadRules();
+        loadPrecedents();
+    </script>
 </body>
 </html>
