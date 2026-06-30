@@ -1,195 +1,54 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jugadores - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=16"></script>
-    <script src="../assets/js/base.js?v=16"></script>
-    <script src="../assets/js/auth.js?v=16"></script>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Jugadores - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-bold text-white">&#128100; Jugadores</h1>
-            <div class="flex gap-2">
-                <input type="text" id="search-player" oninput="searchPlayers()" placeholder="Buscar jugador..." class="px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                <button onclick="openModal()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">+ Nuevo</button>
-            </div>
-        </div>
-
-        <div id="players-list" class="space-y-3">
-            <div class="text-center py-8 text-slate-400">Cargando...</div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="player-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Nuevo Jugador</h2>
-            <input type="hidden" id="edit-id">
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">ID de Jugador (numero)</label>
-                <input type="number" id="p-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Username</label>
-                <input type="text" id="p-name" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Alianza</label>
-                <select id="p-alliance" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></select>
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Estado</label>
-                <select id="p-status" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                    <option value="active">Activo</option>
-                    <option value="banned">Baneado</option>
-                    <option value="suspended">Suspendido</option>
-                </select>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm hover:text-slate-800">Cancelar</button>
-                <button onclick="savePlayer()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        if (!hasAdminSession()) { window.location.href = 'login.html'; }
-
-        var allPlayers = [];
-        var alliancesList = [];
-
-        async function loadData() {
-            var [{ data: players }, { data: alliances }] = await Promise.all([
-                supabase.from('players').select('*, alliances(name, tag)').order('current_username'),
-                supabase.from('alliances').select('id, name, tag').order('name')
-            ]);
-
-            allPlayers = players || [];
-            alliancesList = alliances || [];
-
-            // Populate alliance select
-            var sel = document.getElementById('p-alliance');
-            sel.innerHTML = '<option value="">Sin alianza</option>' +
-                alliancesList.map(function(a) { return '<option value="' + a.id + '">' + a.name + '</option>'; }).join('');
-
-            renderPlayers(allPlayers);
-        }
-
-        function renderPlayers(players) {
-            var container = document.getElementById('players-list');
-            if (players.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400">No hay jugadores registrados</div>';
-                return;
-            }
-
-            container.innerHTML = players.map(function(p) {
-                var statusBadge = p.status === 'active' ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-bold">ACTIVO</span>' :
-                                  p.status === 'banned' ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold">BANEADO</span>' :
-                                  '<span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 font-bold">SUSPENDIDO</span>';
-
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
-                    '<div class="flex items-center justify-between flex-wrap gap-2">' +
-                        '<div>' +
-                            '<h3 class="font-bold text-slate-800">' + (p.current_username || 'ID:' + p.id) + '</h3>' +
-                            '<p class="text-xs text-slate-500">ID: ' + p.id + ' | ' + (p.alliances ? p.alliances.tag : 'Sin alianza') + '</p>' +
-                            '<div class="flex gap-2 mt-1">' + statusBadge +
-                                '<span class="text-xs text-slate-400">Kills: ' + (p.total_kills || 0) + ' | Muertes: ' + (p.total_deaths || 0) + '</span>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="flex gap-2">' +
-                            '<button onclick="editPlayer(' + p.id + ')" class="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">Editar</button>' +
-                            '<button onclick="deletePlayer(' + p.id + ')" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">Eliminar</button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-        }
-
-        function searchPlayers() {
-            var q = document.getElementById('search-player').value.toLowerCase().trim();
-            if (!q) { renderPlayers(allPlayers); return; }
-            var filtered = allPlayers.filter(function(p) {
-                return (p.current_username || '').toLowerCase().indexOf(q) !== -1 ||
-                       p.id.toString().indexOf(q) !== -1;
-            });
-            renderPlayers(filtered);
-        }
-
-        function openModal() {
-            document.getElementById('player-modal').classList.remove('hidden');
-            document.getElementById('player-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Nuevo Jugador';
-            document.getElementById('edit-id').value = '';
-            document.getElementById('p-id').value = '';
-            document.getElementById('p-name').value = '';
-            document.getElementById('p-alliance').value = '';
-            document.getElementById('p-status').value = 'active';
-            document.getElementById('p-id').disabled = false;
-        }
-
-        function closeModal() {
-            document.getElementById('player-modal').classList.add('hidden');
-            document.getElementById('player-modal').classList.remove('flex');
-        }
-
-        async function editPlayer(id) {
-            var { data: p } = await supabase.from('players').select('*').eq('id', id).single();
-            if (!p) return;
-
-            document.getElementById('player-modal').classList.remove('hidden');
-            document.getElementById('player-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Editar Jugador';
-            document.getElementById('edit-id').value = p.id;
-            document.getElementById('p-id').value = p.id;
-            document.getElementById('p-id').disabled = true;
-            document.getElementById('p-name').value = p.current_username || '';
-            document.getElementById('p-alliance').value = p.current_alliance_id || '';
-            document.getElementById('p-status').value = p.status || 'active';
-        }
-
-        async function savePlayer() {
-            var id = document.getElementById('edit-id').value;
-            var data = {
-                current_username: document.getElementById('p-name').value.trim(),
-                current_alliance_id: document.getElementById('p-alliance').value || null,
-                status: document.getElementById('p-status').value
-            };
-
-            if (!data.current_username) { showToast('Username es requerido', 'error'); return; }
-
-            var result;
-            if (id) {
-                result = await supabase.from('players').update(data).eq('id', parseInt(id));
-            } else {
-                var playerId = parseInt(document.getElementById('p-id').value);
-                if (!playerId || playerId <= 0) { showToast('ID valido es requerido', 'error'); return; }
-                data.id = playerId;
-                result = await supabase.from('players').insert([data]);
-            }
-
-            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
-            showToast('Jugador guardado', 'success');
-            closeModal();
-            loadData();
-        }
-
-        async function deletePlayer(id) {
-            if (!confirm('¿Eliminar este jugador?')) return;
-            var { error } = await supabase.from('players').delete().eq('id', id);
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('Jugador eliminado', 'success');
-            loadData();
-        }
-
-        loadData();
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<h1 class="text-2xl font-bold mb-6">&#128100; Jugadores</h1>
+<div class="flex gap-2 mb-4">
+<input type="text" id="search-player" placeholder="Buscar jugador..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterPlayers(this.value)">
+<select id="filter-status" onchange="loadPlayers()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos</option><option value="active">Activos</option><option value="banned">Baneados</option><option value="suspended">Suspendidos</option></select>
+</div>
+<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="background:#11183a;"><th class="text-left p-3">Jugador</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Kills</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Acciones</th></tr></thead><tbody id="players-tbody"><tr><td colspan="7" class="text-center py-8" style="color:#9fa8da;">Cargando...</td></tr></tbody></table></div>
+</div>
+<script>
+var allPlayers = [];
+async function loadPlayers() {
+    try {
+        var status = document.getElementById('filter-status').value;
+        var q = supabase.from('players').select('*, alliances(name, tag)').order('total_kills', { ascending: false }).limit(100);
+        if (status) q = q.eq('status', status);
+        var { data, error } = await q;
+        if (error) throw error;
+        allPlayers = data || [];
+        renderPlayers(allPlayers);
+    } catch(e) { console.error('[Players]', e); }
+}
+function renderPlayers(data) {
+    var tbody = document.getElementById('players-tbody');
+    if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8" style="color:#9fa8da;">No hay jugadores</td></tr>'; return; }
+    tbody.innerHTML = data.map(function(p) {
+        var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
+        return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-medium">' + p.current_username + '</td><td class="p-3" style="color:#9fa8da;">' + (p.alliances ? p.alliances.name : '-') + '</td><td class="p-3 text-right">' + (p.total_kills || 0) + '</td><td class="p-3 text-right">' + (p.total_deaths || 0) + '</td><td class="p-3 text-right">' + kd + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3"><a href="../player.html?id=' + p.id + '" class="text-xs font-bold" style="color:#ff8f00;">Ver</a></td></tr>';
+    }).join('');
+}
+function filterPlayers(query) { var q = query.toLowerCase(); var filtered = allPlayers.filter(function(p) { return (p.current_username || '').toLowerCase().includes(q); }); renderPlayers(filtered); }
+requireAdmin();
+loadPlayers();
+</script>
 </body>
 </html>

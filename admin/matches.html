@@ -1,200 +1,51 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partidas - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=16"></script>
-    <script src="../assets/js/base.js?v=16"></script>
-    <script src="../assets/js/auth.js?v=16"></script>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Partidas - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-bold text-white">&#127918; Partidas</h1>
-            <button onclick="openModal()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">+ Nueva Partida</button>
-        </div>
-
-        <div id="matches-list" class="space-y-3">
-            <div class="text-center py-8 text-slate-400">Cargando...</div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="match-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Nueva Partida</h2>
-            <input type="hidden" id="edit-id">
-
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
-                <input type="text" id="m-name" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Tipo</label>
-                <select id="m-type" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                    <option value="internal">Interna</option>
-                    <option value="duel">Duelo</option>
-                    <option value="public_31">Publica 31</option>
-                    <option value="public_500">Evento 500</option>
-                    <option value="public_quick">Rapida</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Alianza</label>
-                <select id="m-alliance" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></select>
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Descripcion</label>
-                <textarea id="m-desc" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" rows="2"></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Max jugadores</label>
-                <input type="number" id="m-max" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" value="10">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Password (opcional)</label>
-                <input type="text" id="m-password" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="flex items-center gap-4 mb-4">
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" id="m-private" class="rounded">
-                    <span class="text-slate-700">Privada</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" id="m-approval" class="rounded">
-                    <span class="text-slate-700">Requiere aprobacion</span>
-                </label>
-            </div>
-
-            <div class="flex gap-2 justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm hover:text-slate-800">Cancelar</button>
-                <button onclick="saveMatch()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        if (!hasAdminSession()) { window.location.href = 'login.html'; }
-
-        async function loadAlliances() {
-            var { data: alli } = await supabase.from('alliances').select('id, name, tag').order('name');
-            var sel = document.getElementById('m-alliance');
-            sel.innerHTML = '<option value="">Global (sin alianza)</option>' +
-                (alli || []).map(function(a) { return '<option value="' + a.id + '">' + a.name + ' [' + a.tag + ']</option>'; }).join('');
-        }
-
-        async function loadMatches() {
-            var { data: matches, error } = await supabase
-                .from('matches')
-                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag), match_registrations(count)')
-                .order('created_at', { ascending: false });
-
-            var container = document.getElementById('matches-list');
-            if (error || !matches || matches.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400">No hay partidas registradas</div>';
-                return;
-            }
-
-            container.innerHTML = matches.map(function(m) {
-                var regCount = m.match_registrations ? m.match_registrations.length : 0;
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
-                    '<div class="flex items-center justify-between flex-wrap gap-2">' +
-                        '<div>' +
-                            '<div class="flex items-center gap-2 mb-1">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + '</div>' +
-                            '<h3 class="font-bold text-slate-800">' + m.name + '</h3>' +
-                            '<p class="text-xs text-slate-500">' + (m.alliance ? m.alliance.name : 'Global') + ' | ' + regCount + '/' + m.max_players + ' jugadores</p>' +
-                        '</div>' +
-                        '<div class="flex gap-2">' +
-                            '<button onclick="editMatch(\'' + m.id + '\')" class="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">Editar</button>' +
-                            '<button onclick="deleteMatch(\'' + m.id + '\')" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">Eliminar</button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-        }
-
-        function openModal() {
-            document.getElementById('match-modal').classList.remove('hidden');
-            document.getElementById('match-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Nueva Partida';
-            document.getElementById('edit-id').value = '';
-            document.getElementById('m-name').value = '';
-            document.getElementById('m-type').value = 'internal';
-            document.getElementById('m-alliance').value = '';
-            document.getElementById('m-desc').value = '';
-            document.getElementById('m-max').value = '10';
-            document.getElementById('m-password').value = '';
-            document.getElementById('m-private').checked = false;
-            document.getElementById('m-approval').checked = false;
-        }
-
-        function closeModal() {
-            document.getElementById('match-modal').classList.add('hidden');
-            document.getElementById('match-modal').classList.remove('flex');
-        }
-
-        async function editMatch(id) {
-            var { data: m } = await supabase.from('matches').select('*').eq('id', id).single();
-            if (!m) return;
-
-            document.getElementById('match-modal').classList.remove('hidden');
-            document.getElementById('match-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Editar Partida';
-            document.getElementById('edit-id').value = m.id;
-            document.getElementById('m-name').value = m.name;
-            document.getElementById('m-type').value = m.match_type;
-            document.getElementById('m-alliance').value = m.alliance_id || '';
-            document.getElementById('m-desc').value = m.description || '';
-            document.getElementById('m-max').value = m.max_players;
-            document.getElementById('m-password').value = m.password || '';
-            document.getElementById('m-private').checked = m.is_private;
-            document.getElementById('m-approval').checked = m.requires_approval;
-        }
-
-        async function saveMatch() {
-            var id = document.getElementById('edit-id').value;
-            var data = {
-                name: document.getElementById('m-name').value.trim(),
-                match_type: document.getElementById('m-type').value,
-                alliance_id: document.getElementById('m-alliance').value || null,
-                description: document.getElementById('m-desc').value.trim() || null,
-                max_players: parseInt(document.getElementById('m-max').value) || 10,
-                password: document.getElementById('m-password').value || null,
-                is_private: document.getElementById('m-private').checked,
-                requires_approval: document.getElementById('m-approval').checked
-            };
-
-            if (!data.name) { showToast('Nombre es requerido', 'error'); return; }
-
-            var result;
-            if (id) {
-                result = await supabase.from('matches').update(data).eq('id', id);
-            } else {
-                result = await supabase.from('matches').insert([data]).select();
-            }
-
-            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
-            showToast('Partida guardada', 'success');
-            closeModal();
-            loadMatches();
-        }
-
-        async function deleteMatch(id) {
-            if (!confirm('¿Eliminar esta partida?')) return;
-            var { error } = await supabase.from('matches').delete().eq('id', id);
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('Partida eliminada', 'success');
-            loadMatches();
-        }
-
-        loadAlliances();
-        loadMatches();
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-bold">&#127918; Partidas</h1><p class="text-sm" style="color:#9fa8da;">Gestion de partidas organizadas.</p></div><button onclick="openMatchModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nueva Partida</button></div>
+<div class="flex gap-2 mb-4"><select id="filter-status" onchange="loadMatches()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos los estados</option><option value="draft">Borradores</option><option value="open">Abiertas</option><option value="in_progress">En curso</option><option value="finished">Finalizadas</option><option value="archived">Archivadas</option></select><input type="text" id="search-match" placeholder="Buscar partida..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterMatches(this.value)"></div>
+<div id="matches-list" class="space-y-3">Cargando...</div>
+</div>
+<script>
+var allMatches = [];
+async function loadMatches() {
+    try {
+        var status = document.getElementById('filter-status').value;
+        var q = supabase.from('matches').select('*, alliances(name, tag)').order('created_at', { ascending: false }).limit(50);
+        if (status) q = q.eq('status', status);
+        var { data, error } = await q;
+        if (error) throw error;
+        allMatches = data || [];
+        renderMatches(allMatches);
+    } catch(e) { console.error('[Matches]', e); }
+}
+function renderMatches(data) {
+    var list = document.getElementById('matches-list');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas</div>'; return; }
+    list.innerHTML = data.map(function(m) {
+        return '<a href="match-detail.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">' + (m.name || 'Partida') + '</h3><p class="text-xs" style="color:#9fa8da;">' + (m.alliances ? m.alliances.name : 'Sin alianza') + '</p></div><div class="flex items-center gap-2">' + getStatusBadge(m.status) + '<span class="text-xs" style="color:#9fa8da;">' + formatDate(m.created_at) + '</span></div></div></a>';
+    }).join('');
+}
+function filterMatches(query) { var q = query.toLowerCase(); var filtered = allMatches.filter(function(m) { return (m.name || '').toLowerCase().includes(q); }); renderMatches(filtered); }
+function openMatchModal() { window.location.href = 'match-detail.html?action=new'; }
+requireAdmin();
+loadMatches();
+</script>
 </body>
 </html>

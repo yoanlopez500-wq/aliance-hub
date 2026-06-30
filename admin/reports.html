@@ -2,499 +2,80 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Gestionar Reportes - Alliance Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Reportes - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=15"></script>
-<script src="../assets/js/base.js?v=15"></script>
-<script src="../assets/js/auth.js?v=15"></script>
-<script src="../assets/js/pwa-utils.js?v=15"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
 <style>
-.modal{display:none}.modal.active{display:flex}
-.status-pending{background:#fef3c7;color:#92400e}
-.status-investigating{background:#dbeafe;color:#1e40af}
-.status-resolved{background:#dcfce7;color:#166534}
-.status-dismissed{background:#f1f5f9;color:#64748b}
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 .search-result{cursor:pointer;padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
-.search-result:hover{background:#f1f5f9}
 .evidence-img{cursor:pointer;width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0;transition:border .15s}
-.evidence-img:hover{border-color:#f59e0b}
+input,textarea,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
+input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </style>
-<meta name="theme-color" content="#0f172a">
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
+<body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
-<div class="max-w-6xl mx-auto px-4 py-6">
-
-<!-- Header -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-<div>
-<h1 class="text-2xl font-bold text-slate-800">&#128680; Reportes de Jugadores</h1>
-<p class="text-sm text-slate-500">Gestionar reportes de trampas y comportamiento</p>
-</div>
-<div class="flex gap-2 flex-wrap">
-<select id="filter-status" onchange="loadReports()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
-<option value="">Todos los estados</option>
-<option value="pending" selected>Pendientes</option>
-<option value="investigating">En investigacion</option>
-<option value="resolved">Resueltos</option>
-<option value="dismissed">Descartados</option>
-</select>
-<select id="filter-type" onchange="loadReports()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
-<option value="">Todos los tipos</option>
-<option value="gold_boost">&#128178; Oro/potenciadores</option>
-<option value="multis">&#128101; Multi-cuentas</option>
-<option value="team_kill">&#9876;&#65039; Team Kill</option>
-<option value="abandono">&#127987;&#65039; Abandono</option>
-<option value="toxico">&#128172; Toxico</option>
-<option value="bugs">&#128027; Bugs/Exploits</option>
-<option value="colusion">&#129309; Colusion</option>
-<option value="spam">&#128226; Spam</option>
-<option value="otro">&#10067; Otro</option>
-</select>
-<select id="filter-rule" onchange="loadReports()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
-<option value="">Todas las reglas</option>
-</select>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="flex items-center justify-between mb-6">
+<div><h1 class="text-2xl font-bold">&#128680; Reportes de Jugadores</h1><p class="text-sm" style="color:#9fa8da;">Filtra por regla, sugiere precedentes y gestiona reportes.</p></div>
+<div class="flex gap-2">
+<select id="filter-rule" onchange="loadReports()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todas las reglas</option></select>
+<select id="filter-status" onchange="loadReports()" class="px-3 py-2 rounded-lg border text-sm"><option value="all">Todos</option><option value="open" selected>Abiertos</option><option value="resolved">Resueltos</option><option value="dismissed">Desestimados</option></select>
 </div>
 </div>
-
-<!-- Stats -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="stats-row">
-<div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
-<p class="text-2xl font-bold text-yellow-600" id="stat-pending">0</p>
-<p class="text-xs text-slate-500">Pendientes</p>
+<div id="reports-list" class="space-y-3">Cargando...</div>
 </div>
-<div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
-<p class="text-2xl font-bold text-blue-600" id="stat-investigating">0</p>
-<p class="text-xs text-slate-500">En investigacion</p>
-</div>
-<div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
-<p class="text-2xl font-bold text-green-600" id="stat-resolved">0</p>
-<p class="text-xs text-slate-500">Resueltos</p>
-</div>
-<div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
-<p class="text-2xl font-bold text-slate-600" id="stat-dismissed">0</p>
-<p class="text-xs text-slate-500">Descartados</p>
-</div>
-</div>
-
-<!-- Lista de reportes -->
-<div id="reports-list" class="space-y-3">
-<div class="text-center py-8 text-slate-400 text-sm">Cargando reportes...</div>
-</div>
-
-</div>
-
-<!-- Modal: Detalle del reporte -->
-<div id="report-detail-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-red-700 to-red-900 rounded-t-2xl">
-<h2 class="text-lg font-bold text-white">&#128680; Detalle del Reporte</h2>
-<button onclick="closeDetailModal()" class="text-slate-400 hover:text-white text-xl">&#10005;</button>
-</div>
-<div class="p-5 space-y-4">
-<div id="detail-content"></div>
-<div id="detail-evidence" class="flex gap-2 flex-wrap"></div>
-<!-- Precedents suggestion -->
-<div id="detail-precedents" class="hidden rounded-lg p-3" style="background:#fef3c7;border:1px solid #fde68a">
-<p class="text-xs font-bold text-amber-800 mb-1">&#9878;&#65039; Precedentes similares</p>
-<div id="precedents-list-detail" class="space-y-1 text-xs text-amber-900"></div>
-</div>
-<div class="border-t pt-4">
-<label class="block text-xs font-medium text-slate-700 mb-1">Respuesta / Notas internas</label>
-<textarea id="detail-response" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Notas para el equipo o respuesta al jugador..."></textarea>
-</div>
-<div class="flex gap-2 flex-wrap">
-<button onclick="updateReportStatus('investigating')" class="px-3 py-2 bg-blue-500 text-white rounded-lg font-bold text-xs hover:bg-blue-400">&#128269; Investigar</button>
-<button onclick="openStrikeFromReport()" class="px-3 py-2 bg-red-500 text-white rounded-lg font-bold text-xs hover:bg-red-400">&#9889; Aplicar Strike</button>
-<button onclick="updateReportStatus('resolved')" class="px-3 py-2 bg-green-500 text-white rounded-lg font-bold text-xs hover:bg-green-400">&#10003; Resolver</button>
-<button onclick="updateReportStatus('dismissed')" class="px-3 py-2 bg-slate-500 text-white rounded-lg font-bold text-xs hover:bg-slate-400">&#10005; Descartar</button>
-</div>
-</div>
+<div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
+<div class="rounded-xl p-6 w-full max-w-2xl mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:80vh;overflow-y:auto;">
+<h3 class="text-lg font-bold mb-4" id="d-title">Detalle del Reporte</h3>
+<div id="d-content"></div>
+<div id="d-precedents" class="mt-4 p-3 rounded-lg hidden" style="background:rgba(255,143,0,0.05);border:1px solid rgba(255,143,0,0.1);"></div>
+<div class="flex gap-2 justify-end mt-4"><button onclick="closeDetail()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cerrar</button><button onclick="resolveReport()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#2e7d32;color:#fff;">Resolver</button><button onclick="dismissReport()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:rgba(198,40,40,0.8);color:#fff;">Desestimar</button></div>
 </div></div>
-
-<!-- Modal: Aplicar Strike -->
-<div id="strike-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-<div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-red-700 to-red-900 rounded-t-2xl">
-<h2 class="text-lg font-bold text-white">&#9889; Aplicar Strike</h2>
-<button onclick="closeStrikeModal()" class="text-slate-400 hover:text-white text-xl">&#10005;</button>
-</div>
-<form id="strike-form" class="p-5 space-y-4">
-<input type="hidden" id="st-player-id">
-<input type="hidden" id="st-match-id">
-<input type="hidden" id="st-report-id">
-<div class="bg-slate-50 rounded-lg p-3">
-<p class="text-sm font-medium text-slate-700">Jugador: <span id="st-player-name" class="font-bold">-</span></p>
-<p class="text-xs text-slate-500">Partida: <span id="st-match-name" class="font-bold">-</span></p>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Regla violada *</label>
-<select id="st-rule-section" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">-- Seleccionar regla --</option></select>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Tipo de Strike *</label>
-<select id="st-strike-type" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"><option value="">-- Seleccionar tipo --</option></select>
-<p id="st-strike-desc" class="text-xs text-slate-500 mt-1 italic"></p>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Motivo *</label>
-<textarea id="st-reason" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Explica por que se aplica este strike..."></textarea>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Notas adicionales</label>
-<input type="text" id="st-notes" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Evidencia, contexto, etc.">
-</div>
-<div class="flex gap-3">
-<button type="submit" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-500 text-sm">&#9889; Aplicar Strike</button>
-<button type="button" onclick="closeStrikeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300">Cancelar</button>
-</div>
-</form>
-</div></div>
-
-<!-- Lightbox: Imagen evidencia -->
-<div id="lightbox" class="modal fixed inset-0 bg-black/80 z-50 items-center justify-center p-4" onclick="closeLightbox()">
-<img id="lightbox-img" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onclick="event.stopPropagation()">
-</div>
-
 <script>
-requireAdmin();
-
 var currentReportId = null;
-var currentReportData = null;
-var allStrikeTypes = [];
-var allReports = [];
-var ruleSectionsCache = [];
-
-var typeLabels = {
-    gold_boost: '&#128178; Oro/potenciadores',
-    multis: '&#128101; Multi-cuentas',
-    team_kill: '&#9876;&#65039; Team Kill',
-    abandono: '&#127987;&#65039; Abandono',
-    toxico: '&#128172; Toxico',
-    bugs: '&#128027; Bugs/Exploits',
-    colusion: '&#129309; Colusion',
-    spam: '&#128226; Spam',
-    otro: '&#10067; Otro'
-};
-
-var typeColors = {
-    gold_boost: 'bg-yellow-100 text-yellow-700',
-    multis: 'bg-blue-100 text-blue-700',
-    team_kill: 'bg-red-100 text-red-700',
-    abandono: 'bg-slate-100 text-slate-600',
-    toxico: 'bg-purple-100 text-purple-700',
-    bugs: 'bg-orange-100 text-orange-700',
-    colusion: 'bg-teal-100 text-teal-700',
-    spam: 'bg-pink-100 text-pink-700',
-    otro: 'bg-gray-100 text-gray-600'
-};
-
-var statusLabels = {
-    pending: '&#9203; Pendiente',
-    investigating: '&#128269; En investigacion',
-    resolved: '&#10003; Resuelto',
-    dismissed: '&#10005; Descartado'
-};
-
-async function loadRuleSections() {
-    try {
-        var { data } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
-        ruleSectionsCache = data || [];
-        // Populate filter dropdown
-        var sel = document.getElementById('filter-rule');
-        var opts = '<option value="">Todas las reglas</option>';
-        var roots = ruleSectionsCache.filter(function(s) { return !s.parent_id; });
-        var childMap = {};
-        ruleSectionsCache.filter(function(s) { return s.parent_id; }).forEach(function(s) {
-            if (!childMap[s.parent_id]) childMap[s.parent_id] = [];
-            childMap[s.parent_id].push(s);
-        });
-        roots.forEach(function(r) {
-            var children = childMap[r.id] || [];
-            children.forEach(function(c) {
-                opts += '<option value="' + c.id + '">' + (c.section_number ? c.section_number + ' ' : '') + c.title + '</option>';
-            });
-            if (children.length === 0) {
-                opts += '<option value="' + r.id + '">' + (r.section_number ? r.section_number + ' ' : '') + r.title + '</option>';
-            }
-        });
-        sel.innerHTML = opts;
-        // Populate strike modal dropdown
-        var strikeSel = document.getElementById('st-rule-section');
-        strikeSel.innerHTML = '<option value="">-- Seleccionar regla --</option>' + opts.replace('<option value="">Todas las reglas</option>', '');
-    } catch(e) { console.error('[Reports] Error cargando reglas:', e); }
-}
-
-async function loadStrikeTypes() {
-    var { data: types } = await supabase.from('strike_types').select('*').order('severity');
-    if (types) {
-        allStrikeTypes = types;
-        document.getElementById('st-strike-type').innerHTML = '<option value="">-- Seleccionar tipo --</option>' + types.map(function(t) {
-            return '<option value="' + t.id + '">' + t.name + ' (' + t.code + ')</option>';
-        }).join('');
-    }
-}
-
-document.getElementById('st-strike-type').addEventListener('change', function() {
-    var type = allStrikeTypes.find(function(t) { return t.id === this.value; }.bind(this));
-    document.getElementById('st-strike-desc').textContent = type ? type.description : '';
-});
-
-async function loadStats() {
-    try {
-        var { data: all } = await supabase.from('player_reports').select('status');
-        if (!all) return;
-        var counts = { pending: 0, investigating: 0, resolved: 0, dismissed: 0 };
-        all.forEach(function(r) { if (counts[r.status] !== undefined) counts[r.status]++; });
-        document.getElementById('stat-pending').textContent = counts.pending;
-        document.getElementById('stat-investigating').textContent = counts.investigating;
-        document.getElementById('stat-resolved').textContent = counts.resolved;
-        document.getElementById('stat-dismissed').textContent = counts.dismissed;
-    } catch(e) { console.error('Error cargando stats:', e); }
-}
-
 async function loadReports() {
     try {
-        var statusFilter = document.getElementById('filter-status').value;
-        var typeFilter = document.getElementById('filter-type').value;
         var ruleFilter = document.getElementById('filter-rule').value;
-
-        var query = supabase.from('player_reports').select('*').order('created_at', { ascending: false });
-        if (statusFilter) query = query.eq('status', statusFilter);
-        if (typeFilter) query = query.eq('report_type', typeFilter);
-        if (ruleFilter) query = query.eq('rule_section_id', ruleFilter);
-
-        var { data: reports, error } = await query;
+        var statusFilter = document.getElementById('filter-status').value;
+        var q = supabase.from('player_reports').select('*, players!player_reports_reported_player_id_fkey(id, current_username), rule_sections(title)').order('created_at', { ascending: false }).limit(50);
+        if (ruleFilter) q = q.eq('rule_section_id', ruleFilter);
+        if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+        var { data, error } = await q;
         if (error) throw error;
-
-        allReports = reports || [];
-        var container = document.getElementById('reports-list');
-
-        if (allReports.length === 0) {
-            container.innerHTML = '<div class="text-center py-8 bg-white rounded-xl border border-slate-200 text-slate-400 text-sm">Sin reportes en esta categoria</div>';
-            return;
-        }
-
-        var playerIds = [];
-        var matchIds = [];
-        var ruleIds = [];
-        allReports.forEach(function(r) {
-            if (r.player_id) playerIds.push(r.player_id);
-            if (r.reported_player_id) playerIds.push(r.reported_player_id);
-            if (r.match_id) matchIds.push(r.match_id);
-            if (r.rule_section_id) ruleIds.push(r.rule_section_id);
-        });
-        playerIds = playerIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
-        matchIds = matchIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
-        ruleIds = ruleIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
-
-        var playersMap = {};
-        var matchesMap = {};
-        var rulesMap = {};
-
-        if (playerIds.length > 0) {
-            var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
-            (players || []).forEach(function(p) { playersMap[p.id] = p; });
-        }
-        if (matchIds.length > 0) {
-            var { data: matches } = await supabase.from('matches').select('id, name').in('id', matchIds);
-            (matches || []).forEach(function(m) { matchesMap[m.id] = m; });
-        }
-        if (ruleIds.length > 0) {
-            var { data: rules } = await supabase.from('rule_sections').select('id, section_number, title').in('id', ruleIds);
-            (rules || []).forEach(function(r) { rulesMap[r.id] = r; });
-        }
-
-        container.innerHTML = allReports.map(function(r) {
-            var reporter = playersMap[r.player_id] || {};
-            var reported = playersMap[r.reported_player_id] || {};
-            var match = matchesMap[r.match_id] || {};
-            var rule = rulesMap[r.rule_section_id] || null;
-            var typeLabel = typeLabels[r.report_type] || r.report_type;
-            var typeColor = typeColors[r.report_type] || 'bg-slate-100 text-slate-600';
-            var statusLabel = statusLabels[r.status] || r.status;
-            var statusClass = 'status-' + r.status;
-
-            var evidenceCount = r.evidence_urls && r.evidence_urls.length > 0 ? '<span class="text-xs text-slate-400 ml-2">&#128247; ' + r.evidence_urls.length + '</span>' : '';
-            var ruleBadge = rule ? '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 ml-2 font-bold">&#128220; ' + (rule.section_number || '') + ' ' + rule.title + '</span>' : '';
-
-            return '<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition cursor-pointer" onclick="openDetail(\'' + r.id + '\')">' +
-                '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">' +
-                    '<div class="flex-1 min-w-0">' +
-                        '<div class="flex items-center gap-2 flex-wrap mb-1">' +
-                            '<span class="px-2 py-0.5 rounded text-xs font-bold ' + typeColor + '">' + typeLabel + '</span>' +
-                            '<span class="px-2 py-0.5 rounded text-xs font-bold ' + statusClass + '">' + statusLabel + '</span>' +
-                            evidenceCount + ruleBadge +
-                        '</div>' +
-                        '<p class="text-sm font-medium text-slate-800 truncate">' + (reported.current_username || r.reported_player_name || 'Jugador ' + r.reported_player_id) + ' reportado por ' + (reporter.current_username || r.player_name || 'Jugador ' + r.player_id) + '</p>' +
-                        '<p class="text-xs text-slate-500 truncate">' + (match.name || 'Partida ' + r.match_id) + ' | ' + formatDateTime(r.created_at) + '</p>' +
-                    '</div>' +
-                    '<div class="flex-shrink-0 self-end sm:self-center">' +
-                        '<span class="text-xs text-slate-400">&#8594;</span>' +
-                    '</div>' +
-                '</div>' +
-                '<p class="text-xs text-slate-600 mt-2 line-clamp-2">' + (r.description || '') + '</p>' +
-            '</div>';
+        var list = document.getElementById('reports-list');
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes</div>'; return; }
+        list.innerHTML = data.map(function(r) {
+            var statusBadge = r.status === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">ABIERTO</span>' : r.status === 'resolved' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">RESUELTO</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(158,158,158,0.15);color:#9e9e9e;">DESESTIMADO</span>';
+            var ruleBadge = r.rule_sections ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-2" style="background:#1a237e;color:#9fa8da;">' + r.rule_sections.title + '</span>' : '';
+            return '<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition cursor-pointer" onclick="openDetail(\'' + r.id + '\')"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte contra ' + (r.players ? r.players.current_username : r.reported_player_id) + '</h3><p class="text-sm text-slate-600 mt-1">' + r.description + '</p></div>' + statusBadge + '</div><div class="flex gap-2 mt-2">' + ruleBadge + '<span class="text-xs text-slate-400">' + formatDate(r.created_at) + '</span></div></div>';
         }).join('');
-    } catch(e) {
-        console.error('Error cargando reportes:', e);
-        document.getElementById('reports-list').innerHTML = '<div class="text-center py-8 text-red-400 text-sm">Error: ' + e.message + '</div>';
-    }
+        loadRuleFilter();
+    } catch(e) { console.error('[Reports]', e); }
 }
-
-async function openDetail(reportId) {
-    currentReportId = reportId;
-    var report = allReports.find(function(r) { return r.id === reportId; });
-    if (!report) return;
-    currentReportData = report;
-
-    var reporter = {};
-    var reported = {};
-    if (report.player_id) {
-        var { data: r } = await supabase.from('players').select('id, current_username').eq('id', report.player_id).single();
-        if (r) reporter = r;
-    }
-    if (report.reported_player_id) {
-        var { data: p } = await supabase.from('players').select('id, current_username').eq('id', report.reported_player_id).single();
-        if (p) reported = p;
-    }
-    var { data: match } = await supabase.from('matches').select('id, name').eq('id', report.match_id).single();
-    var rule = report.rule_section_id ? ruleSectionsCache.find(function(s) { return s.id === report.rule_section_id; }) : null;
-
-    var typeLabel = typeLabels[report.report_type] || report.report_type;
-    var statusLabel = statusLabels[report.status] || report.status;
-    var typeColor = typeColors[report.report_type] || 'bg-slate-100 text-slate-600';
-
-    var ruleHTML = rule ? '<p class="text-xs text-blue-600 font-bold mt-1">&#128220; Regla violada: ' + (rule.section_number || '') + ' ' + rule.title + '</p>' : '';
-
-    document.getElementById('detail-content').innerHTML =
-        '<div class="flex items-center gap-2 flex-wrap mb-3">' +
-            '<span class="px-2 py-0.5 rounded text-xs font-bold ' + typeColor + '">' + typeLabel + '</span>' +
-            '<span class="px-2 py-0.5 rounded text-xs font-bold status-' + report.status + '">' + statusLabel + '</span>' +
-        '</div>' +
-        '<div class="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">' +
-            '<p><span class="text-slate-500">Reportado:</span> <span class="font-bold">' + (reported.current_username || report.reported_player_name || 'Jugador ' + report.reported_player_id) + '</span> (ID: ' + report.reported_player_id + ')</p>' +
-            '<p><span class="text-slate-500">Reportero:</span> <span class="font-bold">' + (reporter.current_username || report.player_name || 'Jugador ' + report.player_id) + '</span> (ID: ' + report.player_id + ')</p>' +
-            '<p><span class="text-slate-500">Partida:</span> <a href="match-detail.html?id=' + report.match_id + '" class="font-bold text-amber-600 hover:underline">' + (match?.name || 'Partida ' + report.match_id) + '</a></p>' +
-            '<p><span class="text-slate-500">Fecha:</span> ' + formatDateTime(report.created_at) + '</p>' +
-            ruleHTML +
-        '</div>' +
-        '<div class="mt-3"><p class="text-xs text-slate-500 font-medium mb-1">Descripcion:</p><p class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3">' + (report.description || '-') + '</p></div>';
-
-    var evidenceDiv = document.getElementById('detail-evidence');
-    if (report.evidence_urls && report.evidence_urls.length > 0) {
-        evidenceDiv.innerHTML = '<p class="text-xs text-slate-500 font-medium w-full mb-1">Evidencia:</p>' + report.evidence_urls.map(function(url, idx) {
-            return '<img src="' + url + '" class="evidence-img" onclick="openLightbox(\'' + url + '\')">';
-        }).join('');
-    } else {
-        evidenceDiv.innerHTML = '';
-    }
-
-    // Load precedents for this rule section
-    if (report.rule_section_id) {
-        loadPrecedentsForReport(report.rule_section_id);
-    } else {
-        document.getElementById('detail-precedents').classList.add('hidden');
-    }
-
-    document.getElementById('detail-response').value = report.admin_response || '';
-    document.getElementById('report-detail-modal').classList.add('active');
+async function loadRuleFilter() {
+    try { var { data } = await supabase.from('rule_sections').select('id, title').eq('is_active', true).order('order_index'); var select = document.getElementById('filter-rule'); if (data) select.innerHTML = '<option value="">Todas las reglas</option>' + data.map(function(r) { return '<option value="' + r.id + '">' + r.title + '</option>'; }).join(''); } catch(e) {}
 }
-
-async function loadPrecedentsForReport(sectionId) {
-    try {
-        var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', sectionId).order('created_at', { ascending: false }).limit(3);
-        if (data && data.length > 0) {
-            document.getElementById('detail-precedents').classList.remove('hidden');
-            document.getElementById('precedents-list-detail').innerHTML = data.map(function(p) {
-                var sevColor = p.severity === 'severe' ? 'text-red-700' : (p.severity === 'moderate' ? 'text-orange-700' : 'text-green-700');
-                return '<div class="font-medium">' + p.title + ' <span class="' + sevColor + '">[' + p.severity + ']</span></div><div class="opacity-75">Resolucion: ' + p.resolution + '</div>';
-            }).join('');
-        } else {
-            document.getElementById('detail-precedents').classList.add('hidden');
-        }
-    } catch(e) { document.getElementById('detail-precedents').classList.add('hidden'); }
+async function openDetail(id) {
+    currentReportId = id;
+    try { var { data, error } = await supabase.from('player_reports').select('*, players!player_reports_reported_player_id_fkey(id, current_username), rule_sections(title, content)').eq('id', id).single(); if (error) throw error; document.getElementById('detail-modal').classList.remove('hidden'); document.getElementById('d-title').textContent = 'Reporte contra ' + (data.players ? data.players.current_username : data.reported_player_id); document.getElementById('d-content').innerHTML = '<p class="text-sm mb-2"><strong>Descripcion:</strong> ' + data.description + '</p>' + (data.rule_sections ? '<p class="text-sm mb-2"><strong>Regla:</strong> ' + data.rule_sections.title + '</p><p class="text-sm mb-2 p-2 rounded" style="background:#0a0e27;">' + data.rule_sections.content + '</p>' : '') + '<p class="text-xs" style="color:#9fa8da;">Fecha: ' + formatDateTime(data.created_at) + '</p>'; loadPrecedentSuggestions(data.rule_section_id); } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
-
-function closeDetailModal() {
-    document.getElementById('report-detail-modal').classList.remove('active');
-    currentReportId = null;
-    currentReportData = null;
+async function loadPrecedentSuggestions(ruleSectionId) {
+    if (!ruleSectionId) { document.getElementById('d-precedents').classList.add('hidden'); return; }
+    try { var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', ruleSectionId).eq('is_active', true); var div = document.getElementById('d-precedents'); if (data && data.length > 0) { div.classList.remove('hidden'); div.innerHTML = '<h4 class="font-bold text-sm mb-2" style="color:#ff8f00;">&#9878;&#65039; Precedentes relacionados:</h4>' + data.map(function(p) { return '<p class="text-sm">&#8226; <strong>' + p.title + ':</strong> ' + p.description + '</p>'; }).join(''); } else { div.classList.add('hidden'); } } catch(e) {}
 }
-
-async function updateReportStatus(status) {
-    if (!currentReportId) return;
-    var notes = document.getElementById('detail-response').value.trim() || null;
-    try {
-        var { error } = await supabase.from('player_reports').update({ status: status, admin_response: notes }).eq('id', currentReportId);
-        if (error) throw error;
-        showToast('Reporte actualizado a: ' + statusLabels[status], 'success');
-        closeDetailModal();
-        loadStats();
-        loadReports();
-    } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-function openStrikeFromReport() {
-    if (!currentReportData) return;
-    document.getElementById('st-player-id').value = currentReportData.reported_player_id;
-    document.getElementById('st-match-id').value = currentReportData.match_id;
-    document.getElementById('st-report-id').value = currentReportData.id;
-    document.getElementById('st-player-name').textContent = currentReportData.reported_player_name || currentReportData.reported_player_id;
-    document.getElementById('st-match-name').textContent = currentReportData.match_id;
-    // Auto-select rule section if report has one
-    if (currentReportData.rule_section_id) {
-        document.getElementById('st-rule-section').value = currentReportData.rule_section_id;
-    }
-    document.getElementById('st-reason').value = '';
-    document.getElementById('st-notes').value = '';
-    closeDetailModal();
-    document.getElementById('strike-modal').classList.add('active');
-}
-
-function closeStrikeModal() {
-    document.getElementById('strike-modal').classList.remove('active');
-}
-
-document.getElementById('strike-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var playerId = parseInt(document.getElementById('st-player-id').value);
-    var matchId = document.getElementById('st-match-id').value;
-    var reportId = document.getElementById('st-report-id').value;
-    var ruleSectionId = document.getElementById('st-rule-section').value;
-    var typeId = document.getElementById('st-strike-type').value;
-    var reason = document.getElementById('st-reason').value.trim();
-    var notes = document.getElementById('st-notes').value.trim() || null;
-    if (!ruleSectionId) { showToast('Selecciona la regla violada', 'warning'); return; }
-    if (!typeId || !reason) { showToast('Completa todos los campos', 'warning'); return; }
-    try {
-        var { error } = await supabase.from('player_strikes').insert({
-            player_id: playerId, match_id: matchId, strike_type_id: typeId,
-            rule_section_id: ruleSectionId, report_id: reportId || null,
-            reason: reason, notes: notes
-        });
-        if (error) throw error;
-        showToast('Strike aplicado', 'success');
-        closeStrikeModal();
-        loadStats();
-        loadReports();
-    } catch(e) { showToast('Error: ' + e.message, 'error'); }
-});
-
-function openLightbox(url) {
-    document.getElementById('lightbox-img').src = url;
-    document.getElementById('lightbox').classList.add('active');
-}
-
-function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
-}
-
-loadRuleSections();
-loadStrikeTypes();
-loadStats();
+function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); currentReportId = null; }
+async function resolveReport() { if (!currentReportId) return; try { var { error } = await supabase.from('player_reports').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', currentReportId); if (error) throw error; showToast('Reporte resuelto', 'success'); closeDetail(); loadReports(); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function dismissReport() { if (!currentReportId) return; try { var { error } = await supabase.from('player_reports').update({ status: 'dismissed', resolved_at: new Date().toISOString() }).eq('id', currentReportId); if (error) throw error; showToast('Reporte desestimado', 'info'); closeDetail(); loadReports(); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+requireAdmin();
 loadReports();
 </script>
 </body>
