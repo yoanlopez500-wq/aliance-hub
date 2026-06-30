@@ -160,7 +160,6 @@ supabase.auth.onAuthStateChange(function(event, session) { initAdminNav(); });
 document.addEventListener('DOMContentLoaded', initAdminNav);
 window.initAdminNav = initAdminNav;
 
-// ====== NOTIFICATION SYSTEM ======
 async function getUnreadMessageCount() {
     try { var sd = await supabase.auth.getSession(); if (!sd.data.session) return 0; var { count } = await supabase.from('direct_messages').select('*', { count: 'exact', head: true }).eq('recipient_admin_id', sd.data.session.user.id).is('read_at', null); return count || 0; } catch(e) { return 0; }
 }

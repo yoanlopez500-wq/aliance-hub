@@ -149,9 +149,7 @@ async function loadStats() {
     } catch(e) { console.error('[Stats]', e); }
 }
 loadStats();
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js?v=16').catch(function(e) { console.log('SW skip:', e); });
-}
 </script>
+<script src="sw-register.js?v=16.1"></script>
 </body>
 </html>
