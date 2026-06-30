@@ -1,4 +1,4 @@
-// assets/js/base.js v12 - Alliance Hub utilities + Session persistence
+// assets/js/base.js v12b - Alliance Hub utilities + Session persistence
 // __AH_BASE_PATH: detecta el subdirectorio del repo en GitHub Pages
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
@@ -196,12 +196,30 @@ async function validatePlayerToken(playerId, token) {
 }
 
 // ===================== APP CACHE CONTROL =====================
+// v12b: Nuclear cache clear - desregistra SWs, limpia caches, recarga
 function clearAppCache() {
-    if ('caches' in window) caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); });
-    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+    nuclearCacheClear();
+}
+
+function nuclearCacheClear() {
+    showToast('Limpiando todo el cache...', 'warning');
+    var steps = [];
+    if ('serviceWorker' in navigator) {
+        steps.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+            return Promise.all(regs.map(function(r) { return r.unregister(); }));
+        }));
+    }
+    if ('caches' in window) {
+        steps.push(caches.keys().then(function(names) {
+            return Promise.all(names.map(function(n) { return caches.delete(n); }));
+        }));
+    }
     localStorage.removeItem('ah_v2_cache_version');
-    showToast('Cache limpiado. Recargando...', 'success');
-    setTimeout(function() { window.location.reload(true); }, 1500);
+    localStorage.removeItem('ah_sw_version');
+    Promise.all(steps).then(function() {
+        showToast('Cache limpiado. Recargando...', 'success');
+        setTimeout(function() { location.href = location.pathname + '?nuclear=' + Date.now(); }, 800);
+    }).catch(function() { location.href = location.pathname + '?nuclear=' + Date.now(); });
 }
 
 // ===================== PUSH NOTIFICATIONS =====================
