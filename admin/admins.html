@@ -6,91 +6,79 @@
     <title>Admins - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=15"></script>
-    <script src="../assets/js/base.js?v=15"></script>
-    <script src="../assets/js/auth.js?v=15"></script>
+    <script src="../assets/js/config.js?v=16"></script>
+    <script src="../assets/js/base.js?v=16"></script>
+    <script src="../assets/js/auth.js?v=16"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
+
     <div class="max-w-7xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-800 mb-6">👥 Administradores</h1>
+        <h1 class="text-2xl font-bold text-white mb-6">&#9881; Administradores</h1>
         <div id="admins-list" class="space-y-3">
             <div class="text-center py-8 text-slate-400">Cargando...</div>
         </div>
     </div>
-    <script>
-        requireAdmin();
-        var isSuperAdmin = false;
 
-        async function init() {
-            var admin = await getAdminRole();
-            isSuperAdmin = (admin && admin.role === 'superadmin');
-            loadAdmins();
-        }
+    <script>
+        if (!hasAdminSession()) { window.location.href = 'login.html'; }
 
         async function loadAdmins() {
-            var { data: admins, error } = await supabase.from('admin_users').select('*').order('approved_at', { ascending: false });
+            var { data: admins, error } = await supabase
+                .from('admin_users')
+                .select('*, alliances(name, tag)')
+                .order('created_at', { ascending: false });
+
             var container = document.getElementById('admins-list');
-            if (error) { container.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + error.message + '</div>'; return; }
-            var admins = admins || [];
-            if (admins.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin admins</div>'; return; }
-            
-            // Cargar alliances relacionadas
-            var allianceIds = admins.map(function(a) { return a.alliance_id; }).filter(function(v) { return v !== null; });
-            var alliancesMap = {};
-            if (allianceIds.length > 0) {
-                var { data: alliances } = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
-                (alliances || []).forEach(function(a) { alliancesMap[a.id] = a; });
+            if (error || !admins || admins.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400">No hay admins registrados</div>';
+                return;
             }
-            
+
             container.innerHTML = admins.map(function(a) {
-                var roleBadge = a.role === 'superadmin' ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold whitespace-nowrap">SUPERADMIN</span>' : a.role === 'leader' ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 font-bold whitespace-nowrap">LIDER</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-bold whitespace-nowrap">ADMIN</span>';
-                var statusBadge = a.status === 'active' ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-bold whitespace-nowrap">ACTIVO</span>' : a.status === 'suspended' ? '<span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 font-bold whitespace-nowrap">SUSPENDIDO</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600 whitespace-nowrap">' + (a.status || '?') + '</span>';
-                var alliance = a.alliance_id ? alliancesMap[a.alliance_id] : null;
-                var canSuspend = isSuperAdmin && a.role !== 'superadmin';
-                var suspendBtn = '';
-                if (canSuspend) {
-                    if (a.status === 'active') {
-                        suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'suspended\')" class="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-200 whitespace-nowrap w-full md:w-auto">Suspender</button>';
-                    } else if (a.status === 'suspended') {
-                        suspendBtn = '<button onclick="toggleAdminStatus(\'' + a.id + '\', \'active\')" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold hover:bg-green-200 whitespace-nowrap w-full md:w-auto">Reactivar</button>';
-                    }
-                }
+                var roleBadge = a.role === 'superadmin' ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold">SUPERADMIN</span>' :
+                                a.role === 'event_admin' ? '<span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700 font-bold">EVENT ADMIN</span>' :
+                                '<span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-bold">' + a.role + '</span>';
+
                 return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
-                    // Layout: vertical en movil, horizontal en desktop
-                    '<div class="flex flex-col md:flex-row md:items-center gap-3">' +
-                        // Info del admin
-                        '<div class="flex items-center gap-3 flex-1 min-w-0">' +
-                            '<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-lg font-bold text-amber-700 flex-shrink-0">' + (a.display_name ? a.display_name.charAt(0).toUpperCase() : '?') + '</div>' +
-                            '<div class="min-w-0 flex-1">' +
-                                '<div class="font-bold text-slate-800 text-sm md:text-base truncate">' + (a.display_name || 'Admin') + '</div>' +
-                                '<div class="text-xs text-slate-500 truncate">' + (a.email || '') + (alliance ? ' | ' + alliance.name : '') + '</div>' +
-                            '</div>' +
+                    '<div class="flex items-center justify-between">' +
+                        '<div>' +
+                            '<h3 class="font-bold text-slate-800">' + (a.display_name || 'Admin ' + a.id.substring(0, 8)) + '</h3>' +
+                            '<p class="text-xs text-slate-500">' + (a.alliances?.name || 'Sin alianza') + ' | ' + roleBadge + '</p>' +
                         '</div>' +
-                        // Badges + botones: apilados vertical en movil, horizontal en desktop
-                        '<div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">' +
-                            '<div class="flex items-center gap-1 flex-wrap">' + roleBadge + statusBadge + '</div>' +
-                            (suspendBtn ? '<div class="w-full sm:w-auto">' + suspendBtn + '</div>' : '') +
+                        '<div class="flex gap-2">' +
+                            '<button onclick="changeRole(\'' + a.id + '\', \'' + a.role + '\')" class="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">Cambiar rol</button>' +
+                            '<button onclick="toggleStatus(\'' + a.id + '\', \'' + a.status + '\')" class="px-2 py-1 text-xs ' + (a.status === 'active' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') + ' rounded hover:bg-opacity-80">' + (a.status === 'active' ? 'Suspender' : 'Activar') + '</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>';
             }).join('');
         }
 
-        async function toggleAdminStatus(adminId, newStatus) {
-            if (!isSuperAdmin) { showToast('No tienes permisos', 'error'); return; }
-            var actionText = newStatus === 'suspended' ? 'suspender' : 'reactivar';
-            if (!confirm('¿' + actionText.charAt(0).toUpperCase() + actionText.slice(1) + ' este administrador?')) return;
-            try {
-                var { error } = await supabase.from('admin_users').update({ status: newStatus }).eq('id', adminId);
-                if (error) throw error;
-                showToast('Admin ' + actionText + ' correctamente', 'success');
-                loadAdmins();
-            } catch(e) { showToast('Error: ' + e.message, 'error'); }
+        async function changeRole(adminId, currentRole) {
+            var roles = ['superadmin', 'event_admin', 'alliance_leader', 'moderator'];
+            var newRole = prompt('Nuevo rol (' + roles.join(', ') + '):', currentRole);
+            if (!newRole || newRole === currentRole) return;
+            if (roles.indexOf(newRole) === -1) { showToast('Rol invalido', 'error'); return; }
+
+            var { error } = await supabase.from('admin_users').update({ role: newRole }).eq('id', adminId);
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+            showToast('Rol actualizado', 'success');
+            loadAdmins();
         }
 
-        init();
+        async function toggleStatus(adminId, currentStatus) {
+            var newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+            if (!confirm('¿' + (newStatus === 'active' ? 'Activar' : 'Suspender') + ' este administrador?')) return;
+
+            var { error } = await supabase.from('admin_users').update({ status: newStatus }).eq('id', adminId);
+            if (error) { showToast('Error: ' + error.message, 'error'); return; }
+            showToast('Estado actualizado', 'success');
+            loadAdmins();
+        }
+
+        loadAdmins();
     </script>
 </body>
 </html>

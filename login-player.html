@@ -1,74 +1,110 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Entrar - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=15"></script>
-<script src="assets/js/base.js?v=15"></script>
-<script src="assets/js/auth.js?v=15"></script>
-<meta name="theme-color" content="#0a0e27">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - Alliance Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js?v=16"></script>
+    <script src="assets/js/base.js?v=16"></script>
+    <script src="assets/js/auth.js?v=16"></script>
+    <meta name="theme-color" content="#0f172a">
 </head>
-<body class="min-h-screen bg-[#0a0e27] text-[#e8eaf6] flex items-center justify-center px-4 py-8">
-<script>
-(function(){var hasPlayer=localStorage.getItem('ah_v2_player_id')&&localStorage.getItem('ah_v2_display_name')&&localStorage.getItem('ah_v2_player_token');if(hasPlayer){window.location.replace('dashboard.html');document.documentElement.style.display='none'}})();
-</script>
-<div class="w-full max-w-md">
-<div class="text-center mb-8"><div class="text-5xl mb-3">⚔️</div><h1 class="text-2xl font-bold text-[#ff8f00]">Alliance Hub</h1><p class="text-sm mt-1 text-[#9fa8da]">Entra con tu ID de Supremacy 1914</p></div>
-<div id="view-login" class="rounded-2xl p-6 sm:p-8 bg-[#11183a] border border-[#1a237e]">
-<div id="saved-player-box" class="hidden mb-4 p-4 bg-[#1a237e]/30 rounded-xl border border-[#1a237e]">
-<p class="text-xs font-bold text-green-400 mb-2">👤 Jugador guardado</p>
-<div class="flex items-center justify-between"><div><p id="saved-name" class="text-sm text-[#e8eaf6] font-medium"></p><p id="saved-id" class="text-xs text-[#9fa8da]"></p></div><button onclick="quickLogin()" class="px-4 py-2 bg-[#ff6f00] hover:bg-[#ff8f00] text-white rounded-lg font-bold text-xs transition">Entrar</button></div>
-<button onclick="showNewLogin()" class="mt-2 text-xs text-[#9fa8da] hover:text-white underline">Usar otro ID</button>
-</div>
-<form id="login-form" class="space-y-4">
-<div><label class="block text-sm font-medium mb-1 text-[#9fa8da]">ID del Jugador (numero)</label><input type="number" id="player-id" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none transition" placeholder="Ej: 99702975"></div>
-<div><label class="block text-sm font-medium mb-1 text-[#9fa8da]">Username de Supremacy 1914</label><input type="text" id="username" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none transition" placeholder="Ej: Tlaloc27"></div>
-<button type="submit" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98] bg-gradient-to-r from-[#ff6f00] to-[#ff8f00] text-white">Entrar</button>
-</form>
-<div id="error-msg" class="mt-4 text-sm text-center hidden text-red-400"></div>
-<div class="mt-6 text-center space-y-2">
-<a href="login.html" class="text-sm font-bold block text-[#ff8f00] hover:text-[#ff6f00]">Soy Admin → Login Admin</a>
-<a href="index.html" class="text-sm block text-[#9fa8da]/60 hover:text-[#9fa8da]">← Volver al inicio</a>
-</div>
-</div>
-<div id="view-setup-security" class="hidden rounded-2xl p-6 sm:p-8 bg-[#11183a] border border-[#1a237e]">
-<div class="text-center mb-4"><div class="text-3xl mb-2">🔐</div><h2 class="text-lg font-bold text-white">Configura tu Seguridad</h2><p class="text-sm text-[#9fa8da]">Para proteger tu cuenta en otros dispositivos.</p></div>
-<form id="security-setup-form" class="space-y-4">
-<div><label class="block text-xs font-medium mb-1 text-[#9fa8da]">¿Cual es el nombre de tu primera alianza?</label><input type="text" id="sec-ans-1" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none" placeholder="Tu respuesta"></div>
-<div><label class="block text-xs font-medium mb-1 text-[#9fa8da]">¿Cual es tu pais favorito en Supremacy?</label><input type="text" id="sec-ans-2" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none" placeholder="Tu respuesta"></div>
-<button type="submit" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98] bg-gradient-to-r from-[#ff6f00] to-[#ff8f00] text-white">Guardar y Entrar</button>
-</form>
-<div id="setup-error" class="mt-3 text-sm text-center hidden text-red-400"></div>
-</div>
-<div id="view-security-check" class="hidden rounded-2xl p-6 sm:p-8 bg-[#11183a] border border-[#1a237e]">
-<div class="text-center mb-4"><div class="text-3xl mb-2">🕵️</div><h2 class="text-lg font-bold text-white">Verificacion de Seguridad</h2><p class="text-sm text-[#9fa8da]">Nuevo dispositivo detectado.</p><p class="text-xs mt-1 text-[#9fa8da]/60">Jugador: <strong id="sec-check-name" class="text-white">-</strong></p></div>
-<form id="security-check-form" class="space-y-4">
-<div><label id="sec-q-1" class="block text-xs font-medium mb-1 text-[#9fa8da]">Pregunta 1</label><input type="text" id="sec-check-ans-1" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none" placeholder="Tu respuesta"></div>
-<div><label id="sec-q-2" class="block text-xs font-medium mb-1 text-[#9fa8da]">Pregunta 2</label><input type="text" id="sec-check-ans-2" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-[#1a237e] text-white text-sm focus:border-[#ff6f00] focus:outline-none" placeholder="Tu respuesta"></div>
-<button type="submit" class="w-full font-bold py-3 rounded-xl transition active:scale-[0.98] bg-gradient-to-r from-[#ff6f00] to-[#ff8f00] text-white">Verificar y Entrar</button>
-</form>
-<div id="sec-check-error" class="mt-3 text-sm text-center hidden text-red-400"></div>
-<button onclick="resetToLogin()" class="w-full mt-3 py-2 rounded-lg text-sm bg-white/[0.03] text-[#9fa8da] hover:bg-white/5 transition">← Usar otra cuenta</button>
-</div>
-</div>
-<script>
-var pendingPlayerId=null,pendingUsername=null;
-function showView(view){['login','setup-security','security-check'].forEach(function(v){var el=document.getElementById('view-'+v);if(el)el.classList.add('hidden')});document.getElementById('view-'+view).classList.remove('hidden')}
-function showError(id,msg){var el=document.getElementById(id);el.textContent=msg;el.classList.remove('hidden')}
-function hideError(id){var el=document.getElementById(id);if(el)el.classList.add('hidden')}
-function resetToLogin(){pendingPlayerId=null;pendingUsername=null;localStorage.removeItem('ah_v2_player_id');localStorage.removeItem('ah_v2_display_name');localStorage.removeItem('ah_v2_player_token');document.getElementById('login-form').reset();hideError('error-msg');hideError('setup-error');hideError('sec-check-error');showView('login');checkSavedPlayer()}
-function checkSavedPlayer(){var savedId=localStorage.getItem('ah_v2_player_id');var savedName=localStorage.getItem('ah_v2_display_name');if(savedId&&savedName){document.getElementById('saved-player-box').classList.remove('hidden');document.getElementById('saved-name').textContent=savedName;document.getElementById('saved-id').textContent='ID: '+savedId;document.getElementById('login-form').classList.add('hidden')}else{document.getElementById('saved-player-box').classList.add('hidden');document.getElementById('login-form').classList.remove('hidden')}}
-function showNewLogin(){document.getElementById('saved-player-box').classList.add('hidden');document.getElementById('login-form').classList.remove('hidden');document.getElementById('player-id').focus()}
-function quickLogin(){window.location.href='dashboard.html'}
-window.addEventListener('pageshow',function(event){if(event.persisted){var hasPlayer=localStorage.getItem('ah_v2_player_id')&&localStorage.getItem('ah_v2_display_name')&&localStorage.getItem('ah_v2_player_token');if(hasPlayer)window.location.replace('dashboard.html')}});
-document.getElementById('login-form').addEventListener('submit',async function(e){e.preventDefault();var playerId=document.getElementById('player-id').value;var username=document.getElementById('username').value.trim();hideError('error-msg');try{var{data:player,error:pErr}=await supabase.from('players').select('id, status').eq('id',parseInt(playerId)).maybeSingle();if(pErr)throw pErr;if(!player){var{error:createErr}=await supabase.from('players').insert({id:parseInt(playerId),current_username:username,status:'active'});if(createErr&&createErr.code!=='23505')throw createErr}else if(player.status==='banned'){showError('error-msg','Este jugador esta baneado.');return}localStorage.setItem('ah_v2_player_id',playerId);localStorage.setItem('ah_v2_display_name',username);pendingPlayerId=playerId;pendingUsername=username;var{data:sec}=await supabase.from('player_security').select('*').eq('player_id',parseInt(playerId)).maybeSingle();if(!sec){showView('setup-security');return}var{data:tok}=await supabase.from('player_tokens').select('token').eq('player_id',parseInt(playerId)).maybeSingle();var deviceId=localStorage.getItem('ah_device_id')||('dvc_'+Date.now()+'_'+Math.random().toString(36).substr(2,8));localStorage.setItem('ah_device_id',deviceId);if(tok&&tok.token&&tok.token!==deviceId){document.getElementById('sec-check-name').textContent=username+' (ID: '+playerId+')';document.getElementById('sec-q-1').textContent='Pregunta 1: '+sec.question_1;document.getElementById('sec-q-2').textContent='Pregunta 2: '+sec.question_2;showView('security-check');return}await doLogin(playerId,username)}catch(e){console.error('[Login] Error:',e);showError('error-msg','Error: '+(e.message||'No se pudo conectar'))}});
-document.getElementById('security-setup-form').addEventListener('submit',async function(e){e.preventDefault();hideError('setup-error');if(!pendingPlayerId){showError('setup-error','Error de sesion');return}var ans1=document.getElementById('sec-ans-1').value.trim().toLowerCase();var ans2=document.getElementById('sec-ans-2').value.trim().toLowerCase();try{var{error:s1}=await supabase.from('player_security').insert({player_id:parseInt(pendingPlayerId),question_1:'Cual es el nombre de tu primera alianza en Supremacy 1914?',answer_1:ans1,question_2:'Cual es tu pais favorito en Supremacy 1914?',answer_2:ans2});if(s1)throw s1;await doLogin(pendingPlayerId,pendingUsername)}catch(e){console.error('[Login] Setup:',e);showError('setup-error','Error: '+(e.message||'intenta de nuevo'))}});
-document.getElementById('security-check-form').addEventListener('submit',async function(e){e.preventDefault();hideError('sec-check-error');if(!pendingPlayerId){showError('sec-check-error','Error de sesion');return}var ans1=document.getElementById('sec-check-ans-1').value.trim().toLowerCase();var ans2=document.getElementById('sec-check-ans-2').value.trim().toLowerCase();try{var{data:sec,error:sErr}=await supabase.from('player_security').select('*').eq('player_id',parseInt(pendingPlayerId)).single();if(sErr)throw sErr;if(sec.answer_1!==ans1||sec.answer_2!==ans2){showError('sec-check-error','Respuestas incorrectas.');return}var deviceId=localStorage.getItem('ah_device_id')||('dvc_'+Date.now()+'_'+Math.random().toString(36).substr(2,8));localStorage.setItem('ah_device_id',deviceId);await supabase.from('player_tokens').upsert({player_id:parseInt(pendingPlayerId),token:deviceId},{onConflict:'player_id'});await doLogin(pendingPlayerId,pendingUsername)}catch(e){console.error('[Login] Check:',e);showError('sec-check-error','Error: '+(e.message||'intenta de nuevo'))}});
-async function doLogin(playerId,username){var result=await lazyLogin(playerId,username);if(result.success){window.location.href='dashboard.html'}else{showError('error-msg',result.message||'Error en login');showView('login')}}
-checkSavedPlayer();
-</script>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center" data-role="public">
+    <div class="max-w-md w-full mx-4">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">&#9880; Alliance Hub</h1>
+            <p class="text-slate-400">Acceso para jugadores</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <div id="login-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">ID de Jugador (numero)</label>
+                    <input type="number" id="player-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Ej: 12345">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Username</label>
+                    <input type="text" id="player-name" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Tu username en Supremacy">
+                </div>
+                <button onclick="doLogin()" class="w-full py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition">Entrar</button>
+                <p class="text-xs text-slate-500 mt-3 text-center">No necesitas password. Solo tu ID y username.</p>
+            </div>
+
+            <div id="login-result" class="hidden text-center">
+                <p id="login-message" class="text-sm font-bold"></p>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="index.html" class="text-slate-400 hover:text-white text-sm">&#8592; Volver al inicio</a>
+        </div>
+    </div>
+
+    <script>
+        async function doLogin() {
+            var pid = document.getElementById('player-id').value.trim();
+            var name = document.getElementById('player-name').value.trim();
+
+            if (!pid || !name) {
+                showToast('ID y username son requeridos', 'error');
+                return;
+            }
+
+            var result = document.getElementById('login-result');
+            var msg = document.getElementById('login-message');
+            result.classList.remove('hidden');
+            msg.textContent = 'Verificando...';
+            msg.className = 'text-sm text-slate-500';
+
+            try {
+                // Verificar si el jugador existe
+                var { data: player, error } = await supabase
+                    .from('players')
+                    .select('id, current_username, status')
+                    .eq('id', parseInt(pid))
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    msg.textContent = 'Error: ' + error.message;
+                    msg.className = 'text-sm text-red-600';
+                    return;
+                }
+
+                if (!player) {
+                    // Crear nuevo jugador
+                    var { error: insertErr } = await supabase.from('players').insert({
+                        id: parseInt(pid),
+                        current_username: name,
+                        status: 'active',
+                        last_seen: new Date().toISOString()
+                    });
+                    if (insertErr) {
+                        msg.textContent = 'Error creando jugador: ' + insertErr.message;
+                        msg.className = 'text-sm text-red-600';
+                        return;
+                    }
+                } else {
+                    // Actualizar last_seen
+                    await supabase.from('players').update({ last_seen: new Date().toISOString() }).eq('id', parseInt(pid));
+                }
+
+                // Guardar sesion
+                savePlayerSession(pid, name);
+
+                msg.textContent = 'Bienvenido, ' + name + '!';
+                msg.className = 'text-sm text-green-600 font-bold';
+
+                setTimeout(function() {
+                    window.location.href = 'index.html';
+                }, 800);
+
+            } catch (e) {
+                msg.textContent = 'Error: ' + e.message;
+                msg.className = 'text-sm text-red-600';
+            }
+        }
+    </script>
 </body>
 </html>

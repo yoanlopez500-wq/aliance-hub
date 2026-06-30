@@ -2,288 +2,130 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Importar CSV - Alliance Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=15"></script>
-    <script src="../assets/js/base.js?v=15"></script>
-    <script src="../assets/js/auth.js?v=15"></script>
-    <script src="../assets/js/csv-parser.js?v=15"></script>
+    <script src="../assets/js/config.js?v=16"></script>
+    <script src="../assets/js/base.js?v=16"></script>
+    <script src="../assets/js/auth.js?v=16"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
     <div id="admin-nav"></div>
 
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">📥 Importar Resultados CSV</h1>
-        <p class="text-slate-500 mb-6">Sube el CSV exportado por el bot de Discord. Mapea kills/deaths y asigna a una partida.</p>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-white mb-6">&#128229; Importar Resultados</h1>
 
-        <!-- Step 1: Select Match -->
         <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <label class="block text-sm font-medium text-slate-700 mb-2">1. Busca y selecciona la partida</label>
-            <input type="text" id="search-match" placeholder="Buscar por nombre o ID de partida..." 
-                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none mb-3"
-                onkeyup="searchMatches()">
-            <div id="matches-list" class="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
-                <div class="text-center text-slate-400 py-4">Cargando partidas...</div>
+            <h3 class="font-bold text-slate-800 mb-3">Importar CSV</h3>
+            <p class="text-sm text-slate-500 mb-4">Formato: jugador,nacion,kills,muertes (una linea por jugador)</p>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Partida</label>
+                <select id="import-match" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm"></select>
             </div>
-            <div id="selected-match-info" class="hidden mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <p class="text-sm text-amber-800 font-medium">✅ Partida seleccionada: <span id="selected-name"></span></p>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Datos CSV</label>
+                <textarea id="csv-data" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm font-mono" rows="10" placeholder="jugador1,Francia,15,3&#10;jugador2,Alemania,8,12"></textarea>
             </div>
+
+            <button onclick="importCSV()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Importar</button>
         </div>
 
-        <!-- Step 2: Upload CSV -->
-        <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <label class="block text-sm font-medium text-slate-700 mb-2">2. Selecciona el archivo CSV</label>
-            <input type="file" id="csv-file" accept=".csv" 
-                class="w-full px-3 py-2 rounded-lg border border-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-900 file:font-bold hover:file:bg-amber-400">
-            <p class="text-xs text-slate-400 mt-2">Formato esperado: Nation, Username, Id, ..., Total (como exporta el bot de Discord)</p>
-        </div>
-
-        <!-- Step 3: Preview -->
-        <div id="preview-section" class="hidden">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <h3 class="font-bold text-slate-800">3. Verifica los datos</h3>
-                <div class="flex gap-2">
-                    <button onclick="resetImport()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition">↩ Volver</button>
-                    <button onclick="confirmImport()" class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-400 transition">✓ Confirmar Importación</button>
-                </div>
-            </div>
-            <div id="preview-content" class="bg-white rounded-xl border border-slate-200 p-4 overflow-x-auto"></div>
-        </div>
-
-        <!-- Results -->
-        <div id="result-section" class="hidden">
-            <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                <div class="text-3xl mb-2">✅</div>
-                <h3 class="font-bold text-green-800">¡Importación completada!</h3>
-                <p id="result-text" class="text-green-600 text-sm mt-1"></p>
-                <button onclick="resetAll()" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-400 transition">📥 Importar otro</button>
-            </div>
-        </div>
-
-        <!-- Errors -->
-        <div id="error-section" class="hidden">
-            <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                <div class="text-3xl mb-2">❌</div>
-                <h3 class="font-bold text-red-800">Error en la importación</h3>
-                <p id="error-text" class="text-red-600 text-sm mt-1"></p>
-                <button onclick="resetImport()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-400 transition">↩ Intentar de nuevo</button>
-            </div>
+        <div id="import-result" class="hidden bg-green-50 rounded-xl border border-green-200 p-4">
+            <p id="import-message" class="text-sm text-green-700 font-bold"></p>
         </div>
     </div>
 
     <script>
-        requireAdmin();
-
-        let allMatches = [];
-        let selectedMatchId = null;
-        let selectedMatchName = '';
-        let parsedData = null;
+        if (!hasAdminSession()) { window.location.href = 'login.html'; }
 
         async function loadMatches() {
-            try {
-                var { data, error } = await supabase
-                    .from('matches')
-                    .select('id, name, game_id, status, csv_imported, created_at')
-                    .neq('status', 'archived')
-                    .neq('status', 'cancelled')
-                    .order('created_at', { ascending: false });
+            var { data: matches } = await supabase
+                .from('matches')
+                .select('id, name, status')
+                .order('created_at', { ascending: false });
 
-                if (error) throw error;
-                allMatches = data || [];
-                renderMatches(allMatches);
-
-                var urlParams = new URLSearchParams(window.location.search);
-                var preselected = urlParams.get('match');
-                if (preselected) selectMatch(preselected);
-            } catch(e) {
-                document.getElementById('matches-list').innerHTML = '<div class="text-center text-red-500 py-4">Error cargando partidas: ' + e.message + '</div>';
-            }
-        }
-
-        function renderMatches(matches) {
-            var container = document.getElementById('matches-list');
-            if (matches.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-4">No hay partidas disponibles</div>';
-                return;
-            }
-
-            container.innerHTML = matches.map(function(g) {
-                var isSelected = selectedMatchId === g.id;
-                var statusBadge = g.status === 'finished' ? 'bg-purple-100 text-purple-700' : 
-                                  g.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                  g.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600';
-                return '<div onclick="selectMatch(\'' + g.id + '\')" ' +
-                    'class="match-item p-3 border-b hover:bg-amber-50 cursor-pointer transition ' + (isSelected ? 'bg-amber-100 border-amber-300' : '') + '" ' +
-                    'data-id="' + g.id + '">' +
-                    '<div class="flex items-center justify-between">' +
-                        '<div class="min-w-0">' +
-                            '<span class="font-medium text-slate-800 truncate">' + escHtml(g.name) + '</span>' +
-                            (g.game_id ? '<span class="text-xs text-slate-500 ml-2">(' + g.game_id + ')</span>' : '') +
-                        '</div>' +
-                        '<div class="flex items-center gap-2 shrink-0">' +
-                            (g.csv_imported ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ CSV</span>' : '') +
-                            '<span class="text-xs px-2 py-0.5 rounded ' + statusBadge + '">' + (g.status || 'draft') + '</span>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="text-xs text-slate-400 mt-1">' + formatDate(g.created_at) + '</div>' +
-                '</div>';
+            var sel = document.getElementById('import-match');
+            sel.innerHTML = (matches || []).map(function(m) {
+                return '<option value="' + m.id + '">' + m.name + ' (' + m.status + ')</option>';
             }).join('');
         }
 
-        function escHtml(t) {
-            if (!t) return '';
-            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
+        async function importCSV() {
+            var matchId = document.getElementById('import-match').value;
+            var csv = document.getElementById('csv-data').value.trim();
+            var result = document.getElementById('import-result');
+            var msg = document.getElementById('import-message');
 
-        function searchMatches() {
-            var q = document.getElementById('search-match').value.toLowerCase();
-            var filtered = allMatches.filter(function(g) {
-                return (g.name && g.name.toLowerCase().includes(q)) ||
-                       (g.game_id && g.game_id.toLowerCase().includes(q)) ||
-                       g.id.toLowerCase().includes(q);
-            });
-            renderMatches(filtered);
-        }
+            if (!matchId || !csv) { showToast('Selecciona una partida y pega los datos CSV', 'error'); return; }
 
-        function selectMatch(id) {
-            selectedMatchId = id;
-            var match = allMatches.find(function(g) { return g.id === id; });
-            if (match) {
-                selectedMatchName = match.name;
-                document.getElementById('selected-name').textContent = match.name + (match.game_id ? ' (' + match.game_id + ')' : '');
-                document.getElementById('selected-match-info').classList.remove('hidden');
-                renderMatches(allMatches);
-            }
-        }
+            var lines = csv.split('\n').filter(function(l) { return l.trim(); });
+            var results = [];
+            var errors = [];
 
-        document.getElementById('csv-file').addEventListener('change', function(e) {
-            var file = e.target.files[0];
-            if (!selectedMatchId) { showToast('Selecciona una partida primero', 'warning'); this.value = ''; return; }
-            if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    parsedData = parseSupremacyCSV(event.target.result);
-                    enrichWithPlayerCheck();
-                } catch (err) {
-                    showToast('Error parseando CSV: ' + err.message, 'error');
-                    document.getElementById('csv-file').value = '';
+            for (var i = 0; i < lines.length; i++) {
+                var parts = lines[i].split(',').map(function(p) { return p.trim(); });
+                if (parts.length < 4) { errors.push('Linea ' + (i+1) + ': formato invalido'); continue; }
+
+                var playerName = parts[0];
+                var nation = parts[1];
+                var kills = parseInt(parts[2]) || 0;
+                var deaths = parseInt(parts[3]) || 0;
+
+                // Buscar o crear jugador
+                var { data: player } = await supabase.from('players').select('id').eq('current_username', playerName).single();
+                var playerId;
+
+                if (!player) {
+                    var { data: newPlayer, error: createErr } = await supabase.from('players').insert({
+                        current_username: playerName,
+                        status: 'active'
+                    }).select('id').single();
+                    if (createErr) { errors.push('Linea ' + (i+1) + ': ' + createErr.message); continue; }
+                    playerId = newPlayer.id;
+                } else {
+                    playerId = player.id;
                 }
-            };
-            reader.readAsText(file);
-        });
 
-        async function enrichWithPlayerCheck() {
-            if (!parsedData || !parsedData.players.length) { showPreview(); return; }
-            var playerIds = parsedData.players.map(function(p) { return p.player_id; }).filter(Boolean);
-            try {
-                var { data: existingPlayers } = await supabase.from('players').select('id, current_username').in('id', playerIds);
-                var existingMap = {};
-                (existingPlayers || []).forEach(function(p) { existingMap[p.id] = p.current_username; });
-                parsedData.players.forEach(function(p) {
-                    p.isRegistered = !!existingMap[p.player_id];
-                    p.dbUsername = existingMap[p.player_id] || null;
-                    p.nameMismatch = p.isRegistered && p.dbUsername !== p.username;
+                // Insertar resultado
+                var { error: resultErr } = await supabase.from('match_results').upsert({
+                    match_id: matchId,
+                    player_id: playerId,
+                    nation: nation,
+                    kills: kills,
+                    deaths: deaths,
+                    kd_ratio: deaths > 0 ? (kills / deaths) : kills
+                }, { onConflict: 'match_id,player_id' });
+
+                if (resultErr) { errors.push('Linea ' + (i+1) + ': ' + resultErr.message); continue; }
+                results.push(playerName + ': ' + kills + ' kills, ' + deaths + ' deaths');
+            }
+
+            // Actualizar stats de jugadores
+            for (var j = 0; j < lines.length; j++) {
+                var parts = lines[j].split(',').map(function(p) { return p.trim(); });
+                if (parts.length < 4) continue;
+                var playerName = parts[0];
+                var kills = parseInt(parts[2]) || 0;
+                var deaths = parseInt(parts[3]) || 0;
+
+                await supabase.rpc('increment_player_stats', {
+                    p_player_id: null,
+                    p_username: playerName,
+                    p_kills: kills,
+                    p_deaths: deaths
                 });
-                showPreview();
-            } catch(e) { console.error('Error enriching:', e); showPreview(); }
-        }
-
-        function showPreview() {
-            document.getElementById('preview-section').classList.remove('hidden');
-            document.getElementById('preview-content').innerHTML = generateEnhancedPreview(parsedData);
-        }
-
-        function generateEnhancedPreview(parsedData) {
-            if (!parsedData.players.length) return '<p class="text-red-500 text-center py-4">No se encontraron jugadores válidos en el CSV</p>';
-            var needsAttention = parsedData.players.filter(function(p) { return !p.isRegistered || p.nameMismatch; });
-            var html = '<div class="mb-4 text-sm text-slate-600"><span class="font-bold">' + parsedData.importedCount + '</span> jugadores encontrados <span class="text-slate-400">(' + (parsedData.totalRows - parsedData.importedCount) + ' bots/filas inválidas ignoradas)</span></div>';
-            if (needsAttention.length > 0) {
-                var unregistered = needsAttention.filter(function(p) { return !p.isRegistered; });
-                var mismatched = needsAttention.filter(function(p) { return p.nameMismatch; });
-                html += '<div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"><p class="font-bold text-yellow-700 text-sm">⚠️ Requiere corrección: ' + needsAttention.length + ' jugador(es)</p>';
-                if (unregistered.length > 0) html += '<p class="text-xs text-yellow-600 mt-1">❌ No registrados (' + unregistered.length + '): ' + unregistered.map(function(p) { return p.username + ' (ID:' + p.player_id + ')'; }).join(', ') + ' — Se crearán como nuevos</p>';
-                if (mismatched.length > 0) html += '<p class="text-xs text-yellow-600 mt-1">⚠️ Nombre distinto (' + mismatched.length + '): ' + mismatched.map(function(p) { return p.username + ' → ' + p.dbUsername; }).join(', ') + ' — Se actualizará el username</p>';
-                html += '</div>';
             }
-            html += '<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="text-left p-2">Nación</th><th class="text-left p-2">Username</th><th class="text-left p-2">ID</th><th class="text-right p-2">Bajas</th><th class="text-right p-2">Muertes</th><th class="text-right p-2">KD</th><th class="text-left p-2">Estado</th></tr></thead><tbody>';
-            parsedData.players.forEach(function(p) {
-                var statusIcon = p.isRegistered ? (p.nameMismatch ? '⚠️' : '✅') : '❌';
-                var statusText = p.isRegistered ? (p.nameMismatch ? 'Nombre distinto' : 'OK') : 'No registrado';
-                var statusClass = p.isRegistered ? (p.nameMismatch ? 'text-yellow-600' : 'text-green-600') : 'text-red-500';
-                html += '<tr class="border-b hover:bg-slate-50"><td class="p-2">' + p.nation + '</td><td class="p-2 font-medium">' + escHtml(p.username) + '</td><td class="p-2 text-slate-500">' + p.player_id + '</td><td class="p-2 text-right text-green-600 font-bold">' + p.kills.toLocaleString() + '</td><td class="p-2 text-right text-red-500">' + p.deaths.toLocaleString() + '</td><td class="p-2 text-right font-bold ' + (p.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500') + '">' + p.kd_ratio + '</td><td class="p-2 ' + statusClass + ' text-xs">' + statusIcon + ' ' + statusText + '</td></tr>';
-            });
-            html += '</tbody></table></div>';
-            if (parsedData.errors.length > 0) html += '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm"><p class="font-bold text-yellow-700">⚠️ ' + parsedData.errors.length + ' filas con error:</p><ul class="mt-1 text-yellow-600 text-xs">' + parsedData.errors.slice(0, 5).map(function(e) { return '<li>Línea ' + e.line + ': ' + e.reason + '</li>'; }).join('') + (parsedData.errors.length > 5 ? '<li>... y ' + (parsedData.errors.length - 5) + ' más</li>' : '') + '</ul></div>';
-            return html;
-        }
 
-        function resetImport() {
-            document.getElementById('preview-section').classList.add('hidden');
-            document.getElementById('result-section').classList.add('hidden');
-            document.getElementById('error-section').classList.add('hidden');
-            document.getElementById('csv-file').value = '';
-            parsedData = null;
-        }
-        function resetAll() {
-            resetImport();
-            selectedMatchId = null;
-            selectedMatchName = '';
-            document.getElementById('selected-match-info').classList.add('hidden');
-            renderMatches(allMatches);
-        }
+            // Marcar partida como finalizada
+            await supabase.from('matches').update({ csv_imported: true, status: 'finished' }).eq('id', matchId);
 
-        async function confirmImport() {
-            if (!parsedData || !selectedMatchId) return;
-            var btn = document.querySelector('#preview-section button:last-child');
-            var originalText = btn.textContent;
-            btn.disabled = true; btn.textContent = '⏳ Importando...';
-            try {
-                var players = parsedData.players;
-                var created = 0, updated = 0, resultsInserted = 0, errors = [];
-                for (var i = 0; i < players.length; i++) {
-                    var p = players[i];
-                    var { error: upsertErr } = await supabase.from('players').upsert({
-                        id: p.player_id, current_username: p.username, last_seen: new Date().toISOString()
-                    }, { onConflict: 'id' });
-                    if (upsertErr) { errors.push('Player ' + p.player_id + ': ' + upsertErr.message); continue; }
-                    if (p.isRegistered && !p.nameMismatch) updated++; else created++;
-                    var { error: resultErr } = await supabase.from('match_results').insert({
-                        match_id: selectedMatchId, player_id: p.player_id, nation: p.nation,
-                        kills: p.kills, deaths: p.deaths, kd_ratio: p.kd_ratio, raw_csv_data: p.raw_csv
-                    });
-                    if (resultErr) errors.push('Result ' + p.player_id + ': ' + resultErr.message);
-                    else resultsInserted++;
-                }
-                for (var j = 0; j < players.length; j++) {
-                    var pj = players[j];
-                    var { data: allResults } = await supabase.from('match_results').select('kills, deaths').eq('player_id', pj.player_id);
-                    var totalKills = 0, totalDeaths = 0;
-                    (allResults || []).forEach(function(r) { totalKills += (r.kills || 0); totalDeaths += (r.deaths || 0); });
-                    await supabase.from('players').update({
-                        total_kills: totalKills, total_deaths: totalDeaths,
-                        games_played: (allResults || []).length, current_username: pj.username, last_seen: new Date().toISOString()
-                    }).eq('id', pj.player_id);
-                }
-                await supabase.from('matches').update({ csv_imported: true }).eq('id', selectedMatchId);
-                document.getElementById('preview-section').classList.add('hidden');
-                document.getElementById('result-section').classList.remove('hidden');
-                var resultMsg = resultsInserted + ' resultados importados';
-                if (created > 0) resultMsg += ' • ' + created + ' jugadores creados';
-                if (updated > 0) resultMsg += ' • ' + updated + ' jugadores actualizados';
-                if (errors.length > 0) resultMsg += ' • ' + errors.length + ' errores (ver consola)';
-                document.getElementById('result-text').textContent = resultMsg;
-                showToast('Importación completada', 'success');
-                loadMatches();
-            } catch (err) {
-                document.getElementById('preview-section').classList.add('hidden');
-                document.getElementById('error-section').classList.remove('hidden');
-                document.getElementById('error-text').textContent = err.message;
-                showToast('Error en importación: ' + err.message, 'error');
-            } finally { btn.disabled = false; btn.textContent = originalText; }
+            result.classList.remove('hidden');
+            msg.textContent = 'Importados ' + results.length + ' resultados' + (errors.length > 0 ? '. Errores: ' + errors.length : '');
+            if (errors.length > 0) console.error(errors);
         }
 
         loadMatches();
