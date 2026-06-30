@@ -1,219 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jugador - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js?v=16"></script>
-    <script src="assets/js/base.js?v=16"></script>
-    <script src="assets/js/auth.js?v=16"></script>
-    <style>
-        .strikethrough-kills { text-decoration: line-through; text-decoration-color: #ef4444; opacity: 0.7; }
-    </style>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Perfil de Jugador - Alliance Hub</title>
+<script src="assets/js/theme.js?v=16"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js?v=16"></script>
+<script src="assets/js/base.js?v=16"></script>
+<script src="assets/js/auth.js?v=16"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <div id="player-header" class="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-            <div class="text-center py-8 text-slate-400">Cargando jugador...</div>
-        </div>
-
-        <!-- Estadisticas con penalizaciones -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-xl p-4 border border-slate-200 text-center">
-                <div id="stat-orig-kills" class="text-2xl font-bold text-slate-600">-</div>
-                <div class="text-xs text-slate-500">Kills Originales</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 border border-slate-200 text-center">
-                <div id="stat-effective-kills" class="text-2xl font-bold text-green-600">-</div>
-                <div class="text-xs text-slate-500">Kills Efectivas</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 border border-slate-200 text-center">
-                <div id="stat-deaths" class="text-2xl font-bold text-red-600">-</div>
-                <div class="text-xs text-slate-500">Muertes</div>
-            </div>
-            <div class="bg-white rounded-xl p-4 border border-slate-200 text-center">
-                <div id="stat-kd" class="text-2xl font-bold text-amber-600">-</div>
-                <div class="text-xs text-slate-500">KD Efectivo</div>
-            </div>
-        </div>
-
-        <!-- Penalizacion activa -->
-        <div id="penalty-banner" class="hidden mb-6 p-4 bg-red-50 rounded-xl border border-red-200">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl">&#9889;</span>
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-red-800">Penalizacion Activa por Strikes</p>
-                    <p id="penalty-text" class="text-sm text-red-600"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Strikes -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h3 class="font-bold text-slate-800 mb-3">&#9889; Historial de Strikes</h3>
-            <div id="strikes-list" class="space-y-2">
-                <div class="text-center py-4 text-slate-400">Cargando...</div>
-            </div>
-        </div>
-
-        <!-- Sanciones -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <h3 class="font-bold text-slate-800 mb-3">&#128200; Sanciones Aplicadas</h3>
-            <div id="sanctions-list" class="space-y-2">
-                <div class="text-center py-4 text-slate-400">Cargando...</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        var playerId = new URLSearchParams(location.search).get('id');
-        if (!playerId) { document.body.innerHTML = '<div class="text-center py-12 text-white">ID de jugador requerido</div>'; }
-
-        async function loadPlayer() {
-            var { data: player } = await supabase
-                .from('players')
-                .select('*, alliances(name, tag)')
-                .eq('id', playerId)
-                .single();
-
-            if (!player) { document.getElementById('player-header').innerHTML = '<div class="text-center py-8 text-red-500">Jugador no encontrado</div>'; return; }
-
-            // Contar strikes activos desde player_strikes (la columna players.strikes NO existe)
-            var { data: strikesData } = await supabase
-                .from('player_strikes')
-                .select('id')
-                .eq('player_id', playerId)
-                .eq('is_active', true);
-            var strikeCount = (strikesData || []).length;
-
-            // Sanciones activas
-            var { data: sanctions } = await supabase
-                .from('player_sanctions')
-                .select('*')
-                .eq('player_id', playerId)
-                .order('created_at', { ascending: false });
-
-            var latestSanction = sanctions && sanctions.length > 0 ? sanctions[0] : null;
-
-            // Nullified kills
-            var { data: nullified } = await supabase
-                .from('match_nullified_kills')
-                .select('kills_nullified')
-                .eq('player_id', playerId);
-            var totalNullified = (nullified || []).reduce(function(s, n) { return s + (n.kills_nullified || 0); }, 0);
-
-            var origKills = player.total_kills || 0;
-            var killsWithoutNullified = Math.max(0, origKills - totalNullified);
-            var effectiveKills = killsWithoutNullified;
-            var penaltyPct = 0;
-
-            if (latestSanction && latestSanction.kills_after != null) {
-                effectiveKills = Math.round(latestSanction.kills_after);
-                penaltyPct = latestSanction.penalty_pct || 0;
-            } else {
-                if (strikeCount === 1) { effectiveKills = Math.round(killsWithoutNullified * 0.9); penaltyPct = 10; }
-                else if (strikeCount === 2) { effectiveKills = Math.round(killsWithoutNullified * 0.7); penaltyPct = 30; }
-                else if (strikeCount >= 3) { effectiveKills = Math.round(killsWithoutNullified * 0.5); penaltyPct = 50; }
-            }
-
-            var deaths = player.total_deaths || 0;
-            var kd = deaths > 0 ? (effectiveKills / deaths).toFixed(2) : effectiveKills.toFixed(2);
-            var strikeStatus = strikeCount === 0 ? 'bg-green-100 text-green-700' :
-                               strikeCount === 1 ? 'bg-yellow-100 text-yellow-700' :
-                               strikeCount === 2 ? 'bg-orange-100 text-orange-700' :
-                               'bg-red-100 text-red-700';
-
-            document.getElementById('player-header').innerHTML =
-                '<div class="flex items-center gap-4">' +
-                    '<div class="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-2xl">&#128100;</div>' +
-                    '<div class="flex-1">' +
-                        '<h1 class="text-2xl font-bold text-slate-800">' + (player.current_username || 'Jugador ' + player.id) + '</h1>' +
-                        '<p class="text-sm text-slate-500">ID: ' + player.id + ' | ' + (player.alliances?.tag || 'Sin alianza') + '</p>' +
-                        '<div class="flex gap-2 mt-2">' +
-                            getStatusBadgePlayer(player.status) +
-                            '<span class="px-2 py-0.5 rounded text-xs font-bold ' + strikeStatus + '">' + strikeCount + ' strikes</span>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-
-            document.getElementById('stat-orig-kills').textContent = (totalNullified > 0 ? '~' : '') + origKills.toLocaleString();
-            document.getElementById('stat-effective-kills').textContent = effectiveKills.toLocaleString();
-            document.getElementById('stat-deaths').textContent = deaths.toLocaleString();
-            document.getElementById('stat-kd').textContent = kd;
-
-            if (penaltyPct > 0) {
-                document.getElementById('penalty-banner').classList.remove('hidden');
-                document.getElementById('penalty-text').textContent = 'Se aplica un -' + penaltyPct + '% sobre las kills por ' + strikeCount + ' strike(s). Kills efectivas: ' + effectiveKills.toLocaleString() + ' de ' + killsWithoutNullified.toLocaleString();
-            }
-
-            loadStrikes(playerId);
-            loadSanctionsList(sanctions || []);
-        }
-
-        async function loadStrikes(pid) {
-            var { data: strikes } = await supabase
-                .from('player_strikes')
-                .select('*, type:strike_types(name, severity, code), match:matches(name)')
-                .eq('player_id', pid)
-                .order('applied_at', { ascending: false });
-
-            var container = document.getElementById('strikes-list');
-            if (!strikes || strikes.length === 0) {
-                container.innerHTML = '<div class="text-center py-4 text-slate-400">Sin strikes registrados</div>';
-                return;
-            }
-
-            container.innerHTML = strikes.map(function(s) {
-                var sevClass = s.type?.severity === 1 ? 'border-l-4 border-yellow-400' :
-                               s.type?.severity === 2 ? 'border-l-4 border-orange-400' :
-                               'border-l-4 border-red-400';
-                var sevLabel = s.type?.severity === 1 ? 'Leve' : s.type?.severity === 2 ? 'Medio' : 'Grave';
-                return '<div class="p-3 bg-slate-50 rounded-lg ' + sevClass + '">' +
-                    '<div class="flex items-center justify-between">' +
-                        '<div>' +
-                            '<span class="text-xs font-bold text-slate-600">' + (s.type?.name || '?') + '</span>' +
-                            '<span class="text-xs text-slate-400 ml-2">(' + sevLabel + ')</span>' +
-                        '</div>' +
-                        '<span class="text-xs text-slate-400">' + formatDateTime(s.applied_at) + '</span>' +
-                    '</div>' +
-                    '<p class="text-sm text-slate-600 mt-1">' + s.reason + '</p>' +
-                    (s.match ? '<p class="text-xs text-slate-400 mt-1">&#127918; ' + s.match.name + '</p>' : '') +
-                    (s.is_active === false ? '<span class="text-xs text-slate-400 line-through">REMOVIDO</span>' : '') +
-                '</div>';
-            }).join('');
-        }
-
-        function loadSanctionsList(sanctions) {
-            var container = document.getElementById('sanctions-list');
-            if (sanctions.length === 0) {
-                container.innerHTML = '<div class="text-center py-4 text-slate-400">Sin sanciones registradas</div>';
-                return;
-            }
-
-            container.innerHTML = sanctions.map(function(s) {
-                return '<div class="p-3 bg-slate-50 rounded-lg border border-slate-200">' +
-                    '<div class="flex items-center justify-between">' +
-                        '<span class="text-xs font-bold text-slate-600">Penalidad: -' + (s.penalty_pct || 0) + '%</span>' +
-                        '<span class="text-xs text-slate-400">' + formatDateTime(s.created_at) + '</span>' +
-                    '</div>' +
-                    '<div class="flex gap-4 mt-1 text-sm">' +
-                        '<span class="text-slate-500">Kills antes: <span class="font-bold">' + (s.kills_before || 0) + '</span></span>' +
-                        '<span class="text-green-600 font-bold">Kills despues: ' + (s.kills_after || 0) + '</span>' +
-                    '</div>' +
-                    '<p class="text-xs text-slate-400 mt-1">Formula: ' + (s.formula_used || 'Manual') + '</p>' +
-                '</div>';
-            }).join('');
-        }
-
-        loadPlayer();
-    </script>
+<body class="min-h-screen" data-role="public">
+<div id="admin-nav"></div>
+<div class="max-w-4xl mx-auto px-4 py-8">
+<div id="player-profile">Cargando...</div>
+</div>
+<script>
+async function loadProfile() {
+    var params = new URLSearchParams(window.location.search);
+    var playerId = params.get('id');
+    if (!playerId) { document.getElementById('player-profile').innerHTML = '<div class="text-center py-8 text-red-400">ID de jugador no especificado</div>'; return; }
+    try {
+        var { data: player, error } = await supabase.from('players').select('*, alliances(name, tag)').eq('id', playerId).single();
+        if (error) throw error;
+        if (!player) { document.getElementById('player-profile').innerHTML = '<div class="text-center py-8 text-red-400">Jugador no encontrado</div>'; return; }
+        var strikesRes = await supabase.from('player_strikes').select('*').eq('player_id', playerId).eq('is_active', true);
+        var strikeCount = strikesRes.data ? strikesRes.data.length : 0;
+        var totalKills = player.total_kills || 0;
+        var totalDeaths = player.total_deaths || 0;
+        var effKills = totalKills;
+        if (strikeCount === 1) effKills = Math.round(totalKills * 0.9);
+        else if (strikeCount === 2) effKills = Math.round(totalKills * 0.7);
+        else if (strikeCount >= 3) effKills = Math.round(totalKills * 0.5);
+        var kd = totalDeaths > 0 ? (effKills / totalDeaths).toFixed(2) : effKills > 0 ? effKills.toFixed(2) : '0.00';
+        var penaltyBadge = strikeCount > 0 ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:rgba(198,40,40,0.2);color:#ef5350">-' + (strikeCount === 1 ? '10%' : strikeCount === 2 ? '30%' : '50%') + ' penalizacion</span>' : '';
+        var strikeBadge = strikeCount > 0 ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:rgba(255,143,0,0.2);color:#ff8f00">' + strikeCount + ' strike' + (strikeCount > 1 ? 's' : '') + '</span>' : '';
+        document.getElementById('player-profile').innerHTML = '<div class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center gap-4 mb-4"><div class="text-4xl">&#128100;</div><div><h1 class="text-2xl font-bold">' + player.current_username + strikeBadge + '</h1><p class="text-sm" style="color:#9fa8da;">' + (player.alliances ? player.alliances.name + ' [' + player.alliances.tag + ']' : 'Sin alianza') + '</p></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="rounded-lg p-3 text-center" style="background:#0a0e27;border:1px solid #1a237e;"><div class="text-2xl font-bold" style="color:#ff8f00;">' + effKills + penaltyBadge + '</div><div class="text-xs" style="color:#9fa8da;">Bajas Efectivas</div></div><div class="rounded-lg p-3 text-center" style="background:#0a0e27;border:1px solid #1a237e;"><div class="text-2xl font-bold">' + totalDeaths + '</div><div class="text-xs" style="color:#9fa8da;">Muertes</div></div><div class="rounded-lg p-3 text-center" style="background:#0a0e27;border:1px solid #1a237e;"><div class="text-2xl font-bold">' + kd + '</div><div class="text-xs" style="color:#9fa8da;">K/D</div></div><div class="rounded-lg p-3 text-center" style="background:#0a0e27;border:1px solid #1a237e;"><div class="text-2xl font-bold">' + (player.games_played || 0) + '</div><div class="text-xs" style="color:#9fa8da;">Partidas</div></div></div></div>';
+    } catch(e) { console.error('[Profile]', e); document.getElementById('player-profile').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
+}
+loadProfile();
+</script>
 </body>
 </html>

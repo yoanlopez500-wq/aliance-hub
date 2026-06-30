@@ -1,226 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partida - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js?v=16"></script>
-    <script src="assets/js/base.js?v=16"></script>
-    <script src="assets/js/auth.js?v=16"></script>
-    <style>
-        .rule-section { border-left: 3px solid #e2e8f0; padding-left: 12px; margin-bottom: 12px; }
-        .rule-section:hover { border-left-color: #f59e0b; }
-    </style>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Partida - Alliance Hub</title>
+<script src="assets/js/theme.js?v=16"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js?v=16"></script>
+<script src="assets/js/base.js?v=16"></script>
+<script src="assets/js/auth.js?v=16"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-5xl mx-auto px-4 py-8">
-        <div id="game-header" class="mb-6">
-            <div class="text-center py-8 text-slate-400">Cargando partida...</div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="flex gap-2 mb-6 border-b border-slate-700">
-            <button onclick="showTab('overview')" id="tab-overview" class="px-4 py-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500">Resumen</button>
-            <button onclick="showTab('players')" id="tab-players" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-300">Jugadores</button>
-            <button onclick="showTab('rules')" id="tab-rules" class="px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-300">&#128220; Reglas</button>
-        </div>
-
-        <!-- Overview -->
-        <div id="panel-overview">
-            <div id="game-details" class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-                <div class="text-center py-4 text-slate-400">Cargando detalles...</div>
-            </div>
-        </div>
-
-        <!-- Players -->
-        <div id="panel-players" class="hidden">
-            <div id="game-players" class="overflow-x-auto bg-white rounded-xl border border-slate-200">
-                <div class="text-center py-8 text-slate-400">Cargando jugadores...</div>
-            </div>
-        </div>
-
-        <!-- Rules - Sistema Nativo (NO Google Docs) -->
-        <div id="panel-rules" class="hidden">
-            <div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-                <h3 class="font-bold text-slate-800 mb-3">&#128220; Reglas Oficiales de Alliance Hub</h3>
-                <div id="native-rules-list" class="space-y-3">
-                    <div class="text-center py-4 text-slate-400">Cargando reglas...</div>
-                </div>
-            </div>
-
-            <!-- Reglas adicionales de la partida -->
-            <div id="match-extra-rules" class="hidden bg-amber-50 rounded-xl border border-amber-200 p-5">
-                <h3 class="font-bold text-amber-800 mb-2">&#128221; Reglas Adicionales de esta Partida</h3>
-                <p id="match-extra-rules-text" class="text-sm text-amber-700"></p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        var matchId = new URLSearchParams(location.search).get('id');
-        if (!matchId) { document.body.innerHTML = '<div class="text-center py-12 text-white">ID de partida requerido</div>'; }
-
-        async function loadGame() {
-            var { data: match } = await supabase
-                .from('matches')
-                .select('*, alliance:alliances!matches_alliance_id_fkey(name, tag)')
-                .eq('id', matchId)
-                .single();
-
-            if (!match) { document.getElementById('game-header').innerHTML = '<div class="text-center py-8 text-red-500">Partida no encontrada</div>'; return; }
-
-            var allianceLabel = match.alliance ? match.alliance.name + ' [' + match.alliance.tag + ']' : 'Global';
-            document.getElementById('game-header').innerHTML =
-                '<div class="bg-white rounded-2xl border border-slate-200 p-6">' +
-                    '<div class="flex items-center gap-2 mb-2 flex-wrap">' + getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + '</div>' +
-                    '<h1 class="text-2xl font-bold text-slate-800">' + match.name + '</h1>' +
-                    '<p class="text-sm text-slate-500 mt-1">' + allianceLabel + ' | ' + formatDate(match.created_at) + '</p>' +
-                    '<p class="text-sm text-slate-600 mt-2">' + (match.description || 'Sin descripcion') + '</p>' +
-                '</div>';
-
-            if (match.description) {
-                document.getElementById('match-extra-rules').classList.remove('hidden');
-                document.getElementById('match-extra-rules-text').textContent = match.description;
-            }
-
-            document.getElementById('game-details').innerHTML =
-                '<div class="grid grid-cols-2 md:grid-cols-4 gap-4">' +
-                    '<div class="text-center p-3 bg-slate-50 rounded-lg">' +
-                        '<div class="text-lg font-bold text-amber-600">' + match.max_players + '</div>' +
-                        '<div class="text-xs text-slate-500">Max Jugadores</div>' +
-                    '</div>' +
-                    '<div class="text-center p-3 bg-slate-50 rounded-lg">' +
-                        '<div class="text-lg font-bold text-blue-600">' + (match.day_duration || '-') + '</div>' +
-                        '<div class="text-xs text-slate-500">Dias de ronda</div>' +
-                    '</div>' +
-                    '<div class="text-center p-3 bg-slate-50 rounded-lg">' +
-                        '<div class="text-lg font-bold text-green-600">' + (match.victory_threshold || '-') + '</div>' +
-                        '<div class="text-xs text-slate-500">Umbral Victoria</div>' +
-                    '</div>' +
-                    '<div class="text-center p-3 bg-slate-50 rounded-lg">' +
-                        '<div class="text-lg font-bold text-purple-600">' + (match.password ? 'Si' : 'No') + '</div>' +
-                        '<div class="text-xs text-slate-500">Password</div>' +
-                    '</div>' +
-                '</div>';
-
-            loadPlayers(matchId);
-            loadNativeRules();
-        }
-
-        async function loadPlayers(mid) {
-            var { data: registrations } = await supabase
-                .from('match_registrations')
-                .select('*, player:players(current_username, total_kills, total_deaths)')
-                .eq('match_id', mid);
-
-            // Cargar conteo de strikes activos por jugador desde player_strikes
-            var playerIds = (registrations || []).map(function(r) { return r.player_id; }).filter(Boolean);
-            var strikeCounts = {};
-            if (playerIds.length > 0) {
-                var { data: strikesData } = await supabase
-                    .from('player_strikes')
-                    .select('player_id')
-                    .eq('is_active', true)
-                    .in('player_id', playerIds);
-                (strikesData || []).forEach(function(s) {
-                    strikeCounts[s.player_id] = (strikeCounts[s.player_id] || 0) + 1;
-                });
-            }
-
-            var container = document.getElementById('game-players');
-            if (!registrations || registrations.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400">Sin jugadores registrados</div>';
-                return;
-            }
-
-            container.innerHTML = '<table class="w-full text-sm">' +
-                '<thead class="bg-slate-50"><tr>' +
-                    '<th class="text-left p-3">Jugador</th>' +
-                    '<th class="text-right p-3">Kills</th>' +
-                    '<th class="text-right p-3">Muertes</th>' +
-                    '<th class="text-right p-3">KD</th>' +
-                    '<th class="text-center p-3">Strikes</th>' +
-                    '<th class="text-left p-3">Estado</th>' +
-                '</tr></thead><tbody>' +
-                registrations.map(function(r) {
-                    var p = r.player || {};
-                    var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills || 0;
-                    var sc = strikeCounts[r.player_id] || 0;
-                    var strikeBadge = sc > 0 ? '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold">' + sc + '</span>' : '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">0</span>';
-                    return '<tr class="border-b hover:bg-slate-50">' +
-                        '<td class="p-3"><a href="player.html?id=' + r.player_id + '" class="font-medium hover:text-amber-600">' + (p.current_username || 'ID:' + r.player_id) + '</a></td>' +
-                        '<td class="p-3 text-right text-green-600 font-bold">' + (p.total_kills || 0) + '</td>' +
-                        '<td class="p-3 text-right text-red-500">' + (p.total_deaths || 0) + '</td>' +
-                        '<td class="p-3 text-right">' + kd + '</td>' +
-                        '<td class="p-3 text-center">' + strikeBadge + '</td>' +
-                        '<td class="p-3">' + getStatusBadgePlayer(r.status || 'active') + '</td>' +
-                    '</tr>';
-                }).join('') +
-                '</tbody></table>';
-        }
-
-        // Sistema NATIVO de reglas - carga desde rule_sections de Supabase
-        async function loadNativeRules() {
-            var { data: rules } = await supabase
-                .from('rule_sections')
-                .select('*')
-                .eq('is_active', true)
-                .order('order_index', { ascending: true });
-
-            var container = document.getElementById('native-rules-list');
-            if (!rules || rules.length === 0) {
-                container.innerHTML = '<div class="text-center py-4 text-slate-400">No hay reglas configuradas. Visita el panel de admin para agregarlas.</div>';
-                return;
-            }
-
-            // Build tree
-            var byId = {};
-            var roots = [];
-            rules.forEach(function(r) { byId[r.id] = r; r.children = []; });
-            rules.forEach(function(r) {
-                if (r.parent_id && byId[r.parent_id]) byId[r.parent_id].children.push(r);
-                else roots.push(r);
-            });
-
-            container.innerHTML = roots.map(function(r) { return renderRuleSection(r, 0); }).join('');
-        }
-
-        function renderRuleSection(s, level) {
-            var indent = level * 16;
-            var num = s.section_number ? '<span class="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded mr-2">' + s.section_number + '</span>' : '';
-            var children = s.children || [];
-
-            var html = '<div class="rule-section" style="margin-left:' + indent + 'px">' +
-                '<h4 class="font-bold text-slate-700 text-sm">' + num + s.title + '</h4>' +
-                '<p class="text-sm text-slate-600 mt-1">' + (s.content || '').replace(/\n/g, '<br>') + '</p>';
-
-            if (children.length > 0) {
-                html += '<div class="mt-2">';
-                children.forEach(function(c) { html += renderRuleSection(c, level + 1); });
-                html += '</div>';
-            }
-            html += '</div>';
-            return html;
-        }
-
-        function showTab(tab) {
-            ['overview', 'players', 'rules'].forEach(function(t) {
-                document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
-                var btn = document.getElementById('tab-' + t);
-                if (t === tab) { btn.className = 'px-4 py-3 text-sm font-bold text-amber-600 border-b-2 border-amber-500'; }
-                else { btn.className = 'px-4 py-3 text-sm font-bold text-slate-500 hover:text-slate-300'; }
-            });
-        }
-
-        loadGame();
-    </script>
+<body class="min-h-screen" data-role="public">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div id="match-header"></div>
+<div id="match-details" class="mt-6"></div>
+<div id="rules-section" class="hidden mt-6">
+<h2 class="text-xl font-bold mb-3">&#128220; Reglamento</h2>
+<div id="rules-container" class="space-y-3"></div>
+</div>
+<div id="players-section" class="mt-6">
+<h2 class="text-xl font-bold mb-3">&#128100; Jugadores</h2>
+<div id="players-list">Cargando...</div>
+</div>
+</div>
+<script>
+async function loadMatch() {
+    var params = new URLSearchParams(window.location.search);
+    var matchId = params.get('id');
+    if (!matchId) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">ID de partida no especificado</div>'; return; }
+    try {
+        var { data: match, error } = await supabase.from('matches').select('*, alliances(name, tag)').eq('id', matchId).single();
+        if (error) throw error;
+        if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Partida no encontrada</div>'; return; }
+        document.getElementById('match-header').innerHTML = '<div class="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h1 class="text-2xl font-bold">&#127918; ' + (match.name || 'Partida') + '</h1><p class="text-sm" style="color:#9fa8da;">' + getStatusBadge(match.status) + ' ' + (match.alliances ? match.alliances.name : '') + '</p></div></div>';
+        loadNativeRules();
+        loadPlayers(matchId);
+    } catch(e) { console.error('[Game]', e); document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
+}
+async function loadNativeRules() {
+    try {
+        var { data: sections } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
+        if (!sections || sections.length === 0) return;
+        document.getElementById('rules-section').classList.remove('hidden');
+        document.getElementById('rules-container').innerHTML = sections.map(function(s) {
+            return '<div class="rounded-lg p-4" style="background:#11183a;border:1px solid #1a237e;"><h3 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + s.title + '</h3><p class="text-sm" style="color:#e8eaf6;">' + (s.content || '').substring(0, 200) + (s.content.length > 200 ? '...' : '') + '</p></div>';
+        }).join('');
+    } catch(e) { console.error('[Rules]', e); }
+}
+async function loadPlayers(matchId) {
+    try {
+        var { data, error } = await supabase.from('match_registrations').select('*, players(id, current_username, current_alliance_id, status)').eq('match_id', matchId);
+        if (error) throw error;
+        var list = document.getElementById('players-list');
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Sin jugadores registrados</div>'; return; }
+        list.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(function(r) { return '<div class="rounded-lg p-3" style="background:#11183a;border:1px solid #1a237e;"><div class="font-medium">' + (r.players?.current_username || '?') + '</div><div class="text-xs" style="color:#9fa8da;">' + getStatusBadgePlayer(r.players?.status || 'active') + '</div></div>'; }).join('') + '</div>';
+    } catch(e) { console.error('[Players]', e); document.getElementById('players-list').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando jugadores</div>'; }
+}
+loadMatch();
+</script>
 </body>
 </html>

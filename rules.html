@@ -1,205 +1,71 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reglas - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/config.js?v=16"></script>
-    <script src="assets/js/base.js?v=16"></script>
-    <script src="assets/js/auth.js?v=16"></script>
-    <style>
-        .rule-section { border-left: 3px solid #e2e8f0; transition: all 0.2s; }
-        .rule-section:hover { border-left-color: #f59e0b; }
-        .rule-section.level-0 { border-left-color: #0f172a; }
-        .rule-section.level-1 { border-left-color: #475569; }
-        .rule-section.level-2 { border-left-color: #94a3b8; }
-        .search-highlight { background: #fef3c7; padding: 0 2px; border-radius: 2px; }
-    </style>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Reglamento - Alliance Hub</title>
+<script src="assets/js/theme.js?v=16"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js?v=16"></script>
+<script src="assets/js/base.js?v=16"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="public">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-white mb-2">&#128220; Reglas de Alliance Hub</h1>
-            <p class="text-slate-400">Reglas oficiales, precedentes y resoluciones</p>
-        </div>
-
-        <!-- Busqueda -->
-        <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-            <div class="flex gap-3">
-                <input type="text" id="rules-search" oninput="searchRules()" placeholder="Buscar regla..." class="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-                <select id="rules-filter" onchange="loadRules()" class="px-3 py-2 rounded-lg border border-slate-300 text-sm">
-                    <option value="all">Todas las secciones</option>
-                    <option value="active">Activas</option>
-                    <option value="inactive">Inactivas</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Stats -->
-        <div id="rules-stats" class="flex gap-4 mb-6 text-sm text-slate-400">
-            <span>Cargando...</span>
-        </div>
-
-        <!-- Reglas -->
-        <div id="rules-container" class="space-y-3">
-            <div class="text-center py-8 text-slate-400">Cargando reglas...</div>
-        </div>
-
-        <!-- Precedentes -->
-        <div class="mt-8">
-            <h2 class="text-xl font-bold text-white mb-4">&#9878; Precedentes Recientes</h2>
-            <div id="precedents-container" class="space-y-3">
-                <div class="text-center py-4 text-slate-400">Cargando...</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        var allRules = [];
-
-        async function loadRules() {
-            var { data: rules } = await supabase
-                .from('rule_sections')
-                .select('*')
-                .order('order_index', { ascending: true });
-
-            allRules = rules || [];
-            renderRules(allRules);
-            updateStats(allRules);
+<body class="min-h-screen">
+<div id="admin-nav"></div>
+<div class="max-w-4xl mx-auto px-4 py-8">
+<h1 class="text-3xl font-bold mb-2">&#128220; Reglamento de Alliance Hub</h1>
+<p class="text-sm mb-6" style="color:#9fa8da;">Normativa oficial para partidas, torneos y comportamiento de jugadores.</p>
+<div class="mb-4"><input type="text" id="search-rules" placeholder="Buscar en el reglamento..." class="w-full px-4 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" oninput="filterRules(this.value)"></div>
+<div id="rules-container" class="space-y-4">
+<div class="text-center py-8" style="color:#9fa8da;">Cargando reglamento...</div>
+</div>
+<div class="mt-8 pt-6" style="border-top:1px solid #1a237e;">
+<h2 class="text-xl font-bold mb-4">&#9878;&#65039; Precedentes y Jurisprudencia</h2>
+<div id="precedents-container" class="space-y-3">
+<div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando precedentes...</div>
+</div>
+</div>
+</div>
+<script>
+async function loadRules() {
+    try {
+        var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
+        if (error) throw error;
+        var container = document.getElementById('rules-container');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reglas configuradas. Contacta a un administrador.</div>'; return; }
+        container.innerHTML = data.map(function(s) {
+            var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' : s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + (s.title + ' ' + s.content).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
+        }).join('');
+        var { data: latest } = await supabase.from('rule_sections').select('updated_at').eq('is_active', true).order('updated_at', { ascending: false }).limit(1);
+        if (latest && latest[0]) {
+            container.insertAdjacentHTML('afterbegin', '<p class="text-xs mb-4" style="color:#9fa8da;">Ultima actualizacion: ' + formatDateTime(latest[0].updated_at) + '</p>');
         }
-
-        function renderRules(rules) {
-            var container = document.getElementById('rules-container');
-            if (rules.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">No hay reglas configuradas</div>';
-                return;
-            }
-
-            // Construir arbol
-            var byId = {};
-            var roots = [];
-            rules.forEach(function(r) {
-                byId[r.id] = r;
-                r.children = [];
-            });
-            rules.forEach(function(r) {
-                if (r.parent_id && byId[r.parent_id]) {
-                    byId[r.parent_id].children.push(r);
-                } else {
-                    roots.push(r);
-                }
-            });
-
-            container.innerHTML = roots.map(function(r) { return renderSection(r, 0); }).join('');
-        }
-
-        function renderSection(section, level) {
-            var indent = level * 20;
-            var levelClass = 'level-' + Math.min(level, 2);
-            var num = section.section_number || '';
-            var content = (section.content || '').replace(/\n/g, '<br>');
-            var children = section.children || [];
-
-            var html = '<div class="rule-section ' + levelClass + ' bg-white rounded-xl border border-slate-200 p-4 mb-2" style="margin-left:' + indent + 'px">' +
-                '<div class="flex items-start justify-between">' +
-                    '<div class="flex-1">' +
-                        '<div class="flex items-center gap-2 mb-1">' +
-                            (num ? '<span class="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">' + num + '</span>' : '') +
-                            '<h3 class="font-bold text-slate-800">' + section.title + '</h3>' +
-                            (section.is_active === false ? '<span class="text-xs bg-slate-200 text-slate-500 px-2 py-0.5 rounded">INACTIVA</span>' : '') +
-                        '</div>' +
-                        '<div class="text-sm text-slate-600 mt-2">' + content + '</div>' +
-                    '</div>' +
-                '</div>';
-
-            if (children.length > 0) {
-                html += '<div class="mt-3 pt-3 border-t border-slate-100">';
-                children.forEach(function(c) { html += renderSection(c, level + 1); });
-                html += '</div>';
-            }
-
-            html += '</div>';
-            return html;
-        }
-
-        function searchRules() {
-            var q = document.getElementById('rules-search').value.toLowerCase().trim();
-            if (!q) { renderRules(allRules); return; }
-
-            var filtered = allRules.filter(function(r) {
-                return (r.title || '').toLowerCase().indexOf(q) !== -1 ||
-                       (r.content || '').toLowerCase().indexOf(q) !== -1 ||
-                       (r.section_number || '').toLowerCase().indexOf(q) !== -1;
-            });
-
-            var parentIds = {};
-            filtered.forEach(function(f) {
-                if (f.parent_id) parentIds[f.parent_id] = true;
-            });
-            var withParents = allRules.filter(function(r) {
-                return filtered.indexOf(r) !== -1 || parentIds[r.id];
-            });
-
-            renderRules(withParents);
-
-            setTimeout(function() {
-                var els = document.querySelectorAll('.rule-section');
-                els.forEach(function(el) {
-                    var txt = el.textContent.toLowerCase();
-                    if (txt.indexOf(q) !== -1) {
-                        el.style.borderLeftColor = '#f59e0b';
-                    }
-                });
-            }, 50);
-        }
-
-        function updateStats(rules) {
-            var active = rules.filter(function(r) { return r.is_active !== false; }).length;
-            document.getElementById('rules-stats').innerHTML =
-                '<span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg">' + rules.length + ' secciones</span>' +
-                '<span class="bg-green-900 text-green-300 px-3 py-1 rounded-lg">' + active + ' activas</span>';
-        }
-
-        async function loadPrecedents() {
-            var { data: precedents } = await supabase
-                .from('rule_precedents')
-                .select('*, rule_section:rule_sections(title)')
-                .order('created_at', { ascending: false })
-                .limit(20);
-
-            var container = document.getElementById('precedents-container');
-            if (!precedents || precedents.length === 0) {
-                container.innerHTML = '<div class="text-center py-4 text-slate-400 bg-slate-800 rounded-xl">Sin precedentes registrados</div>';
-                return;
-            }
-
-            container.innerHTML = precedents.map(function(p) {
-                var sevColor = p.severity === 'minor' ? 'bg-yellow-900 text-yellow-300' :
-                               p.severity === 'moderate' ? 'bg-orange-900 text-orange-300' :
-                               'bg-red-900 text-red-300';
-                return '<div class="bg-slate-800 rounded-xl border border-slate-700 p-4">' +
-                    '<div class="flex items-center gap-2 mb-2">' +
-                        '<span class="text-xs px-2 py-0.5 rounded ' + sevColor + '">' + (p.severity || '-') + '</span>' +
-                        '<span class="text-xs text-slate-400">' + (p.rule_section?.title || 'General') + '</span>' +
-                        '<span class="text-xs text-slate-500 ml-auto">' + formatDate(p.created_at) + '</span>' +
-                    '</div>' +
-                    '<h4 class="font-bold text-slate-200 text-sm">' + p.title + '</h4>' +
-                    '<p class="text-sm text-slate-400 mt-1">' + (p.description || '') + '</p>' +
-                    '<p class="text-xs text-amber-400 mt-2">&#9878; ' + (p.resolution || 'Sin resolucion') + '</p>' +
-                '</div>';
-            }).join('');
-        }
-
-        loadRules();
         loadPrecedents();
-    </script>
+    } catch(e) { console.error('[Rules]', e); document.getElementById('rules-container').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + e.message + '</div>'; }
+}
+async function loadPrecedents() {
+    try {
+        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false });
+        if (error) throw error;
+        var container = document.getElementById('precedents-container');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>'; return; }
+        container.innerHTML = data.map(function(p) {
+            return '<div class="rounded-lg p-4" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-3"><span class="text-2xl">&#9878;&#65039;</span><div class="flex-1"><h4 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + p.title + '</h4><p class="text-sm mb-2" style="color:#e8eaf6;">' + p.description + '</p><p class="text-xs" style="color:#9fa8da;">Aplicado en: ' + formatDate(p.created_at) + '</p></div></div></div>';
+        }).join('');
+    } catch(e) { console.error('[Precedents]', e); document.getElementById('precedents-container').innerHTML = '<div class="text-center py-4 text-sm text-red-400">Error cargando precedentes</div>'; }
+}
+function filterRules(query) {
+    var items = document.querySelectorAll('#rules-container > div[data-search]');
+    var q = query.toLowerCase();
+    items.forEach(function(item) { item.style.display = item.dataset.search.includes(q) ? '' : 'none'; });
+}
+loadRules();
+</script>
 </body>
 </html>
