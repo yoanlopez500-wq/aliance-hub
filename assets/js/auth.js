@@ -1,4 +1,4 @@
-// assets/js/auth.js v5.1 - Fix dual-mode nav: show ALL admin links when in dual session
+// assets/js/auth.js v5.2 - Fix notif dropdown position + responsive width
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -75,7 +75,7 @@ async function isAllianceOfficer() {
 }
 
 // ========== NUEVO: Resolver visibilidad de reglamento ==========
-// Devuelve el rol mÃ¡s alto del usuario actual para filtrar rule_sections
+// Devuelve el rol más alto del usuario actual para filtrar rule_sections
 async function resolveUserVisibilityRole() {
     // 1. Super Admin?
     try {
@@ -98,11 +98,11 @@ async function resolveUserVisibilityRole() {
     // 3. Jugador logueado?
     if (hasPlayerSession()) return 'player';
 
-    // 4. PÃºblico
+    // 4. Público
     return 'public';
 }
 
-// Verifica si una secciÃ³n de reglamento es visible para el rol dado
+// Verifica si una sección de reglamento es visible para el rol dado
 function canSeeRuleSection(userRole, sectionVisibility) {
     var order = { public: 0, player: 1, official: 2, leader: 3, admin: 4, superadmin: 5 };
     var userLevel = order[userRole] || 0;
@@ -254,11 +254,13 @@ var __ahNotifCount = 0;
 var __ahNotifMessages = [];
 
 function buildNotificationBell() {
-    return '<div class="relative" id="ah-notif-wrapper">' +
+    // v5.2 FIX: inline-block shrink-0 en wrapper para que right-0 alinee correctamente
+    // w-72 en movil, w-80 en desktop para que no desborde
+    return '<div class="relative inline-block shrink-0" id="ah-notif-wrapper">' +
         '<button onclick="toggleNotifDropdown()" class="relative px-2 py-1.5 rounded hover:bg-white/10 transition text-white/70">&#128276;' +
             '<span id="ah-notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center hidden">0</span>' +
         '</button>' +
-        '<div id="ah-notif-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">' +
+        '<div id="ah-notif-dropdown" class="hidden absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-[60] overflow-hidden">' +
             '<div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">' +
                 '<span class="text-sm font-bold text-slate-700">&#128276; Mensajes Directos</span>' +
                 '<span id="ah-notif-count-label" class="text-xs text-slate-400">0 sin leer</span></div>' +
