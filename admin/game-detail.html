@@ -1,464 +1,66 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle Partida - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=15"></script>
-    <script src="../assets/js/base.js?v=15"></script>
-    <script src="../assets/js/auth.js?v=15"></script>
-    <script src="../assets/js/pwa-utils.js?v=15"></script>
-<style>
-        .modal { display: none; }
-        .modal.active { display: flex; }
-    </style>
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Alliance Hub">
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.svg">
-    <link rel="manifest" href="../manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Game Detail - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-5xl mx-auto px-4 py-8">
-        <div id="game-info" class="mb-6">
-            <div class="text-center py-8 text-slate-400">Cargando...</div>
-        </div>
-
-        <div class="flex flex-wrap gap-3 mb-6">
-            <button onclick="changeStatus('open')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-400 transition">Abrir registro</button>
-            <button onclick="changeStatus('in_progress')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition">Iniciar partida</button>
-            <button onclick="changeStatus('finished')" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-400 transition">Finalizar</button>
-            <button onclick="changeStatus('archived')" class="px-4 py-2 bg-slate-500 text-white rounded-lg font-bold hover:bg-slate-400 transition">Archivar</button>
-            <a href="./import.html" id="btn-import" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition hidden">📥 Importar CSV</a>
-        </div>
-
-        <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-bold text-slate-800">👥 Registrados (<span id="reg-count">0</span>)</h2>
-                <button onclick="openAddRegistrationModal()" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-400 transition">➕ Añadir</button>
-            </div>
-            <div id="registrations-list" class="overflow-x-auto">
-                <div class="text-center text-slate-400 py-4">Cargando...</div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-bold text-slate-800">🏆 Resultados</h2>
-                <div class="flex gap-2">
-                    <button onclick="openAddResultModal()" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-400 transition">➕ Añadir Manual</button>
-                    <a id="btn-import-inline" href="./import.html" class="px-3 py-1.5 bg-amber-500 text-slate-900 rounded-lg text-sm font-bold hover:bg-amber-400 transition">📥 Importar CSV</a>
-                </div>
-            </div>
-            <div id="results-list">
-                <div class="text-center text-slate-400 py-4">Sin resultados aún</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="result-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md">
-            <div class="p-6 border-b">
-                <h2 class="text-xl font-bold" id="result-modal-title">Añadir Resultado Manual</h2>
-            </div>
-            <form id="result-form" class="p-6 space-y-4">
-                <input type="hidden" id="result-uuid">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">ID del Jugador (número) *</label>
-                    <input type="number" id="result-player-id" required
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
-                        placeholder="Ej: 99702975">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Username *</label>
-                    <input type="text" id="result-username" required
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
-                        placeholder="Ej: Tlaloc27">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Nación *</label>
-                    <input type="text" id="result-nation" required
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none"
-                        placeholder="Ej: Gran Bretaña">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Bajas *</label>
-                        <input type="number" id="result-kills" required min="0"
-                            class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Muertes *</label>
-                        <input type="number" id="result-deaths" required min="0"
-                            class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-amber-500 text-slate-900 font-bold py-2.5 rounded-lg hover:bg-amber-400">Guardar</button>
-                    <button type="button" onclick="closeResultModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="reg-modal" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md">
-            <div class="p-6 border-b">
-                <h2 class="text-xl font-bold">Añadir Registro Manual</h2>
-            </div>
-            <form id="reg-form" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">ID del Jugador *</label>
-                    <input type="number" id="reg-player-id" required
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Username *</label>
-                    <input type="text" id="reg-username" required
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none">
-                </div>
-                <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-green-500 text-white font-bold py-2.5 rounded-lg hover:bg-green-400">Añadir</button>
-                    <button type="button" onclick="closeRegModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-300">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        requireAdmin();
-
-        const gameId = new URLSearchParams(window.location.search).get('id');
-        if (!gameId) location.href = './games.html';
-
-        let currentGame = null;
-
-        async function loadGame() {
-            const { data: game } = await supabase
-                .from('games')
-                .select('*, alliances(name, tag)')
-                .eq('id', gameId)
-                .single();
-
-            if (!game) {
-                document.getElementById('game-info').innerHTML = '<div class="text-red-500">Partida no encontrada</div>';
-                return;
-            }
-
-            currentGame = game;
-
-            document.getElementById('game-info').innerHTML = `
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            ${getStatusBadge(game.status)}
-                            ${getTypeBadge(game.type)}
-                            ${game.csv_imported ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ CSV importado</span>' : ''}
-                        </div>
-                        <h1 class="text-2xl font-bold text-slate-800">${game.name}</h1>
-                        <p class="text-slate-500 text-sm mt-1">ID juego: ${game.game_id} • ${game.alliances ? game.alliances.name : 'Global'}</p>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-3xl font-bold text-slate-800">${game.max_players}</div>
-                        <div class="text-xs text-slate-500">max jugadores</div>
-                    </div>
-                </div>
-            `;
-
-            if ((game.status === 'finished' || game.status === 'archived') && !game.csv_imported) {
-                const btn = document.getElementById('btn-import');
-                btn.classList.remove('hidden');
-                btn.href = `./import.html?game=${gameId}`;
-            }
-
-            document.getElementById('btn-import-inline').href = `./import.html?game=${gameId}`;
-
-            loadRegistrations();
-            loadResults();
-        }
-
-        async function loadRegistrations() {
-            const { data: regs } = await supabase
-                .from('registrations')
-                .select('*')
-                .eq('game_id', gameId)
-                .order('registered_at', { ascending: false });
-
-            document.getElementById('reg-count').textContent = regs?.length || 0;
-
-            const container = document.getElementById('registrations-list');
-            if (!regs || regs.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-4">Sin registrados aún</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="text-left p-2">ID</th>
-                            <th class="text-left p-2">Username</th>
-                            <th class="text-left p-2">Fecha</th>
-                            <th class="p-2"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${regs.map(r => `
-                            <tr class="border-b hover:bg-slate-50">
-                                <td class="p-2 text-slate-500">${r.player_id}</td>
-                                <td class="p-2 font-medium">${r.username}</td>
-                                <td class="p-2 text-slate-500 text-xs">${formatDate(r.registered_at)}</td>
-                                <td class="p-2">
-                                    <button onclick="deleteRegistration('${r.id}')" class="text-red-500 hover:text-red-700 text-sm">🗑</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        async function loadResults() {
-            const { data: results } = await supabase
-                .from('game_results')
-                .select('*, players(current_username)')
-                .eq('game_id', gameId)
-                .order('kd_ratio', { ascending: false });
-
-            const container = document.getElementById('results-list');
-            if (!results || results.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-4">Sin resultados. Añade manualmente o importa CSV.</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="text-left p-2">#</th>
-                            <th class="text-left p-2">Nación</th>
-                            <th class="text-left p-2">Jugador</th>
-                            <th class="text-right p-2">Bajas</th>
-                            <th class="text-right p-2">Muertes</th>
-                            <th class="text-right p-2">KD</th>
-                            <th class="p-2">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${results.map((r, i) => `
-                            <tr class="border-b hover:bg-slate-50">
-                                <td class="p-2 font-bold ${i < 3 ? 'text-amber-600' : 'text-slate-400'}">${i + 1}</td>
-                                <td class="p-2">${r.nation}</td>
-                                <td class="p-2 font-medium">${r.players?.current_username || '?'}</td>
-                                <td class="p-2 text-right text-green-600 font-bold">${r.kills.toLocaleString()}</td>
-                                <td class="p-2 text-right text-red-500">${r.deaths.toLocaleString()}</td>
-                                <td class="p-2 text-right font-bold ${r.kd_ratio >= 1 ? 'text-green-600' : 'text-orange-500'}">${r.kd_ratio}</td>
-                                <td class="p-2">
-                                    <button onclick="editResult('${r.id}')" class="text-amber-600 hover:text-amber-700 text-sm mr-2">✏️</button>
-                                    <button onclick="deleteResult('${r.id}')" class="text-red-500 hover:text-red-700 text-sm">🗑</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function openAddResultModal() {
-            document.getElementById('result-form').reset();
-            document.getElementById('result-uuid').value = '';
-            document.getElementById('result-modal-title').textContent = 'Añadir Resultado Manual';
-            document.getElementById('result-modal').classList.add('active');
-        }
-
-        function closeResultModal() {
-            document.getElementById('result-modal').classList.remove('active');
-        }
-
-        async function editResult(id) {
-            const { data: result } = await supabase
-                .from('game_results')
-                .select('*, players(current_username)')
-                .eq('id', id)
-                .single();
-
-            if (!result) return;
-
-            document.getElementById('result-uuid').value = result.id;
-            document.getElementById('result-player-id').value = result.player_id;
-            document.getElementById('result-username').value = result.players?.current_username || '';
-            document.getElementById('result-nation').value = result.nation;
-            document.getElementById('result-kills').value = result.kills;
-            document.getElementById('result-deaths').value = result.deaths;
-            document.getElementById('result-modal-title').textContent = 'Editar Resultado';
-            document.getElementById('result-modal').classList.add('active');
-        }
-
-        document.getElementById('result-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const uuid = document.getElementById('result-uuid').value;
-            const playerId = parseInt(document.getElementById('result-player-id').value);
-            const username = document.getElementById('result-username').value.trim();
-            const nation = document.getElementById('result-nation').value.trim();
-            const kills = parseInt(document.getElementById('result-kills').value) || 0;
-            const deaths = parseInt(document.getElementById('result-deaths').value) || 0;
-            const kd = deaths === 0 ? kills : parseFloat((kills / deaths).toFixed(2));
-
-            await supabase.from('players').upsert({
-                id: playerId,
-                current_username: username,
-                last_seen: new Date().toISOString()
-            }, { onConflict: 'id' });
-
-            const data = {
-                game_id: gameId,
-                player_id: playerId,
-                nation: nation,
-                kills: kills,
-                deaths: deaths,
-                kd_ratio: kd
-            };
-
-            let result;
-            if (uuid) {
-                result = await supabase.from('game_results').update(data).eq('id', uuid);
-            } else {
-                result = await supabase.from('game_results').insert([data]);
-            }
-
-            if (result.error) {
-                showToast('Error: ' + result.error.message, 'error');
-            } else {
-                showToast(uuid ? 'Resultado actualizado' : 'Resultado añadido', 'success');
-                closeResultModal();
-
-                const { data: allResults } = await supabase
-                    .from('game_results')
-                    .select('kills, deaths')
-                    .eq('player_id', playerId);
-
-                const totalKills = allResults?.reduce((s, r) => s + r.kills, 0) || 0;
-                const totalDeaths = allResults?.reduce((s, r) => s + r.deaths, 0) || 0;
-
-                await supabase.from('players').update({
-                    total_kills: totalKills,
-                    total_deaths: totalDeaths,
-                    games_played: allResults?.length || 0,
-                    current_username: username
-                }).eq('id', playerId);
-
-                await supabase.from('games').update({ csv_imported: true }).eq('id', gameId);
-
-                loadResults();
-                loadGame();
-            }
-        });
-
-        async function deleteResult(id) {
-            if (!confirmAction('¿Eliminar este resultado?')) return;
-
-            const { data: result } = await supabase.from('game_results').select('player_id').eq('id', id).single();
-
-            const { error } = await supabase.from('game_results').delete().eq('id', id);
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                showToast('Resultado eliminado', 'success');
-
-                if (result) {
-                    const { data: allResults } = await supabase
-                        .from('game_results')
-                        .select('kills, deaths')
-                        .eq('player_id', result.player_id);
-
-                    const totalKills = allResults?.reduce((s, r) => s + r.kills, 0) || 0;
-                    const totalDeaths = allResults?.reduce((s, r) => s + r.deaths, 0) || 0;
-
-                    await supabase.from('players').update({
-                        total_kills: totalKills,
-                        total_deaths: totalDeaths,
-                        games_played: allResults?.length || 0
-                    }).eq('id', result.player_id);
-                }
-
-                loadResults();
-            }
-        }
-
-        function openAddRegistrationModal() {
-            document.getElementById('reg-form').reset();
-            document.getElementById('reg-modal').classList.add('active');
-        }
-
-        function closeRegModal() {
-            document.getElementById('reg-modal').classList.remove('active');
-        }
-
-        document.getElementById('reg-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-                        const playerId = parseInt(document.getElementById('reg-player-id').value);
-            const username = document.getElementById('reg-username').value.trim();
-
-            // 1. Crear/actualizar jugador PRIMERO (requerido por FK)
-            await supabase.from('players').upsert({
-                id: playerId,
-                current_username: username,
-                last_seen: new Date().toISOString()
-            }, { onConflict: 'id' });
-
-            // 2. Luego insertar registro
-            const { error } = await supabase.from('registrations').insert({
-                game_id: gameId,
-                player_id: playerId,
-                username: username,
-                accepted_rules: true
-            });
-
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                showToast('Registro añadido', 'success');
-                closeRegModal();
-                loadRegistrations();
-            }
-        });
-
-        async function deleteRegistration(id) {
-            if (!confirmAction('¿Eliminar este registro?')) return;
-            const { error } = await supabase.from('registrations').delete().eq('id', id);
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Registro eliminado', 'success'); loadRegistrations(); }
-        }
-
-        async function changeStatus(newStatus) {
-            if (!confirmAction('¿Cambiar estado a ' + newStatus + '?')) return;
-
-            const { error } = await supabase.from('games').update({ status: newStatus }).eq('id', gameId);
-            if (error) {
-                showToast('Error: ' + error.message, 'error');
-            } else {
-                showToast('Estado actualizado', 'success');
-                loadGame();
-            }
-        }
-
-        document.getElementById('result-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeResultModal();
-        });
-        document.getElementById('reg-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeRegModal();
-        });
-
-        loadGame();
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div id="game-header">Cargando...</div>
+<div id="game-form" class="hidden mt-6">
+<div class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e;">
+<h2 class="text-xl font-bold mb-4">&#9998; Editar Game</h2>
+<div class="grid md:grid-cols-2 gap-4 mb-4">
+<div><label class="block text-sm mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="g-name" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-sm mb-1" style="color:#9fa8da;">Alianza</label><select id="g-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar...</option></select></div>
+</div>
+<div class="grid md:grid-cols-2 gap-4 mb-4">
+<div><label class="block text-sm mb-1" style="color:#9fa8da;">Estado</label><select id="g-status" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="draft">Borrador</option><option value="open">Abierta</option><option value="in_progress">En curso</option><option value="finished">Finalizada</option></select></div>
+<div><label class="block text-sm mb-1" style="color:#9fa8da;">Tipo</label><select id="g-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option></select></div>
+</div>
+<div class="mb-4"><label class="block text-sm mb-1" style="color:#9fa8da;">URL del PDF de reglas (opcional)</label><input type="url" id="g-rules-url" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="https://drive.google.com/..."></div>
+<div class="flex gap-2"><button onclick="saveGame()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button><button onclick="cancelEdit()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button></div>
+</div></div>
+</div>
+<script>
+var currentGameId = null;
+var currentGame = null;
+async function loadGame() {
+    var params = new URLSearchParams(window.location.search);
+    var gameId = params.get('id');
+    var action = params.get('action');
+    if (action === 'new') { showCreateForm(); return; }
+    if (!gameId) { document.getElementById('game-header').innerHTML = '<div class="text-center py-8 text-red-400">ID no especificado</div>'; return; }
+    currentGameId = gameId;
+    try { var { data, error } = await supabase.from('matches').select('*, alliances(name, tag)').eq('id', gameId).single(); if (error) throw error; currentGame = data; document.getElementById('game-header').innerHTML = '<div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold">&#127918; ' + (data.name || 'Game') + '</h1><p class="text-sm" style="color:#9fa8da;">' + (data.alliances ? data.alliances.name : 'Sin alianza') + ' | ' + getTypeBadge(data.type) + ' ' + getStatusBadge(data.status) + '</p></div><button onclick="showEditForm()" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:#1a237e;color:#e8eaf6;">Editar</button></div>'; document.getElementById('game-form').classList.add('hidden'); loadAlliancesDropdown(); } catch(e) { console.error('[GameDetail]', e); }
+}
+async function loadAlliancesDropdown() { try { var { data } = await supabase.from('alliances').select('id, name').order('name'); var select = document.getElementById('g-alliance'); if (data) select.innerHTML = '<option value="">Seleccionar...</option>' + data.map(function(a) { return '<option value="' + a.id + '">' + a.name + '</option>'; }).join(''); if (currentGame) document.getElementById('g-alliance').value = currentGame.alliance_id || ''; } catch(e) {} }
+function showCreateForm() { document.getElementById('game-header').innerHTML = '<h1 class="text-2xl font-bold">&#10133; Nuevo Game</h1>'; document.getElementById('game-form').classList.remove('hidden'); loadAlliancesDropdown(); }
+function showEditForm() { if (!currentGame) return; document.getElementById('game-form').classList.remove('hidden'); document.getElementById('g-name').value = currentGame.name || ''; document.getElementById('g-status').value = currentGame.status || 'draft'; document.getElementById('g-type').value = currentGame.type || 'internal'; document.getElementById('g-rules-url').value = currentGame.rules_url || ''; }
+function cancelEdit() { document.getElementById('game-form').classList.add('hidden'); }
+async function saveGame() {
+    var name = document.getElementById('g-name').value.trim();
+    var allianceId = document.getElementById('g-alliance').value || null;
+    var status = document.getElementById('g-status').value;
+    var type = document.getElementById('g-type').value;
+    var rulesUrl = document.getElementById('g-rules-url').value.trim() || null;
+    if (!name) { showToast('Nombre obligatorio', 'error'); return; }
+    try { if (currentGameId) { var { error } = await supabase.from('matches').update({ name, alliance_id: allianceId, status, type, rules_url: rulesUrl }).eq('id', currentGameId); } else { var { data: newGame, error } = await supabase.from('matches').insert({ name, alliance_id: allianceId, status, type, rules_url: rulesUrl }).select('id').single(); if (newGame) currentGameId = newGame.id; } if (error) throw error; showToast('Guardado', 'success'); if (!currentGame) window.location.href = 'game-detail.html?id=' + currentGameId; else { cancelEdit(); loadGame(); } } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+requireAdmin();
+loadGame();
+</script>
 </body>
 </html>

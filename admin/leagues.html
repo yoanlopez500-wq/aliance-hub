@@ -1,127 +1,29 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ligas - En Desarrollo | Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=15"></script>
-    <script src="../assets/js/base.js?v=15"></script>
-    <script src="../assets/js/auth.js?v=15"></script>
-    <script src="../assets/js/pwa-utils.js?v=15"></script>
-    <meta name="theme-color" content="#0a0e27">
-    <style>
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 111, 0, 0.2); }
-            50% { box-shadow: 0 0 40px rgba(255, 111, 0, 0.4); }
-        }
-        .dev-card { animation: pulse-glow 3s ease-in-out infinite; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        .float-anim { animation: float 3s ease-in-out infinite; }
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .gear-spin { animation: spin-slow 8s linear infinite; }
-        .gear-spin-reverse { animation: spin-slow 6s linear infinite reverse; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Ligas - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="min-h-screen" style="background: #0a0e27; color: #e8eaf6;" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-4xl mx-auto px-4 py-12">
-        <!-- Tarjeta principal En Desarrollo -->
-        <div class="dev-card rounded-2xl p-8 md:p-12 text-center relative overflow-hidden" style="background: #11183a; border: 1px solid #1a237e;">
-            <!-- Decoracion de engranajes -->
-            <div class="absolute top-4 left-4 text-6xl opacity-10 gear-spin" style="color: #ff6f00;">&#9881;&#65039;</div>
-            <div class="absolute bottom-4 right-4 text-5xl opacity-10 gear-spin-reverse" style="color: #ff6f00;">&#9881;&#65039;</div>
-            <div class="absolute top-8 right-8 text-4xl opacity-5 gear-spin" style="color: #ff8f00;">&#9881;&#65039;</div>
-
-            <div class="float-anim mb-6">
-                <div class="text-7xl mb-4">&#127942;</div>
-            </div>
-
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6" style="background: rgba(255, 111, 0, 0.15); color: #ff8f00; border: 1px solid rgba(255, 111, 0, 0.3);">
-                <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-                En Desarrollo
-            </div>
-
-            <h1 class="text-3xl md:text-4xl font-bold text-white mb-4">Sistema de Ligas</h1>
-            <p class="text-lg mb-8 max-w-xl mx-auto" style="color: #9fa8da;">
-                Estamos construyendo un sistema completo de ligas con fixture automatico, 
-                standings en tiempo real, y gestion por jornadas. 
-                Pronto estara disponible.
-            </p>
-
-            <!-- Features preview -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
-                <div class="rounded-xl p-4 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid #1a237e;">
-                    <div class="text-3xl mb-2">&#128200;</div>
-                    <p class="text-sm font-bold text-white">Standings Auto</p>
-                    <p class="text-xs mt-1" style="color: #9fa8da;">Tabla de posiciones automatica</p>
-                </div>
-                <div class="rounded-xl p-4 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid #1a237e;">
-                    <div class="text-3xl mb-2">&#128197;</div>
-                    <p class="text-sm font-bold text-white">Fixture Round-Robin</p>
-                    <p class="text-xs mt-1" style="color: #9fa8da;">Todos contra todos</p>
-                </div>
-                <div class="rounded-xl p-4 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid #1a237e;">
-                    <div class="text-3xl mb-2">&#127937;</div>
-                    <p class="text-sm font-bold text-white">Jornadas</p>
-                    <p class="text-xs mt-1" style="color: #9fa8da;">Gestion por rondas</p>
-                </div>
-            </div>
-
-            <a href="index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">
-                &#8592; Volver al Dashboard
-            </a>
-        </div>
-
-        <!-- Estado de desarrollo -->
-        <div class="mt-6 rounded-xl p-6" style="background: #11183a; border: 1px solid #1a237e;">
-            <h3 class="font-bold text-white mb-4">&#128221; Estado del Desarrollo</h3>
-            <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <span class="text-green-400 text-lg">&#10003;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Diseño de arquitectura y base de datos</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(76, 175, 80, 0.15); color: #4caf50;">Listo</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-green-400 text-lg">&#10003;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Esquema de puntuacion por kills</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(76, 175, 80, 0.15); color: #4caf50;">Listo</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-orange-400 text-lg">&#9203;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Tablas y migraciones SQL</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(255, 143, 0, 0.15); color: #ff8f00;">Pendiente</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-orange-400 text-lg">&#9203;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Interfaz de gestion de ligas</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(255, 143, 0, 0.15); color: #ff8f00;">Pendiente</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-orange-400 text-lg">&#9203;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Generador de fixture round-robin</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(255, 143, 0, 0.15); color: #ff8f00;">Pendiente</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-orange-400 text-lg">&#9203;</span>
-                    <span class="text-sm flex-1" style="color: #e8eaf6;">Vista de standings para jugadores</span>
-                    <span class="text-xs px-2 py-1 rounded font-bold" style="background: rgba(255, 143, 0, 0.15); color: #ff8f00;">Pendiente</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        requireAdmin();
-        requireMinRole('event_admin');
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<h1 class="text-2xl font-bold mb-6">&#127942; Ligas <span class="text-[10px] px-2 py-1 rounded font-bold ml-2" style="background:#ff6f00;color:white;">DEV</span></h1>
+<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">
+<p>Sistema de ligas en desarrollo.</p>
+<p class="text-sm mt-2">Pronto podras crear temporadas, divisiones y sistemas de ascenso/descenso.</p>
+</div>
+</div>
+<script>requireAdmin();</script>
 </body>
 </html>

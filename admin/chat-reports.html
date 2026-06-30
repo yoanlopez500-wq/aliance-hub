@@ -1,121 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes de Chat V2 - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=15"></script>
-    <script src="../assets/js/base.js?v=15"></script>
-    <script src="../assets/js/auth.js?v=15"></script>
-    <script src="../assets/js/pwa-utils.js?v=15"></script>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Chat Reports - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=16"></script>
+<script src="../assets/js/base.js?v=16"></script>
+<script src="../assets/js/auth.js?v=16"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
-
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">🚩 Reportes de Chat</h1>
-        <p class="text-slate-500 mb-6">Auditoría de incidentes reportados en el chat</p>
-
-        <div class="flex gap-2 mb-6">
-            <button onclick="filterReports('all')" class="filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-white" data-filter="all">Todos</button>
-            <button onclick="filterReports('pending')" class="filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200" data-filter="pending">Pendientes</button>
-            <button onclick="filterReports('reviewed')" class="filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200" data-filter="reviewed">Revisados</button>
-            <button onclick="filterReports('dismissed')" class="filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200" data-filter="dismissed">Desestimados</button>
-        </div>
-
-        <div id="reports-list" class="space-y-4">
-            <div class="text-center py-8 text-slate-400">Cargando...</div>
-        </div>
-    </div>
-
-    <script>
-        requireAdmin();
-
-        var allReports = [];
-
-        async function loadReports() {
-            var { data: reports } = await supabase
-                .from('chat_reports')
-                .select('*')
-                .order('reported_at', { ascending: false });
-
-            allReports = reports || [];
-            renderReports('all');
-        }
-
-        function renderReports(filter) {
-            var container = document.getElementById('reports-list');
-            var filtered = filter === 'all' ? allReports : allReports.filter(function(r) { return r.status === filter; });
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 bg-white rounded-xl border">Sin reportes</div>';
-                return;
-            }
-
-            container.innerHTML = filtered.map(function(r) {
-                var statusBadge = r.status === 'pending'
-                    ? '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-bold">Pendiente</span>'
-                    : r.status === 'reviewed'
-                        ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-700">Revisado</span>'
-                        : '<span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">Desestimado</span>';
-
-                var contextMessages = '';
-                if (r.context_messages) {
-                    try {
-                        var msgs = typeof r.context_messages === 'string' ? JSON.parse(r.context_messages) : r.context_messages;
-                        if (Array.isArray(msgs) && msgs.length > 0) {
-                            contextMessages = '<div class="mt-3 bg-slate-50 rounded-lg p-3 border border-slate-200"><p class="text-xs font-bold text-slate-600 mb-2">Contexto (últimos mensajes):</p>' +
-                                msgs.slice(-10).map(function(m) {
-                                    return '<div class="text-xs text-slate-500 py-0.5"><span class="font-bold">' + (m.sender_name || '?') + ':</span> ' + m.text + '</div>';
-                                }).join('') + '</div>';
-                        }
-                    } catch(e) {}
-                }
-
-                var actions = r.status === 'pending'
-                    ? '<div class="flex gap-2 mt-3">' +
-                        '<button onclick="resolveReport(' + r.id + ', \'reviewed\')" class="px-3 py-1.5 bg-green-500 text-white rounded text-sm font-bold hover:bg-green-400">✓ Revisado</button>' +
-                        '<button onclick="resolveReport(' + r.id + ', \'dismissed\')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Desestimar</button>' +
-                      '</div>'
-                    : '<div class="mt-3 text-xs text-slate-400">Resuelto el ' + formatDate(r.reviewed_at) + '</div>';
-
-                return '<div class="bg-white rounded-xl border border-slate-200 p-5">' +
-                    '<div class="flex items-center justify-between mb-3">' +
-                        '<div class="flex items-center gap-2">' + statusBadge + '<span class="text-sm text-slate-500">Canal: ' + r.channel + '</span></div>' +
-                        '<span class="text-xs text-slate-400">' + formatDateTime(r.reported_at) + '</span>' +
-                    '</div>' +
-                    '<div class="mb-2">' +
-                        '<p class="text-sm font-medium text-slate-800">Motivo: ' + r.reason + '</p>' +
-                        '<p class="text-xs text-slate-500">Reportado por: ' + r.reporter_name + '</p>' +
-                    '</div>' +
-                    contextMessages +
-                    actions +
-                '</div>';
-            }).join('');
-        }
-
-        async function resolveReport(reportId, resolution) {
-            var { error } = await supabase.from('chat_reports')
-                .update({ status: resolution, reviewed_at: new Date().toISOString() })
-                .eq('id', reportId);
-
-            if (error) showToast('Error: ' + error.message, 'error');
-            else { showToast('Reporte marcado como ' + resolution, 'success'); loadReports(); }
-        }
-
-        function filterReports(status) {
-            document.querySelectorAll('.filter-btn').forEach(function(btn) {
-                btn.className = btn.dataset.filter === status
-                    ? 'filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-white'
-                    : 'filter-btn px-4 py-2 rounded-lg text-sm font-bold bg-white text-slate-600 border border-slate-200';
-            });
-            renderReports(status);
-        }
-
-        loadReports();
-    </script>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<h1 class="text-2xl font-bold mb-6">&#128172; Chat Reports</h1>
+<div id="chat-reports-list">Cargando...</div>
+</div>
+<script>
+async function loadChatReports() {
+    try { var { data, error } = await supabase.from('chat_reports').select('*, players(id, current_username)').order('created_at', { ascending: false }).limit(50); if (error) throw error; var list = document.getElementById('chat-reports-list'); if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes de chat</div>'; return; } list.innerHTML = '<div class="space-y-3">' + data.map(function(r) { return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte de ' + (r.players ? r.players.current_username : r.player_id) + '</h3><p class="text-sm" style="color:#9fa8da;">' + r.reason + '</p></div><span class="text-xs" style="color:#9fa8da;">' + formatDate(r.created_at) + '</span></div></div>'; }).join('') + '</div>'; } catch(e) { console.error('[ChatReports]', e); }
+}
+requireAdmin();
+loadChatReports();
+</script>
 </body>
 </html>
