@@ -25,9 +25,9 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
-<script src="assets/js/config.js?v=16"></script>
-<script src="assets/js/base.js?v=16"></script>
-<script src="assets/js/auth.js?v=16"></script>
+<script src="assets/js/config.js?v=17"></script>
+<script src="assets/js/base.js?v=17"></script>
+<script src="assets/js/auth.js?v=17"></script>
 <script>
 (function() {
     var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
@@ -40,7 +40,7 @@
 })();
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=16"></script>
+<script src="assets/js/theme.js?v=17"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -143,6 +143,23 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </div>
 </footer>
 <script>
+// v17: Wait for Supabase client to be ready before making any calls
+function waitForSupabase(callback, attempts) {
+    attempts = attempts || 0;
+    if (typeof window.supabase !== 'undefined' && typeof window.supabase.from === 'function') {
+        callback();
+        return;
+    }
+    if (attempts < 50) {
+        setTimeout(function() { waitForSupabase(callback, attempts + 1); }, 100);
+    } else {
+        console.error('[Landing] Supabase no disponible despues de 5 segundos');
+        var errHtml = '<div class="col-span-2 text-center py-8 text-red-400">Error de conexion con el servidor</div>';
+        document.getElementById('landing-rules').innerHTML = errHtml;
+        document.getElementById('landing-precedents').innerHTML = '<div class="col-span-2 text-center py-4 text-sm text-red-400">Error de conexion</div>';
+    }
+}
+
 async function loadStats() {
     try {
         var p = await supabase.from('players').select('*', { count: 'exact', head: true });
@@ -157,7 +174,6 @@ async function loadStats() {
         document.getElementById('stat-kills').textContent = totalKills.toLocaleString();
     } catch(e) { console.error('[Stats]', e); }
 }
-loadStats();
 
 async function loadLandingRules() {
     try {
@@ -171,6 +187,7 @@ async function loadLandingRules() {
         loadLandingPrecedents();
     } catch(e) { console.error('[LandingRules]', e); document.getElementById('landing-rules').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error cargando reglamento</div>'; }
 }
+
 async function loadLandingPrecedents() {
     try {
         var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4);
@@ -182,8 +199,13 @@ async function loadLandingPrecedents() {
         }).join('');
     } catch(e) { console.error('[LandingPrecedents]', e); document.getElementById('landing-precedents').innerHTML = '<div class="col-span-2 text-center py-4 text-sm text-red-400">Error cargando precedentes</div>'; }
 }
-loadLandingRules();
+
+// Wait for Supabase before loading any data
+waitForSupabase(function() {
+    loadStats();
+    loadLandingRules();
+});
 </script>
-<script src="sw-register.js?v=16.1"></script>
+<script src="sw-register.js?v=17"></script>
 </body>
 </html>
