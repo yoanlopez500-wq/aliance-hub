@@ -1,24 +1,21 @@
 // assets/js/base.js
-// Utilidades compartidas, cliente Supabase, UI helpers
+// Utilidades compartidas, UI helpers, navegacion
+// NOTA: Supabase se inicializa en config.js (window.supabase = cliente)
 
 // ============================================
-// CLIENTE SUPABASE
+// CLIENTE SUPABASE - usar el ya inicializado por config.js
+// config.js hace: window.supabase = window.supabase.createClient(...)
+// Entonces window.supabase YA ES el cliente listo para usar.
 // ============================================
-// NOTA: NO declarar 'var supabase' aqui - el CDN ya lo pone como global.
-// Declarar 'var supabase' shadowearia el objeto de la libreria y romperia todo.
-var supabase = window.supabaseClient || null;
+var supabase = window.supabase || null;
 
-try {
-    if (!supabase && window.__AH_SUPABASE_URL && window.__AH_SUPABASE_KEY) {
-        // Usar window.supabase explicitamente para acceder al objeto de la libreria del CDN
-        // NOTA: Las tablas estan en schema 'public' (migracion completada). No forzar schema.
-        supabase = window.supabase.createClient(__AH_SUPABASE_URL, __AH_SUPABASE_KEY);
-        window.supabaseClient = supabase;
-        console.log('[base] Supabase inicializado');
+// Fallback: si config.js no cargo todavia, esperar al DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (!supabase) {
+        supabase = window.supabase || null;
     }
-} catch (e) {
-    console.error('[base] Error inicializando Supabase:', e);
-}
+    renderAdminNav();
+});
 
 // ============================================
 // UI: TOAST
@@ -66,7 +63,7 @@ function showLoading(elementId) {
 // UI: CONFIRM
 // ============================================
 function confirmAction(message) {
-    return confirm(message || '¿Estas seguro?');
+    return confirm(message || '\u00bfEstas seguro?');
 }
 
 // ============================================
@@ -119,7 +116,7 @@ function getStatusBadgePlayer(status) {
 }
 
 // ============================================
-// NAV: Admin Navigation
+// NAV: Admin Navigation v3.4
 // ============================================
 function renderAdminNav() {
     var nav = document.getElementById('admin-nav');
@@ -129,25 +126,23 @@ function renderAdminNav() {
     var isAdmin = hasAdminSession();
     var role = window.__adminRole || '';
 
-    // Solo renderizar nav de admin si el body tiene data-role="admin"
     if (document.body.getAttribute('data-role') !== 'admin') {
-        // Modo publico: solo mostrar nav de admin si esta logueado como admin
         if (isAdmin) {
             nav.innerHTML =
                 '<nav class="bg-slate-800 border-b border-slate-700">' +
                     '<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">' +
                         '<div class="flex items-center gap-4 flex-wrap">' +
-                            '<a href="index.html" class="text-amber-400 font-bold text-sm">&#9880; Alliance Hub</a>' +
+                            '<a href="index.html" class="text-amber-400 font-bold text-sm">\u2694\ufe0f Alliance Hub</a>' +
                             '<a href="matches.html" class="text-slate-300 hover:text-white text-sm">Partidas</a>' +
                             '<a href="players.html" class="text-slate-300 hover:text-white text-sm">Jugadores</a>' +
                             '<a href="alliances.html" class="text-slate-300 hover:text-white text-sm">Alianzas</a>' +
                             '<a href="rankings.html" class="text-slate-300 hover:text-white text-sm">Rankings</a>' +
                             '<a href="admins.html" class="text-slate-300 hover:text-white text-sm">Admins</a>' +
-                            '<a href="strikes.html" class="text-slate-300 hover:text-white text-sm">&#9889; Strikes</a>' +
+                            '<a href="strikes.html" class="text-slate-300 hover:text-white text-sm">\u26a1 Strikes</a>' +
                             '<a href="chat.html" class="text-slate-300 hover:text-white text-sm">Chat</a>' +
                         '</div>' +
                         '<div class="flex items-center gap-2 flex-wrap">' +
-                            (isPlayer ? '<a href="../index.html" class="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-500">&#127918; Modo Jugador</a>' : '') +
+                            (isPlayer ? '<a href="../index.html" class="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-500">\ud83c\udfae Modo Jugador</a>' : '') +
                             '<span class="text-slate-400 text-xs">' + (role || 'admin') + '</span>' +
                             '<button onclick="adminLogout()" class="text-red-400 hover:text-red-300 text-xs font-bold">Cerrar sesion</button>' +
                         '</div>' +
@@ -157,7 +152,6 @@ function renderAdminNav() {
         return;
     }
 
-    // Modo admin (data-role="admin")
     var links = [
         { href: 'matches.html', text: 'Partidas' },
         { href: 'players.html', text: 'Jugadores' },
@@ -165,7 +159,7 @@ function renderAdminNav() {
         { href: 'rankings.html', text: 'Rankings' },
         { href: 'admins.html', text: 'Admins' },
         { href: 'import.html', text: 'Importar' },
-        { href: 'strikes.html', text: '&#9889; Strikes' },
+        { href: 'strikes.html', text: '\u26a1 Strikes' },
         { href: 'chat.html', text: 'Chat' }
     ];
 
@@ -175,14 +169,14 @@ function renderAdminNav() {
 
     var switchBtn = '';
     if (isPlayer) {
-        switchBtn = '<a href="../index.html" class="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-500 transition">&#127918; Modo Jugador</a>';
+        switchBtn = '<a href="../index.html" class="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-500 transition">\ud83c\udfae Modo Jugador</a>';
     }
 
     nav.innerHTML =
         '<nav class="bg-slate-800 border-b border-slate-700">' +
             '<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">' +
                 '<div class="flex items-center gap-4 flex-wrap">' +
-                    '<a href="index.html" class="text-amber-400 font-bold text-sm hover:text-amber-300">&#9880; Alliance Hub</a>' +
+                    '<a href="index.html" class="text-amber-400 font-bold text-sm hover:text-amber-300">\u2694\ufe0f Alliance Hub</a>' +
                     linksHtml +
                 '</div>' +
                 '<div class="flex items-center gap-2 flex-wrap">' +
@@ -201,13 +195,11 @@ function clearAppCache() {
     nuclearCacheClear();
 }
 
-// Nuclear cache clear: desregistra SWs, limpia caches, borra versiones, recarga
 function nuclearCacheClear() {
     showToast('Limpiando todo el cache...', 'warning');
 
     var steps = [];
 
-    // 1. Desregistrar TODOS los service workers
     if ('serviceWorker' in navigator) {
         steps.push(
             navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -219,7 +211,6 @@ function nuclearCacheClear() {
         );
     }
 
-    // 2. Limpiar TODOS los caches
     if ('caches' in window) {
         steps.push(
             caches.keys().then(function(names) {
@@ -231,11 +222,9 @@ function nuclearCacheClear() {
         );
     }
 
-    // 3. Borrar version markers del localStorage
     localStorage.removeItem('ah_sw_version');
     localStorage.removeItem('ah_v2_app_installed');
 
-    // 4. Esperar todo y recargar con cache-buster
     Promise.all(steps).then(function() {
         showToast('Cache limpiado. Recargando...', 'success');
         setTimeout(function() {
@@ -244,12 +233,6 @@ function nuclearCacheClear() {
             location.href = url;
         }, 800);
     }).catch(function() {
-        // Aun asi recargar
         location.href = location.pathname + '?nuclear=' + Date.now();
     });
 }
-
-// Inicializar nav al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    renderAdminNav();
-});
