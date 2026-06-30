@@ -11,7 +11,21 @@
 <script src="../assets/js/base.js?v=15"></script>
 <script src="../assets/js/auth.js?v=15"></script>
 <meta name="theme-color" content="#0a0e27">
-<style>.drag-over{border:2px dashed #ff6f00!important}.rule-item{cursor:grab}.rule-item:active{cursor:grabbing}</style>
+<style>
+.drag-over{border:2px dashed #ff6f00!important}.rule-item{cursor:grab}.rule-item:active{cursor:grabbing}
+/* v5.2 FIX: Force dark text on all form inputs inside modals (white bg) */
+#section-modal input, #section-modal textarea, #section-modal select,
+#precedent-modal input, #precedent-modal textarea, #precedent-modal select {
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+}
+#section-modal input::placeholder, #section-modal textarea::placeholder,
+#precedent-modal input::placeholder, #precedent-modal textarea::placeholder {
+    color: #94a3b8 !important;
+}
+/* Precedent cards */
+.precedent-card { background: rgba(255,255,255,0.03); border: 1px solid #1a237e; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; }
+</style>
 </head>
 <body class="min-h-screen" style="background:#0a0e27;color:#e8eaf6" data-role="admin">
 <div id="admin-nav"></div>
@@ -74,7 +88,50 @@ function editSection(id){var s=allSections.find(function(x){return x.id===id});i
 async function deleteSection(id){if(!confirm('¿Eliminar esta sección?'))return;try{await supabase.from('rule_sections').delete().eq('id',id);loadSections();showToast('Eliminada','success')}catch(e){showToast('Error: '+e.message,'error')}}
 document.getElementById('section-form').addEventListener('submit',async function(e){e.preventDefault();var data={section_number:document.getElementById('sec-number').value.trim(),order_index:parseInt(document.getElementById('sec-order').value)||0,title:document.getElementById('sec-title').value.trim(),content:document.getElementById('sec-content').value.trim(),parent_id:document.getElementById('sec-parent').value||null,is_active:document.getElementById('sec-active').checked,visibility:document.getElementById('sec-visibility').value||'public',training_for:document.getElementById('sec-training').value||null};try{if(editingId){await supabase.from('rule_sections').update(data).eq('id',editingId);showToast('Sección actualizada','success')}else{await supabase.from('rule_sections').insert([data]);showToast('Sección creada','success')}closeSectionModal();loadSections()}catch(e){showToast('Error: '+e.message,'error')}});
 async function loadHistory(sectionId){try{var{data}=await supabase.from('rule_section_history').select('*').eq('section_id',sectionId).order('changed_at',{ascending:false}).limit(10);var panel=document.getElementById('history-panel');var list=document.getElementById('history-list');if(data&&data.length>0){panel.classList.remove('hidden');list.innerHTML=data.map(function(h){return'<div class="p-2 rounded" style="background:rgba(255,255,255,0.03)"><span class="text-xs font-bold" style="color:#ff8f00">'+formatDateTime(h.changed_at)+'</span><span class="text-xs ml-2" style="color:#9fa8da">'+h.title+'</span></div>'}).join('')}else{panel.classList.add('hidden')}}catch(e){console.error('[Rules] History:',e)}}
-async function loadPrecedents(sectionId){try{var{data}=await supabase.from('rule_precedents').select('*').eq('rule_section_id',sectionId).order('created_at',{ascending:false});var panel=document.getElementById('precedents-panel');var list=document.getElementById('precedents-list');document.getElementById('prec-rule-id').value=sectionId;if(data&&data.length>0){panel.classList.remove('hidden');list.innerHTML=data.map(function(p){var sevColor=p.severity==='severe'?'text-red-400':(p.severity==='moderate'?'text-orange-400':'text-yellow-400');return'<div class="p-3 rounded" style="background:rgba(255,255,255,0.03);border:1px solid #1a237e"><div class="font-medium text-white text-sm">'+p.title+' <span class="text-xs '+sevColor+'">['+p.severity+']</span></div><div class="text-xs mt-1" style="color:#9fa8da">'+p.description+'</div><div class="text-xs mt-1 font-medium" style="color:#4caf50">Resolución: '+p.resolution+'</div></div>'}).join('')}else{panel.classList.remove('hidden');list.innerHTML='<div class="text-xs py-2" style="color:#9fa8da">Sin precedentes para esta sección.</div>'}}catch(e){console.error('[Rules] Precedents:',e)}}
+
+// v5.2 FIX: Enhanced precedents loading with helpful hints
+async function loadPrecedents(sectionId){
+    try{
+        var{data}=await supabase.from('rule_precedents').select('*').eq('rule_section_id',sectionId).order('created_at',{ascending:false});
+        var panel=document.getElementById('precedents-panel');
+        var list=document.getElementById('precedents-list');
+        document.getElementById('prec-rule-id').value=sectionId;
+        panel.classList.remove('hidden');
+        if(data&&data.length>0){
+            list.innerHTML=data.map(function(p){
+                var sevColor=p.severity==='severe'?'text-red-400':(p.severity==='moderate'?'text-orange-400':'text-green-400');
+                var sevLabel=p.severity==='severe'?'Grave':(p.severity==='moderate'?'Moderada':'Leve');
+                var strikeBadge=p.strike_type?'<span class="text-xs px-2 py-0.5 rounded font-bold ml-2" style="background:rgba(255,111,0,0.15);color:#ff8f00">⚡ '+p.strike_type+'</span>':'';
+                return'<div class="precedent-card">'+
+                    '<div class="flex items-center justify-between mb-1 flex-wrap gap-1">'+
+                        '<span class="font-medium text-white text-sm">'+p.title+'</span>'+
+                        '<span class="text-xs '+sevColor+' font-bold">['+sevLabel+']</span>'+strikeBadge+'</div>'+
+                    '<p class="text-xs mb-2" style="color:#9fa8da">'+p.description+'</p>'+
+                    '<div class="text-xs p-2 rounded" style="background:rgba(76,175,80,0.08);color:#81c784;border-left:3px solid #4caf50">'+p.resolution+'</div></div>';
+            }).join('');
+        } else {
+            // Find which sections DO have precedents
+            var allPrec = await supabase.from('rule_precedents').select('rule_section_id').order('created_at',{ascending:false});
+            var sectionIdsWithPrec = [];
+            if(allPrec.data){
+                allPrec.data.forEach(function(p){if(sectionIdsWithPrec.indexOf(p.rule_section_id)===-1)sectionIdsWithPrec.push(p.rule_section_id)});
+            }
+            var hintHTML = '';
+            if(sectionIdsWithPrec.length > 0){
+                var sectionNames = sectionIdsWithPrec.map(function(sid){
+                    var sec = allSections.find(function(s){return s.id===sid});
+                    return sec ? (sec.section_number||'')+' '+sec.title : '';
+                }).filter(function(n){return n}).join(', ');
+                hintHTML = '<p class="text-xs mt-2" style="color:#ff8f00">📌 Hay precedentes en: '+sectionNames+'</p>';
+            }
+            list.innerHTML='<div class="text-center py-4">'+
+                '<div class="text-2xl mb-1">⚖️</div>'+
+                '<p class="text-sm" style="color:#9fa8da">Sin precedentes para esta sección.</p>'+
+                hintHTML+'</div>';
+        }
+    }catch(e){console.error('[Rules] Precedents:',e)}
+}
+
 function openPrecedentModal(){document.getElementById('precedent-form').reset();document.getElementById('precedent-modal').classList.remove('hidden');document.getElementById('precedent-modal').classList.add('flex')}
 function closePrecedentModal(){document.getElementById('precedent-modal').classList.add('hidden');document.getElementById('precedent-modal').classList.remove('flex')}
 document.getElementById('precedent-form').addEventListener('submit',async function(e){e.preventDefault();var data={rule_section_id:document.getElementById('prec-rule-id').value,title:document.getElementById('prec-title').value.trim(),description:document.getElementById('prec-desc').value.trim(),resolution:document.getElementById('prec-resolution').value.trim(),severity:document.getElementById('prec-severity').value,strike_type:document.getElementById('prec-strike-type').value||null};try{await supabase.from('rule_precedents').insert([data]);showToast('Precedente creado','success');closePrecedentModal();loadPrecedents(data.rule_section_id)}catch(e){showToast('Error: '+e.message,'error')}});
