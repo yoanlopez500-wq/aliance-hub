@@ -106,9 +106,9 @@
             // Nullified kills
             var { data: nullified } = await supabase
                 .from('match_nullified_kills')
-                .select('nullified_count')
+                .select('kills_nullified')
                 .eq('player_id', playerId);
-            var totalNullified = (nullified || []).reduce(function(s, n) { return s + (n.nullified_count || 0); }, 0);
+            var totalNullified = (nullified || []).reduce(function(s, n) { return s + (n.kills_nullified || 0); }, 0);
 
             var origKills = player.total_kills || 0;
             var killsWithoutNullified = Math.max(0, origKills - totalNullified);

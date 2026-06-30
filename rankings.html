@@ -109,11 +109,11 @@
         async function loadNullifiedKills() {
             var { data: nullified } = await supabase
                 .from('match_nullified_kills')
-                .select('player_id, nullified_count');
+                .select('player_id, kills_nullified');
             nullifiedCache = {};
             if (nullified) {
                 nullified.forEach(function(n) {
-                    nullifiedCache[n.player_id] = (nullifiedCache[n.player_id] || 0) + (n.nullified_count || 0);
+                    nullifiedCache[n.player_id] = (nullifiedCache[n.player_id] || 0) + (n.kills_nullified || 0);
                 });
             }
         }
