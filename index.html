@@ -25,6 +25,8 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO, antes de config.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- v18: Modular Architecture - Core -->
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
@@ -50,7 +52,6 @@
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js?v=18"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -152,7 +153,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </div>
 </footer>
 <script>
-// v18: Wait for Supabase client to be ready before making any calls
 function waitForSupabase(callback, attempts) {
     attempts = attempts || 0;
     if (typeof window.supabase !== 'undefined' && typeof window.supabase.from === 'function') {
@@ -163,8 +163,8 @@ function waitForSupabase(callback, attempts) {
         setTimeout(function() { waitForSupabase(callback, attempts + 1); }, 100);
     } else {
         console.error('[Landing] Supabase no disponible despues de 5 segundos');
-        AhComponents.inject('error-state', { message: 'Error de conexion con el servidor' }, 'landing-rules');
-        AhComponents.inject('error-state', { message: 'Error de conexion' }, 'landing-precedents');
+        document.getElementById('landing-rules').innerHTML = '<div class="text-center py-8 text-red-400">Error de conexion con el servidor</div>';
+        document.getElementById('landing-precedents').innerHTML = '<div class="text-center py-8 text-red-400">Error de conexion</div>';
     }
 }
 
@@ -183,13 +183,14 @@ async function loadStats() {
     } catch(e) { console.error('[Stats]', e); }
 }
 
+// FIX #5: Removido .eq('is_active', true) - columna no existe en rule_sections
 async function loadLandingRules() {
     try {
-        var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index').limit(6);
+        var { data, error } = await supabase.from('rule_sections').select('*').order('order_index').limit(6);
         if (error) throw error;
         var container = document.getElementById('landing-rules');
         if (!data || data.length === 0) {
-            AhComponents.inject('empty-state', { message: 'No hay reglas configuradas.' }, 'landing-rules');
+            container.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">No hay reglas configuradas.</div>';
             return;
         }
         container.innerHTML = data.map(function(s) {
@@ -198,7 +199,7 @@ async function loadLandingRules() {
         loadLandingPrecedents();
     } catch(e) {
         console.error('[LandingRules]', e);
-        AhComponents.inject('error-state', { message: 'Error cargando reglamento' }, 'landing-rules');
+        document.getElementById('landing-rules').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + e.message + '</div>';
     }
 }
 
@@ -209,7 +210,7 @@ async function loadLandingPrecedents() {
         if (error) throw error;
         var container = document.getElementById('landing-precedents');
         if (!data || data.length === 0) {
-            AhComponents.inject('empty-state', { message: 'No hay precedentes registrados aun.' }, 'landing-precedents');
+            container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>';
             return;
         }
         container.innerHTML = data.map(function(p) {
@@ -217,11 +218,10 @@ async function loadLandingPrecedents() {
         }).join('');
     } catch(e) {
         console.error('[LandingPrecedents]', e);
-        AhComponents.inject('error-state', { message: 'Error cargando precedentes' }, 'landing-precedents');
+        document.getElementById('landing-precedents').innerHTML = '<div class="text-center py-4 text-red-400">Error cargando precedentes: ' + e.message + '</div>';
     }
 }
 
-// Wait for Supabase before loading any data
 waitForSupabase(function() {
     loadStats();
     loadLandingRules();

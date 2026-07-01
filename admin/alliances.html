@@ -7,9 +7,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Alianzas - Alliance Hub</title>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- v18: Modular Architecture -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/js/config.js?v=18"></script>
 <script src="../assets/js/base.js?v=18"></script>
 <script src="../assets/js/roles-data.js?v=18"></script>
@@ -45,18 +46,38 @@
 <script>
 requireAdmin();
 
+// FIX #3: member_count y total_kills no existen en tabla alliances
+// Cargar alliances sin esas columnas, contar miembros desde alliance_memberships
 async function loadAlliances() {
     try {
-        // v18 FIX: Query simple sin relaciones FK que pueden fallar
-        var { data: alliances, error } = await supabase.from('alliances').select('id, name, tag, description, member_count, total_kills').order('name');
+        var { data: alliances, error } = await supabase.from('alliances').select('id, name, tag, description').order('name');
+        if (error) throw error;
+
+        // Contar miembros por alianza desde alliance_memberships
+        var memberCounts = {};
+        try {
+            var { data: memberships } = await supabase.from('alliance_memberships').select('alliance_id').eq('status', 'approved');
+            if (memberships) {
+                memberships.forEach(function(m) {
+                    memberCounts[m.alliance_id] = (memberCounts[m.alliance_id] || 0) + 1;
+                });
+            }
+        } catch(mcErr) { console.warn('[Alliances] Error contando miembros:', mcErr); }
+
         var container = document.getElementById('alliances-list');
-        if (error) { AhComponents.inject('error-state', { message: 'Error: ' + error.message }, 'alliances-list'); return; }
-        if (!alliances || alliances.length === 0) { AhComponents.inject('empty-state', { message: 'No hay alianzas registradas', icon: '&#127988;' }, 'alliances-list'); return; }
+        if (!alliances || alliances.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay alianzas registradas</div>';
+            return;
+        }
 
         container.innerHTML = alliances.map(function(a) {
-            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between flex-wrap gap-2"><div><h3 class="font-bold">' + a.name + ' <span style="color:#9fa8da;">[' + (a.tag || '-') + ']</span></h3><p class="text-xs" style="color:#9fa8da;">' + (a.description || 'Sin descripcion') + '</p><p class="text-xs mt-1" style="color:#9fa8da;">' + (a.member_count || 0) + ' miembros | ' + (a.total_kills || 0) + ' bajas</p></div><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:#1a237e;color:#e8eaf6;">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:rgba(198,40,40,0.2);color:#ef5350;">Eliminar</button></div></div></div>';
+            var count = memberCounts[a.id] || 0;
+            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between flex-wrap gap-2"><div><h3 class="font-bold">' + a.name + ' <span style="color:#9fa8da;">[' + (a.tag || '-') + ']</span></h3><p class="text-xs" style="color:#9fa8da;">' + (a.description || 'Sin descripcion') + '</p><p class="text-xs mt-1" style="color:#9fa8da;">' + count + ' miembros</p></div><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:#1a237e;color:#e8eaf6;">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:rgba(198,40,40,0.2);color:#ef5350;">Eliminar</button></div></div></div>';
         }).join('');
-    } catch(e) { AhComponents.inject('error-state', { message: 'Error: ' + e.message }, 'alliances-list'); }
+    } catch(e) {
+        console.error('[Alliances]', e);
+        document.getElementById('alliances-list').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>';
+    }
 }
 
 function openModal() {

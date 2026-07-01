@@ -7,6 +7,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Partida - Alliance Hub</title>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO, antes de config.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- v18: Modular Architecture -->
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
@@ -19,7 +21,6 @@
 <script src="assets/js/components.js?v=18"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js?v=18"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -104,7 +105,7 @@ async function loadMatch() {
     try {
         var { data: match, error } = await supabase.from('matches').select('*').eq('id', matchId).single();
         if (error || !match) {
-            AhComponents.inject('error-state', { message: 'Partida no encontrada' }, 'match-header');
+            document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Partida no encontrada</div>';
             return;
         }
 
@@ -114,10 +115,7 @@ async function loadMatch() {
         if (match.alliance_b_id) { var { data: ab } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_b_id).single(); allianceB = ab; }
 
         if (match.is_private && match.share_token !== shareToken) {
-            document.getElementById('match-header').innerHTML =
-                '<div class="text-center text-xl" style="color:#ef5350;">&#128274; Partida Privada</div>' +
-                '<p class="text-center mt-2" style="color:#9fa8da;">Necesitas un enlace de invitacion.</p>' +
-                '<div class="text-center mt-4"><a href="index.html" class="font-bold" style="color:#ff8f00;">&larr; Volver</a></div>';
+            document.getElementById('match-header').innerHTML = '<div class="text-center text-xl" style="color:#ef5350;">&#128274; Partida Privada</div><p class="text-center mt-2" style="color:#9fa8da;">Necesitas un enlace de invitacion.</p><div class="text-center mt-4"><a href="index.html" class="font-bold" style="color:#ff8f00;">&larr; Volver</a></div>';
             return;
         }
         if (match.winners_declared) loadWinners(matchId);
@@ -133,13 +131,11 @@ async function loadMatch() {
             isRegistered = !!reg; regStatus = reg ? reg.status : null;
         }
 
-        // Report link (solo si registrado y aprobado)
         if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) {
             document.getElementById('report-section').classList.remove('hidden');
             document.getElementById('report-link').href = 'report.html?match_id=' + matchId;
         }
 
-        // Credenciales o esperando aprobacion
         var showCredentials = false, showWaiting = false;
         if (match.requires_approval) {
             if (regStatus === 'confirmed' || regStatus === 'approved') showCredentials = true;
@@ -155,12 +151,10 @@ async function loadMatch() {
         }
         if (showWaiting) document.getElementById('waiting-approval-banner').classList.remove('hidden');
 
-        // Badge de estado de registro
         var regBadge = '';
         if (isRegistered && (regStatus === 'confirmed' || regStatus === 'approved')) regBadge = '<div class="mt-4"><span class="px-4 py-2 rounded-lg font-bold" style="background:rgba(46,125,50,0.1);color:#4caf50;border:1px solid rgba(46,125,50,0.2);">&#10003; Registrado</span></div>';
         else if (isRegistered && regStatus === 'pending') regBadge = '<div class="mt-4"><span class="px-4 py-2 rounded-lg font-bold" style="background:rgba(255,143,0,0.1);color:#ff8f00;border:1px solid rgba(255,143,0,0.2);">&#9203; Esperando aprobacion</span></div>';
 
-        // Boton registrarse o badge
         var actionHtml = '';
         if (match.status === 'open' && !isRegistered) {
             actionHtml = '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block px-6 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Registrarme</a></div>';
@@ -177,17 +171,15 @@ async function loadMatch() {
             '<p class="mt-1 text-sm" style="color:#9fa8da;">' + (match.description || '') + '</p>' +
             '<div class="flex flex-wrap gap-4 mt-3 text-sm" style="color:#9fa8da;"><span>&#128197; ' + formatDate(match.created_at) + '</span><span>' + allianceLabel + '</span><span>&#128101; Max ' + match.max_players + '</span></div>' + actionHtml;
 
-        // Reglas: link a rules.html (no iframe que ocupa espacio util)
         document.getElementById('rules-link-section').classList.remove('hidden');
 
-        // Chat solo para duelos
         if (match.match_type === 'duel') { document.getElementById('chat-section').classList.remove('hidden'); loadChat(); }
 
         loadRegistrations();
         loadResults();
     } catch(e) {
         console.error('[Game] Error:', e);
-        AhComponents.inject('error-state', { message: 'Error cargando partida' }, 'match-header');
+        document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando partida: ' + e.message + '</div>';
     }
 }
 
@@ -212,10 +204,7 @@ async function loadChat() {
     try {
         var { data: messages } = await supabase.from('chat_messages').select('*').eq('channel', matchId).order('created_at', { ascending: true }).limit(50);
         var container = document.getElementById('chat-messages');
-        if (!messages || messages.length === 0) {
-            container.innerHTML = '<div class="text-center text-sm" style="color:#9fa8da;">Sin mensajes. Se el primero en escribir!</div>';
-            return;
-        }
+        if (!messages || messages.length === 0) { container.innerHTML = '<div class="text-center text-sm" style="color:#9fa8da;">Sin mensajes. Se el primero!</div>'; return; }
         container.innerHTML = messages.map(function(m) {
             var isMine = m.sender_name === (playerData ? playerData.displayName : '');
             return '<div class="mb-2 ' + (isMine ? 'text-right' : 'text-left') + '"><div class="inline-block px-3 py-2 rounded-lg" style="background:' + (isMine ? '#1a237e' : 'rgba(255,255,255,0.05)') + ';"><div class="text-xs font-bold" style="color:' + (isMine ? '#ff8f00' : '#9fa8da') + ';">' + (m.sender_name || 'Admin') + '</div><div class="text-sm" style="color:#e8eaf6;">' + m.message + '</div></div></div>';

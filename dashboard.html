@@ -8,9 +8,9 @@
 <meta http-equiv="Expires" content="0">
 <title>Dashboard - Alliance Hub</title>
 <!-- v18: Modular Architecture -->
-<script src="assets/js/theme.js?v=18"></script>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js?v=18"></script>
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
 <script src="assets/js/roles-data.js?v=18"></script>
@@ -30,25 +30,42 @@
 <div id="matches-list">Cargando partidas...</div>
 </div>
 <script>
+var allAlliances = [];
+
+// FIX #2: Cargar alliances separadamente (FK join roto en schema)
+async function loadAlliancesMap() {
+    try {
+        var { data, error } = await supabase.from('alliances').select('id, name, tag');
+        if (error) throw error;
+        allAlliances = data || [];
+    } catch(e) { console.error('[Dashboard] Error cargando alliances:', e); }
+}
+
+function getAlliance(allianceId) {
+    if (!allianceId || !allAlliances.length) return null;
+    return allAlliances.find(function(a) { return a.id === allianceId; }) || null;
+}
+
 async function loadMatches() {
     try {
-        var { data, error } = await supabase.from('matches').select('*, alliances(name, tag)').order('created_at', { ascending: false }).limit(50);
+        await loadAlliancesMap();
+        // FIX #2: Query simple sin FK join, mapear alliances en JS
+        var { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
         if (!data || data.length === 0) {
-            AhComponents.inject('empty-state', { message: 'No hay partidas registradas', icon: '&#127918;' }, 'matches-list');
+            document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas registradas</div>';
             return;
         }
-        // v18: Usa componente match-card reutilizable
         document.getElementById('matches-list').innerHTML = '<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">' + data.map(function(m) {
-            return AhComponents.render('match-card', {
-                match: m,
-                alliance: m.alliances || null,
-                href: 'game.html?id=' + m.id
-            });
+            var alliance = getAlliance(m.alliance_id);
+            var allianceLabel = alliance ? ' [' + alliance.tag + ']' : '';
+            var statusBadge = m.status === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ABIERTA</span>' : m.status === 'in_progress' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN CURSO</span>' : m.status === 'finished' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">FINALIZADA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">BORRADOR</span>';
+            var typeBadge = m.match_type === 'duel' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(198,40,40,0.15);color:#ef5350;">DUELO</span>' : m.match_type === 'internal' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(33,150,243,0.15);color:#2196f3;">INTERNA</span>' : '';
+            return '<a href="game.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><div>' + statusBadge + typeBadge + '</div></div><h3 class="font-bold text-lg" style="color:#e8eaf6;">' + (m.name || 'Partida') + allianceLabel + '</h3><p class="text-xs mt-1" style="color:#9fa8da;">' + formatDate(m.created_at) + ' | Max: ' + (m.max_players || '-') + '</p></a>';
         }).join('') + '</div>';
     } catch(e) {
         console.error('[Dashboard]', e);
-        AhComponents.inject('error-state', { message: 'Error cargando partidas', retry: true, onRetry: 'loadMatches()' }, 'matches-list');
+        document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando partidas: ' + e.message + '<br><button onclick="loadMatches()" class="mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Reintentar</button></div>';
     }
 }
 loadMatches();

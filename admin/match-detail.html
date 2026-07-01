@@ -7,12 +7,19 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Detalle de Partida - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=17"></script>
+<!-- FIX #1 + #4: CDN PRIMERO, luego config.js, cache buster v18, scripts modulares -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=17"></script>
-<script src="../assets/js/base.js?v=17"></script>
-<script src="../assets/js/auth.js?v=17"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=18"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 input,select,textarea{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
@@ -92,7 +99,7 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 </div><!-- /max-w-6xl -->
 
 <!-- ===== MODALS ===== -->
-
+<!-- [Todos los 8 modales se mantienen igual que en la version anterior] -->
 <!-- Modal: Apply Strike -->
 <div id="apply-strike-modal" class="modal">
 <div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
@@ -294,6 +301,9 @@ async function loadMatch() {
         var typeBadge = getTypeBadge(match.match_type || match.type);
         var csvBadge = match.csv_imported ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">&#10003; CSV Importado</span>' : '';
 
+        // FIX #6: Share link apunta a game.html (vista publica) en lugar de match-detail.html
+        var shareUrl = (window.location.origin + '/aliance-hub/game.html?id=' + matchId);
+
         document.getElementById('match-header').innerHTML =
             '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">' +
             '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#127918; ' + (match.name || 'Partida') + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + ' ' + typeBadge + ' ' + csvBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm hover:opacity-80 transition self-start" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a></div>' +
@@ -302,7 +312,7 @@ async function loadMatch() {
             '</div>';
 
         document.getElementById('share-section').classList.remove('hidden');
-        document.getElementById('share-link').value = window.location.origin + window.__AH_BASE_PATH + 'match-detail.html?id=' + matchId;
+        document.getElementById('share-link').value = shareUrl;
         document.getElementById('admin-actions-section').classList.remove('hidden');
 
         await Promise.all([loadRegistrations(), loadResults(), loadPending(), loadStrikeTypesUnified()]);
@@ -557,7 +567,7 @@ async function importCSVResults(results) {
             var r = results[i];
             var kd = r.deaths > 0 ? (r.kills / r.deaths) : r.kills;
             await supabase.from('match_results').upsert({ match_id: matchId, player_id: r.player_id, kills: r.kills, deaths: r.deaths, nation: r.nation || null, kd_ratio: parseFloat(kd.toFixed(2)) }, { onConflict: 'match_id,player_id' });
-            await supabase.rpc('increment_player_stats', { p_player_id: r.player_id, p_kills: r.kills, p_deaths: r.deaths });
+            try { await supabase.rpc('increment_player_stats', { p_player_id: r.player_id, p_kills: r.kills, p_deaths: r.deaths }); } catch(rpcErr) { console.warn('RPC no disponible:', rpcErr); }
         }
         await supabase.from('matches').update({ csv_imported: true }).eq('id', matchId);
         showToast(results.length + ' resultados importados', 'success');
@@ -682,8 +692,10 @@ document.getElementById('winners-form').addEventListener('submit', async functio
         for (var i = 0; i < winners.length; i++) {
             await supabase.from('match_winners').upsert({ match_id: matchId, player_id: winners[i], position: i+1 }, { onConflict: 'match_id,player_id' });
         }
+        await supabase.from('matches').update({ winners_declared: true }).eq('id', matchId);
         showToast(winners.length + ' ganador(es) registrados', 'success');
         closeWinnersModal();
+        loadMatch();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 });
 
@@ -732,7 +744,7 @@ document.getElementById('manual-form').addEventListener('submit', async function
     try {
         var kd = deaths > 0 ? (kills / deaths) : kills;
         await supabase.from('match_results').upsert({ match_id: matchId, player_id: playerId, nation: nation, kills: kills, deaths: deaths, kd_ratio: parseFloat(kd.toFixed(2)) }, { onConflict: 'match_id,player_id' });
-        await supabase.rpc('increment_player_stats', { p_player_id: playerId, p_kills: kills, p_deaths: deaths });
+        try { await supabase.rpc('increment_player_stats', { p_player_id: playerId, p_kills: kills, p_deaths: deaths }); } catch(rpcErr) { console.warn('RPC no disponible:', rpcErr); }
         showToast('Resultado guardado', 'success');
         closeManualModal();
         loadResults();
