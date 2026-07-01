@@ -8,11 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Certificaciones - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/auth.js?v=18"></script>
 <style>
 body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e27; color: #e8eaf6; }
 .fade-in { animation: fadeIn 0.4s ease-out; }
@@ -21,7 +22,6 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e27; color: 
 .status-approved { background: rgba(76,175,80,0.12); color: #4caf50; border: 1px solid rgba(76,175,80,0.25); }
 .status-rejected { background: rgba(239,83,80,0.12); color: #ef5350; border: 1px solid rgba(239,83,80,0.25); }
 .status-review { background: rgba(33,150,243,0.12); color: #2196f3; border: 1px solid rgba(33,150,243,0.25); }
-input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6f00 !important; }
 </style>
 </head>
 <body style="min-height: 100vh;" data-role="admin">
@@ -69,18 +69,18 @@ async function loadRequests() {
     list.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">Cargando...</div>';
     try {
         var status = document.getElementById('filter-status').value;
-        var q = supabase.from('alliance_leader_requests').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+        var q = supabase.from('alliance_leader_requests').select('*').order('created_at', { ascending: false });
         if (status !== 'all') q = q.eq('status', status);
-        var { data, error, count } = await q;
+        var { data, error } = await q;
         if (error) throw error;
         document.getElementById('stat-pending').textContent = '-';
         document.getElementById('stat-review').textContent = '-';
         document.getElementById('stat-approved').textContent = '-';
         document.getElementById('stat-rejected').textContent = '-';
-        var stats = await supabase.from('alliance_leader_requests').select('status');
-        if (stats.data) {
+        var { data: statsData } = await supabase.from('alliance_leader_requests').select('status');
+        if (statsData) {
             var counts = { pending: 0, under_review: 0, approved: 0, rejected: 0 };
-            stats.data.forEach(function(s) { if (counts[s.status] !== undefined) counts[s.status]++; });
+            statsData.forEach(function(s) { if (counts[s.status] !== undefined) counts[s.status]++; });
             document.getElementById('stat-pending').textContent = counts.pending;
             document.getElementById('stat-review').textContent = counts.under_review;
             document.getElementById('stat-approved').textContent = counts.approved;
