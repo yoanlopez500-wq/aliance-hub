@@ -1,4 +1,4 @@
-// assets/js/auth.js v5.1 - Fix dual-mode nav: show ALL admin links when in dual session
+// assets/js/auth.js v5.2 - Fix missing DM functions + all previous fixes
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -42,7 +42,6 @@ async function getAdminRole() {
     } catch(e) { return null; }
 }
 
-// ========== NUEVO: Detectar si jugador es Oficial/Co-lider de alianza ==========
 async function getAllianceOfficerRole(playerId, allianceId) {
     if (!playerId) return null;
     try {
@@ -52,7 +51,6 @@ async function getAllianceOfficerRole(playerId, allianceId) {
             .eq('is_active', true)
             .maybeSingle();
         if (data) return data;
-        // Tambien verificar alliance_memberships
         if (allianceId) {
             var { data: mem } = await supabase.from('alliance_memberships')
                 .select('role')
@@ -74,10 +72,7 @@ async function isAllianceOfficer() {
     return getAllianceOfficerRole(playerData.playerId, playerData.allianceId);
 }
 
-// ========== NUEVO: Resolver visibilidad de reglamento ==========
-// Devuelve el rol mas alto del usuario actual para filtrar rule_sections
 async function resolveUserVisibilityRole() {
-    // 1. Super Admin?
     try {
         var admin = await getAdminRole();
         if (admin) {
@@ -87,22 +82,15 @@ async function resolveUserVisibilityRole() {
             if (admin.role === 'alliance_leader') return 'leader';
         }
     } catch(e) {}
-
-    // 2. Oficial/Co-lider?
     var officer = await isAllianceOfficer();
     if (officer) {
         if (officer.role === 'co_leader') return 'leader';
         return 'official';
     }
-
-    // 3. Jugador logueado?
     if (hasPlayerSession()) return 'player';
-
-    // 4. Publico
     return 'public';
 }
 
-// Verifica si una seccion de reglamento es visible para el rol dado
 function canSeeRuleSection(userRole, sectionVisibility) {
     var order = { public: 0, player: 1, official: 2, leader: 3, admin: 4, superadmin: 5 };
     var userLevel = order[userRole] || 0;
@@ -137,16 +125,13 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     if (!inviteResult.data || inviteResult.data.length === 0) return { success: false, message: 'Codigo de invitacion invalido o ya usado' };
     var invite = inviteResult.data[0];
     if (new Date(invite.expires_at) < new Date()) return { success: false, message: 'Codigo de invitacion expirado' };
-
     var { data: player } = await supabase.from('players').select('id, current_username').eq('id', parseInt(supremacyId)).single();
     if (!player) {
         var { error: insertPlayerError } = await supabase.from('players').insert({ id: parseInt(supremacyId), current_username: displayName, status: 'active' });
         if (insertPlayerError) return { success: false, message: 'Error creando jugador: ' + insertPlayerError.message };
     }
-
     var authResult = await supabase.auth.signInWithPassword({ email: email, password: password });
     if (authResult.error) return { success: false, message: authResult.error.message };
-
     await supabase.from('admin_users').insert({
         id: authResult.data.user.id, role: invite.role, display_name: displayName,
         supremacy_player_id: parseInt(supremacyId), approved_by: invite.created_by,
@@ -156,7 +141,6 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     return { success: true, message: 'Cuenta creada. Ya puedes iniciar sesion.' };
 }
 
-// ====== LOGOUT ======
 async function logout() {
     if (window.__ahNotifInterval) { clearInterval(window.__ahNotifInterval); window.__ahNotifInterval = null; }
     await supabase.auth.signOut();
@@ -249,9 +233,78 @@ function hasAdminSession() {
     return supabase.auth.getSession().then(function(r) { return !!r.data.session; }).catch(function() { return false; });
 }
 
-// ===================== NOTIFICACIONES INTERNAS =====================
+// ===================== NOTIFICACIONES / MENSAJES DIRECTOS =====================
 var __ahNotifCount = 0;
 var __ahNotifMessages = [];
+
+// v5.2: Funciones de mensajes directos que faltaban
+async function countUnreadDirectMessages() {
+    try {
+        var sd = await supabase.auth.getSession();
+        if (!sd.data.session) return 0;
+        var { count, error } = await supabase.from('direct_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipient_admin_id', sd.data.session.user.id)
+            .is('read_at', null);
+        if (error) throw error;
+        return count || 0;
+    } catch(e) { console.error('[DM] countUnread error:', e); return 0; }
+}
+
+async function fetchRecentDirectMessages(limit) {
+    try {
+        var sd = await supabase.auth.getSession();
+        if (!sd.data.session) return [];
+        var { data, error } = await supabase.from('direct_messages')
+            .select('*')
+            .eq('recipient_admin_id', sd.data.session.user.id)
+            .order('created_at', { ascending: false })
+            .limit(limit || 10);
+        if (error) throw error;
+        return data || [];
+    } catch(e) { console.error('[DM] fetchRecent error:', e); return []; }
+}
+
+async function markDirectMessageAsRead(messageId) {
+    try {
+        await supabase.from('direct_messages')
+            .update({ read_at: new Date().toISOString() })
+            .eq('id', messageId);
+    } catch(e) { console.error('[DM] markRead error:', e); }
+}
+
+async function sendDirectMessage(recipientId, subject, message) {
+    try {
+        var sd = await supabase.auth.getSession();
+        if (!sd.data.session) return { success: false, message: 'No hay sesion' };
+        var { data: sender } = await supabase.from('admin_users')
+            .select('display_name')
+            .eq('id', sd.data.session.user.id)
+            .single();
+        var { error } = await supabase.from('direct_messages').insert({
+            sender_admin_id: sd.data.session.user.id,
+            recipient_admin_id: recipientId,
+            sender_name: sender ? sender.display_name : 'Admin',
+            subject: subject || null,
+            message: message
+        });
+        if (error) return { success: false, message: error.message };
+        return { success: true };
+    } catch(e) { return { success: false, message: e.message }; }
+}
+
+async function getAdminRecipients() {
+    try {
+        var sd = await supabase.auth.getSession();
+        if (!sd.data.session) return [];
+        var { data } = await supabase.from('admin_users')
+            .select('id, display_name, role')
+            .eq('status', 'active')
+            .neq('id', sd.data.session.user.id)
+            .order('display_name');
+        return data || [];
+    } catch(e) { return []; }
+}
 
 function buildNotificationBell() {
     return '<div class="relative" id="ah-notif-wrapper">' +
@@ -457,7 +510,6 @@ async function initAdminNav() {
 }
 
 // ====== FLUID NAV (DUAL MODE) ======
-// v5.1 FIX: Ahora muestra TODOS los links (main + tools + comms) igual que renderAdminNav
 function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     var role = (admin && admin.role) || 'moderator';
     var panel = ROLE_PANELS[role] || ROLE_PANELS.moderator;
@@ -475,7 +527,6 @@ function renderFluidNav(nav, session, admin, playerData, onAdminPage) {
     var toolsLinks = panel.navLinks.filter(function(l) { return l.section === 'tools'; });
     var commsLinks = panel.navLinks.filter(function(l) { return l.section === 'comms'; });
 
-    // Construir barra de navegacion completa igual que renderAdminNav
     var navBarHTML = mainLinks.map(mkLink).join('');
     if (toolsLinks.length) {
         navBarHTML += '<div class="w-px mx-1 bg-white/10 shrink-0"></div>' + toolsLinks.map(mkLink).join('');
@@ -545,7 +596,6 @@ function renderAdminNav(nav, session, admin) {
     var notifHTML = '';
     try { notifHTML = buildNotificationBell(); } catch(e) { notifHTML = ''; }
 
-    // Construir barra completa
     var navBarHTML = mainLinks.map(mkLink).join('');
     if (toolsLinks.length) {
         navBarHTML += '<div class="w-px mx-1 bg-white/10 shrink-0"></div>' + toolsLinks.map(mkLink).join('');
@@ -753,7 +803,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var nav = document.getElementById('admin-nav');
         if (nav) renderPublicNav(nav);
     });
-    // Check training after nav loads
     setTimeout(function() { checkTrainingRequired().catch(function(){}); }, 3000);
 });
 
@@ -769,3 +818,8 @@ window.resolveUserVisibilityRole = resolveUserVisibilityRole;
 window.canSeeRuleSection = canSeeRuleSection;
 window.completeTraining = completeTraining;
 window.dismissTrainingModal = dismissTrainingModal;
+window.countUnreadDirectMessages = countUnreadDirectMessages;
+window.fetchRecentDirectMessages = fetchRecentDirectMessages;
+window.markDirectMessageAsRead = markDirectMessageAsRead;
+window.sendDirectMessage = sendDirectMessage;
+window.getAdminRecipients = getAdminRecipients;
