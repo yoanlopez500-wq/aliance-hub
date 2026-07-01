@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Registro - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="../assets/js/theme.js"></script>
+    <script src="../assets/js/theme.js?v=18"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=11"></script>
-    <script src="../assets/js/base.js?v=11"></script>
-    <script src="../assets/js/auth.js?v=11"></script>
-    <script src="../assets/js/pwa-utils.js?v=11"></script>
+    <script src="../assets/js/config.js?v=18"></script>
+    <script src="../assets/js/base.js?v=18"></script>
+    <script src="../assets/js/components.js?v=18"></script>
+    <script src="../assets/js/auth.js?v=18"></script>
+    <script src="../assets/js/pwa-utils.js?v=18"></script>
     <meta name="theme-color" content="#0a0e27">
 </head>
 <body class="min-h-screen" style="background: #0a0e27;" data-role="public">
@@ -107,7 +111,7 @@
 
             if (reg && (reg.status === 'confirmed' || reg.status === 'approved')) {
                 document.getElementById('register-form').classList.add('hidden');
-                document.getElementById('success-msg').textContent = '&#10003; Ya estas registrado en esta partida.';
+                document.getElementById('success-msg').textContent = '\u2713 Ya estas registrado en esta partida.';
                 document.getElementById('success-msg').classList.remove('hidden');
                 saveLastRegisteredMatch(matchId);
                 showCredentialsIfApproved();
@@ -121,7 +125,7 @@
             }
 
             if (reg && reg.status === 'rejected') {
-                document.getElementById('error-msg').textContent = '&#10060; Tu solicitud fue rechazada.';
+                document.getElementById('error-msg').textContent = '\u2716 Tu solicitud fue rechazada.';
                 document.getElementById('error-msg').classList.remove('hidden');
                 document.getElementById('register-form').classList.add('hidden');
                 return;
@@ -129,18 +133,25 @@
 
             var { data: match, error: matchError } = await supabase
                 .from('matches')
-                .select('*, alliances(name, tag)')
+                .select('*')
                 .eq('id', matchId)
                 .maybeSingle();
 
+            if (matchError) console.error('Error cargando match:', matchError);
             if (!match) { document.getElementById('match-info').textContent = 'Partida no encontrada'; return; }
             currentMatch = match;
 
-            document.getElementById('match-info').innerHTML = getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + ' &#8226; ' + match.name;
+            var allianceName = '';
+            if (match.alliance_id) {
+                var { data: alliance } = await supabase.from('alliances').select('name').eq('id', match.alliance_id).maybeSingle();
+                if (alliance) allianceName = alliance.name;
+            }
+
+            document.getElementById('match-info').innerHTML = getStatusBadge(match.status) + ' ' + getTypeBadge(match.match_type) + ' \u2022 ' + match.name + (allianceName ? ' (' + allianceName + ')' : '');
 
             if (match.status !== 'open') {
                 document.getElementById('register-form').classList.add('hidden');
-                document.getElementById('error-msg').textContent = '&#10060; Esta partida no esta abierta para registro.';
+                document.getElementById('error-msg').textContent = '\u2716 Esta partida no esta abierta para registro.';
                 document.getElementById('error-msg').classList.remove('hidden');
             }
         }
@@ -174,7 +185,7 @@
             successMsg.classList.add('hidden');
 
             var nation = document.getElementById('reg-nation').value.trim();
-            if (!nation) { errorMsg.textContent = '&#10060; Elige una nacion'; errorMsg.classList.remove('hidden'); return; }
+            if (!nation) { errorMsg.textContent = '\u2716 Elige una nacion'; errorMsg.classList.remove('hidden'); return; }
 
             var { error } = await supabase.from('match_registrations').upsert({
                 match_id: matchId,
@@ -185,17 +196,17 @@
                 registered_at: new Date().toISOString()
             }, { onConflict: 'match_id,player_id' });
 
-            if (error) { errorMsg.textContent = '&#10060; Error: ' + error.message; errorMsg.classList.remove('hidden'); }
+            if (error) { errorMsg.textContent = '\u2716 Error: ' + error.message; errorMsg.classList.remove('hidden'); }
             else {
                 saveLastRegisteredMatch(matchId);
 
                 if (currentMatch && currentMatch.requires_approval) {
-                    successMsg.textContent = '&#10003; Solicitud enviada. Espera aprobacion del admin.';
+                    successMsg.textContent = '\u2713 Solicitud enviada. Espera aprobacion del admin.';
                     successMsg.classList.remove('hidden');
                     document.getElementById('register-form').classList.add('hidden');
                     document.getElementById('waiting-approval-banner').classList.remove('hidden');
                 } else {
-                    successMsg.textContent = '&#10003; Registrado! Redirigiendo...';
+                    successMsg.textContent = '\u2713 Registrado! Redirigiendo...';
                     successMsg.classList.remove('hidden');
                     setTimeout(function() { window.location.href = '../game.html?id=' + matchId; }, 1500);
                 }
