@@ -8,11 +8,18 @@
 <meta http-equiv="Expires" content="0">
 <title>Strikes - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=17"></script>
+<!-- v18: Modular Architecture -->
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=17"></script>
-<script src="../assets/js/base.js?v=17"></script>
-<script src="../assets/js/auth.js?v=17"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 .strike-card{border:1px solid #1a237e;transition:all .15s}
@@ -60,19 +67,17 @@ var matchesMap = {};
 
 async function loadStrikes() {
     try {
-        // v17 FIX: Cargar strike_types por separado ya que la FK no existe en el schema
+        // v18: Cargar strike_types por separado ya que la FK no existe en el schema
         var typesRes = await supabase.from('strike_types').select('*').order('severity');
         strikeTypesMap = {};
         (typesRes.data || []).forEach(function(t) { strikeTypesMap[t.id] = t; });
 
-        // Cargar player_strikes solo con players (matches puede fallar tambien)
         var { data: strikesData, error } = await supabase.from('player_strikes')
             .select('*, players(id, current_username, current_alliance_id)')
             .order('applied_at', { ascending: false })
             .limit(100);
         if (error) throw error;
 
-        // Cargar matches por separado
         var matchIds = (strikesData || []).map(function(s) { return s.match_id; }).filter(function(v) { return !!v; });
         matchesMap = {};
         if (matchIds.length > 0) {
@@ -83,14 +88,12 @@ async function loadStrikes() {
             } catch(e) {}
         }
 
-        // Enriquecer strikes con datos de tipos y matches
         allStrikes = (strikesData || []).map(function(s) {
             s.strike_types = strikeTypesMap[s.strike_type_id] || null;
             s.matches = s.match_id ? (matchesMap[s.match_id] || null) : null;
             return s;
         });
 
-        // Calcular estadisticas
         var counts = { leve: 0, medio: 0, grave: 0, nullifier: 0 };
         allStrikes.forEach(function(s) {
             if (s.strike_types) {
@@ -107,9 +110,9 @@ async function loadStrikes() {
         document.getElementById('stat-nullifier').textContent = counts.nullifier;
 
         var list = document.getElementById('strikes-list');
-        if (allStrikes.length === 0) { list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">No hay strikes registrados</div>'; return; }
+        if (allStrikes.length === 0) { AhComponents.inject('empty-state', { message: 'No hay strikes registrados', icon: '&#9889;' }, 'strikes-list'); return; }
         renderStrikes(allStrikes);
-    } catch(e) { console.error('[Strikes]', e); document.getElementById('strikes-list').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + (e.message || e) + '</div>'; }
+    } catch(e) { console.error('[Strikes]', e); AhComponents.inject('error-state', { message: 'Error: ' + (e.message || e), retry: true, onRetry: 'loadStrikes()' }, 'strikes-list'); }
 }
 
 function renderStrikes(data) {
@@ -179,7 +182,6 @@ async function saveStrike() {
         });
         if (error) throw error;
 
-        // Crear reporte automaticamente vinculado al strike
         try {
             var typeInfo = strikeTypesMap[typeId] || {};
             var sevLabel = typeInfo.severity === 1 ? 'Leve' : typeInfo.severity === 2 ? 'Medio' : 'Grave';
