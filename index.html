@@ -188,9 +188,10 @@ async function loadLandingRules() {
     } catch(e) { console.error('[LandingRules]', e); document.getElementById('landing-rules').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error cargando reglamento</div>'; }
 }
 
+// v17.1 FIX: Removed .eq('is_active', true) - column does not exist in rule_precedents table
 async function loadLandingPrecedents() {
     try {
-        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4);
+        var { data, error } = await supabase.from('rule_precedents').select('*').order('created_at', { ascending: false }).limit(4);
         if (error) throw error;
         var container = document.getElementById('landing-precedents');
         if (!data || data.length === 0) { container.innerHTML = '<div class="col-span-2 text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>'; return; }
