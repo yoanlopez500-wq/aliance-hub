@@ -6,40 +6,41 @@
     <title>Chat - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=16"></script>
-    <script src="../assets/js/base.js?v=16"></script>
-    <script src="../assets/js/auth.js?v=16"></script>
+    <script src="../assets/js/config.js?v=18"></script>
+    <script src="../assets/js/base.js?v=18"></script>
+    <script src="../assets/js/components.js?v=18"></script>
+    <script src="../assets/js/auth.js?v=18"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
+<body style="background:#0a0e27;color:#e8eaf6;min-height:100vh;" data-role="admin">
     <div id="admin-nav"></div>
 
     <div class="max-w-7xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-white mb-6">&#128172; Chat Global</h1>
+        <h1 class="text-2xl font-bold mb-6">&#128172; Chat Global</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Canales -->
-            <div class="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 class="font-bold text-slate-800 mb-3">Canales</h3>
+            <div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;">
+                <h3 class="font-bold mb-3">Canales</h3>
                 <div id="channel-list" class="space-y-1">
-                    <button onclick="switchChannel('general')" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-800" data-channel="general"># general</button>
-                    <button onclick="switchChannel('anuncios')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50" data-channel="anuncios"># anuncios</button>
-                    <button onclick="switchChannel('soporte')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50" data-channel="soporte"># soporte</button>
+                    <button onclick="switchChannel('general')" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium" style="background:rgba(255,143,0,0.15);color:#ff8f00;" data-channel="general"># general</button>
+                    <button onclick="switchChannel('anuncios')" class="w-full text-left px-3 py-2 rounded-lg text-sm" style="color:#9fa8da;" data-channel="anuncios"># anuncios</button>
+                    <button onclick="switchChannel('soporte')" class="w-full text-left px-3 py-2 rounded-lg text-sm" style="color:#9fa8da;" data-channel="soporte"># soporte</button>
                 </div>
             </div>
 
             <!-- Mensajes -->
-            <div class="md:col-span-2 bg-white rounded-xl border border-slate-200 flex flex-col" style="height: 500px;">
-                <div class="p-3 border-b border-slate-100">
-                    <h3 id="chat-header" class="font-bold text-slate-800"># general</h3>
+            <div class="md:col-span-2 rounded-xl border flex flex-col" style="background:#11183a;border-color:#1a237e;height:500px;">
+                <div class="p-3" style="border-bottom:1px solid #1a237e;">
+                    <h3 id="chat-header" class="font-bold"># general</h3>
                 </div>
                 <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
-                    <div class="text-center text-slate-400 text-sm">Cargando mensajes...</div>
+                    <div class="text-center text-sm" style="color:#9fa8da;">Cargando mensajes...</div>
                 </div>
-                <div class="p-3 border-t border-slate-100">
+                <div class="p-3" style="border-top:1px solid #1a237e;">
                     <div class="flex gap-2">
-                        <input type="text" id="chat-input" onkeypress="if(event.key==='Enter')sendMessage()" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" placeholder="Escribe un mensaje...">
-                        <button onclick="sendMessage()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Enviar</button>
+                        <input type="text" id="chat-input" onkeypress="if(event.key==='Enter')sendMessage()" class="flex-1 px-3 py-2 rounded-lg border text-sm outline-none" style="background:#0a0e27;border-color:#1a237e;color:#e8eaf6;" placeholder="Escribe un mensaje...">
+                        <button onclick="sendMessage()" class="px-4 py-2 rounded-lg font-bold text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Enviar</button>
                     </div>
                 </div>
             </div>
@@ -47,7 +48,7 @@
     </div>
 
     <script>
-        if (!hasAdminSession()) { window.location.href = 'login.html'; }
+        requireAdmin();
 
         var currentChannel = 'general';
         var subscription = null;
@@ -56,16 +57,18 @@
             currentChannel = channel;
             document.getElementById('chat-header').textContent = '# ' + channel;
 
-            // Update active button
             document.querySelectorAll('#channel-list button').forEach(function(btn) {
                 if (btn.dataset.channel === channel) {
-                    btn.className = 'w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-800';
+                    btn.style.background = 'rgba(255,143,0,0.15)';
+                    btn.style.color = '#ff8f00';
+                    btn.classList.add('font-medium');
                 } else {
-                    btn.className = 'w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50';
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#9fa8da';
+                    btn.classList.remove('font-medium');
                 }
             });
 
-            // Unsubscribe old
             if (subscription) { subscription.unsubscribe(); }
 
             await loadMessages();
@@ -73,57 +76,36 @@
         }
 
         async function loadMessages() {
-            var { data: messages, error } = await supabase
-                .from('chat_messages')
-                .select('*')
-                .eq('channel', currentChannel)
-                .order('created_at', { ascending: true })
-                .limit(100);
-
+            var { data: messages, error } = await supabase.from('chat_messages').select('*').eq('channel', currentChannel).order('created_at', { ascending: true }).limit(100);
             var container = document.getElementById('chat-messages');
-            if (error) {
-                container.innerHTML = '<div class="text-center text-red-500 text-sm">Error cargando mensajes</div>';
-                return;
-            }
-
-            if (!messages || messages.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 text-sm">Sin mensajes aun. Se el primero!</div>';
-                return;
-            }
-
+            if (error) { container.innerHTML = '<div class="text-center text-sm" style="color:#ef5350;">Error cargando mensajes</div>'; return; }
+            if (!messages || messages.length === 0) { container.innerHTML = '<div class="text-center text-sm" style="color:#9fa8da;">Sin mensajes aun. Se el primero!</div>'; return; }
             container.innerHTML = messages.map(renderMessage).join('');
             container.scrollTop = container.scrollHeight;
         }
 
         function renderMessage(msg) {
             var isAdmin = msg.sender_role === 'admin' || msg.sender_admin_id;
-            var badge = isAdmin ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700 font-bold ml-1">ADMIN</span>' : '';
+            var badge = isAdmin ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ml-1" style="background:rgba(255,143,0,0.15);color:#ff8f00;">ADMIN</span>' : '';
             var time = new Date(msg.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
             return '<div class="flex items-start gap-2">' +
-                '<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold flex-shrink-0">' + (msg.sender_name ? msg.sender_name[0].toUpperCase() : '?') + '</div>' +
+                '<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background:#1a237e;">' + (msg.sender_name ? msg.sender_name[0].toUpperCase() : '?') + '</div>' +
                 '<div class="flex-1 min-w-0">' +
                     '<div class="flex items-center gap-1">' +
-                        '<span class="font-bold text-slate-700 text-sm">' + (msg.sender_name || 'Anonimo') + '</span>' + badge +
-                        '<span class="text-xs text-slate-400 ml-auto">' + time + '</span>' +
+                        '<span class="font-bold text-sm">' + (msg.sender_name || 'Anonimo') + '</span>' + badge +
+                        '<span class="text-xs ml-auto" style="color:#9fa8da;">' + time + '</span>' +
                     '</div>' +
-                    '<p class="text-sm text-slate-600 break-words">' + escapeHtml(msg.message) + '</p>' +
-                '</div>' +
-            '</div>';
+                    '<p class="text-sm break-words" style="color:#9fa8da;">' + escapeHtml(msg.message) + '</p>' +
+                '</div></div>';
         }
 
-        function escapeHtml(text) {
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        function escapeHtml(text) { var div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
         async function sendMessage() {
             var input = document.getElementById('chat-input');
             var text = input.value.trim();
             if (!text) return;
 
-            // Get admin info
             var { data: { session } } = await supabase.auth.getSession();
             var adminName = 'Admin';
             if (session) {
@@ -131,37 +113,22 @@
                 if (admin) adminName = admin.display_name;
             }
 
-            var { error } = await supabase.from('chat_messages').insert({
-                channel: currentChannel,
-                sender_admin_id: session ? session.user.id : null,
-                sender_name: adminName,
-                sender_role: 'admin',
-                message: text
-            });
-
+            var { error } = await supabase.from('chat_messages').insert({ channel: currentChannel, sender_admin_id: session ? session.user.id : null, sender_name: adminName, sender_role: 'admin', message: text });
             if (error) { showToast('Error: ' + error.message, 'error'); return; }
             input.value = '';
         }
 
         function subscribeToChannel() {
-            subscription = supabase
-                .channel('chat-' + currentChannel)
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'chat_messages',
-                    filter: 'channel=eq.' + currentChannel
-                }, function(payload) {
+            subscription = supabase.channel('chat-' + currentChannel)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'channel=eq.' + currentChannel }, function(payload) {
                     var container = document.getElementById('chat-messages');
                     var div = document.createElement('div');
                     div.innerHTML = renderMessage(payload.new);
                     container.appendChild(div.firstElementChild);
                     container.scrollTop = container.scrollHeight;
-                })
-                .subscribe();
+                }).subscribe();
         }
 
-        // Init
         switchChannel('general');
     </script>
 </body>
