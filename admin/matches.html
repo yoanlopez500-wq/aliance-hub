@@ -8,11 +8,18 @@
 <meta http-equiv="Expires" content="0">
 <title>Partidas - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<!-- v18: Modular Architecture -->
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -20,10 +27,11 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
 <div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-bold">&#127918; Partidas</h1><p class="text-sm" style="color:#9fa8da;">Gestion de partidas organizadas.</p></div><button onclick="openMatchModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nueva Partida</button></div>
 <div class="flex gap-2 mb-4"><select id="filter-status" onchange="loadMatches()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos los estados</option><option value="draft">Borradores</option><option value="open">Abiertas</option><option value="in_progress">En curso</option><option value="finished">Finalizadas</option><option value="archived">Archivadas</option></select><input type="text" id="search-match" placeholder="Buscar partida..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterMatches(this.value)"></div>
-<div id="matches-list" class="space-y-3">Cargando...</div>
+<div id="matches-list">Cargando...</div>
 </div>
 <script>
 var allMatches = [];
+
 async function loadMatches() {
     try {
         var status = document.getElementById('filter-status').value;
@@ -33,17 +41,36 @@ async function loadMatches() {
         if (error) throw error;
         allMatches = data || [];
         renderMatches(allMatches);
-    } catch(e) { console.error('[Matches]', e); }
+    } catch(e) {
+        console.error('[Matches]', e);
+        AhComponents.inject('error-state', { message: 'Error cargando partidas', retry: true, onRetry: 'loadMatches()' }, 'matches-list');
+    }
 }
+
 function renderMatches(data) {
     var list = document.getElementById('matches-list');
-    if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas</div>'; return; }
-    list.innerHTML = data.map(function(m) {
-        return '<a href="match-detail.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">' + (m.name || 'Partida') + '</h3><p class="text-xs" style="color:#9fa8da;">' + (m.alliances ? m.alliances.name : 'Sin alianza') + '</p></div><div class="flex items-center gap-2">' + getStatusBadge(m.status) + '<span class="text-xs" style="color:#9fa8da;">' + formatDate(m.created_at) + '</span></div></div></a>';
-    }).join('');
+    if (!data || data.length === 0) {
+        AhComponents.inject('empty-state', { message: 'No hay partidas', icon: '&#127918;' }, 'matches-list');
+        return;
+    }
+    // v18: Usa componente match-card reutilizable
+    list.innerHTML = '<div class="space-y-3">' + data.map(function(m) {
+        return AhComponents.render('match-card', {
+            match: m,
+            alliance: m.alliances || null,
+            href: 'match-detail.html?id=' + m.id
+        });
+    }).join('') + '</div>';
 }
-function filterMatches(query) { var q = query.toLowerCase(); var filtered = allMatches.filter(function(m) { return (m.name || '').toLowerCase().includes(q); }); renderMatches(filtered); }
+
+function filterMatches(query) {
+    var q = query.toLowerCase();
+    var filtered = allMatches.filter(function(m) { return (m.name || '').toLowerCase().includes(q); });
+    renderMatches(filtered);
+}
+
 function openMatchModal() { window.location.href = 'match-detail.html?action=new'; }
+
 requireAdmin();
 loadMatches();
 </script>
