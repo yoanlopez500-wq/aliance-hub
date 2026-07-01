@@ -7,15 +7,24 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Partida - Alliance Hub</title>
+<!-- v18: Modular Architecture -->
+<script src="assets/js/config.js?v=18"></script>
+<script src="assets/js/base.js?v=18"></script>
+<script src="assets/js/roles-data.js?v=18"></script>
+<script src="assets/js/auth-core.js?v=18"></script>
+<script src="assets/js/messaging.js?v=18"></script>
+<script src="assets/js/notifications.js?v=18"></script>
+<script src="assets/js/nav-engine.js?v=18"></script>
+<script src="assets/js/training.js?v=18"></script>
+<script src="assets/js/components.js?v=18"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=17"></script>
+<script src="assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=17"></script>
-<script src="assets/js/base.js?v=17"></script>
-<script src="assets/js/auth.js?v=17"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;align-items:center;justify-content:center;padding:1rem;}
+.modal.active{display:flex;}
 </style>
 </head>
 <body class="min-h-screen" data-role="public">
@@ -88,13 +97,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 var urlParams = new URLSearchParams(window.location.search);
 var matchId = urlParams.get('id');
 var shareToken = urlParams.get('token');
-var playerData = getPlayerData ? getPlayerData() : {};
+var playerData = (typeof getPlayerData === 'function') ? getPlayerData() : {};
 if (!matchId) location.href = 'index.html';
 
 async function loadMatch() {
     try {
         var { data: match, error } = await supabase.from('matches').select('*').eq('id', matchId).single();
-        if (error || !match) { document.getElementById('match-header').innerHTML = '<div class="text-center" style="color:#ef5350;">Partida no encontrada</div>'; return; }
+        if (error || !match) {
+            AhComponents.inject('error-state', { message: 'Partida no encontrada' }, 'match-header');
+            return;
+        }
 
         var allianceA = null, allianceB = null, allianceMain = null;
         if (match.alliance_id) { var { data: am } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_id).single(); allianceMain = am; }
@@ -102,7 +114,10 @@ async function loadMatch() {
         if (match.alliance_b_id) { var { data: ab } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_b_id).single(); allianceB = ab; }
 
         if (match.is_private && match.share_token !== shareToken) {
-            document.getElementById('match-header').innerHTML = '<div class="text-center text-xl" style="color:#ef5350;">&#128274; Partida Privada</div><p class="text-center mt-2" style="color:#9fa8da;">Necesitas un enlace de invitacion.</p><div class="text-center mt-4"><a href="index.html" class="font-bold" style="color:#ff8f00;">&larr; Volver</a></div>';
+            document.getElementById('match-header').innerHTML =
+                '<div class="text-center text-xl" style="color:#ef5350;">&#128274; Partida Privada</div>' +
+                '<p class="text-center mt-2" style="color:#9fa8da;">Necesitas un enlace de invitacion.</p>' +
+                '<div class="text-center mt-4"><a href="index.html" class="font-bold" style="color:#ff8f00;">&larr; Volver</a></div>';
             return;
         }
         if (match.winners_declared) loadWinners(matchId);
@@ -170,7 +185,10 @@ async function loadMatch() {
 
         loadRegistrations();
         loadResults();
-    } catch(e) { console.error('[Game] Error:', e); document.getElementById('match-header').innerHTML = '<div class="text-center text-red-400">Error cargando partida</div>'; }
+    } catch(e) {
+        console.error('[Game] Error:', e);
+        AhComponents.inject('error-state', { message: 'Error cargando partida' }, 'match-header');
+    }
 }
 
 async function loadWinners(matchId) {
@@ -194,7 +212,10 @@ async function loadChat() {
     try {
         var { data: messages } = await supabase.from('chat_messages').select('*').eq('channel', matchId).order('created_at', { ascending: true }).limit(50);
         var container = document.getElementById('chat-messages');
-        if (!messages || messages.length === 0) { container.innerHTML = '<div class="text-center text-sm" style="color:#9fa8da;">Sin mensajes. Se el primero en escribir!</div>'; return; }
+        if (!messages || messages.length === 0) {
+            container.innerHTML = '<div class="text-center text-sm" style="color:#9fa8da;">Sin mensajes. Se el primero en escribir!</div>';
+            return;
+        }
         container.innerHTML = messages.map(function(m) {
             var isMine = m.sender_name === (playerData ? playerData.displayName : '');
             return '<div class="mb-2 ' + (isMine ? 'text-right' : 'text-left') + '"><div class="inline-block px-3 py-2 rounded-lg" style="background:' + (isMine ? '#1a237e' : 'rgba(255,255,255,0.05)') + ';"><div class="text-xs font-bold" style="color:' + (isMine ? '#ff8f00' : '#9fa8da') + ';">' + (m.sender_name || 'Admin') + '</div><div class="text-sm" style="color:#e8eaf6;">' + m.message + '</div></div></div>';
