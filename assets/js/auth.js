@@ -1,4 +1,4 @@
-// assets/js/auth.js v5.2 - Fix missing DM functions + all previous fixes
+// assets/js/auth.js v5.3 - Fix supabase undefined in onAuthStateChange + all previous fixes
 // Depende de base.js (window.__AH_BASE_PATH, ahPath, getPlayerData, setPlayerData, clearPlayerData)
 
 var ROLE_HIERARCHY = {
@@ -789,15 +789,29 @@ function completeTraining(storageKey) {
 }
 
 // ===================== INICIALIZACION =====================
+// v5.3: Proteger onAuthStateChange contra supabase no definido
 try {
-    supabase.auth.onAuthStateChange(function(event, session) {
-        window.__ahNavRetryCount = 0;
-        initAdminNav();
-    });
+    if (typeof supabase !== 'undefined' && supabase && supabase.auth) {
+        supabase.auth.onAuthStateChange(function(event, session) {
+            window.__ahNavRetryCount = 0;
+            initAdminNav();
+        });
+    } else {
+        console.warn('[Auth] supabase no disponible al cargar auth.js, retry en DOMContentLoaded');
+    }
 } catch(e) { console.error('[Auth] onAuthStateChange error:', e); }
 
 document.addEventListener('DOMContentLoaded', function() {
     window.__ahNavRetryCount = 0;
+    // v5.3: Si supabase no estaba disponible al cargar, intentar ahora
+    if (typeof supabase !== 'undefined' && supabase && supabase.auth) {
+        try {
+            supabase.auth.onAuthStateChange(function(event, session) {
+                window.__ahNavRetryCount = 0;
+                initAdminNav();
+            });
+        } catch(e) { console.error('[Auth] DOMContentLoaded onAuthStateChange error:', e); }
+    }
     initAdminNav().catch(function(e) {
         console.error('[Auth] DOMContentLoaded init error:', e);
         var nav = document.getElementById('admin-nav');
