@@ -147,7 +147,8 @@ async function loadMatch() {
         if (showCredentials) {
             document.getElementById('match-credentials').classList.remove('hidden');
             document.getElementById('cred-game-id').textContent = match.game_id || '---';
-            document.getElementById('cred-password').textContent = match.game_password || '---';
+            // FIX #4: Intenta game_password primero, fallback a password
+            document.getElementById('cred-password').textContent = match.game_password || match.password || '---';
         }
         if (showWaiting) document.getElementById('waiting-approval-banner').classList.remove('hidden');
 
