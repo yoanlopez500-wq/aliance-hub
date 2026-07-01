@@ -7,12 +7,19 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Reglamento - Alliance Hub</title>
-<script src="assets/js/theme.js?v=17"></script>
+<!-- v18: Modular Architecture -->
+<script src="assets/js/theme.js?v=18"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=17"></script>
-<script src="assets/js/base.js?v=17"></script>
-<script src="assets/js/auth.js?v=17"></script>
+<script src="assets/js/config.js?v=18"></script>
+<script src="assets/js/base.js?v=18"></script>
+<script src="assets/js/roles-data.js?v=18"></script>
+<script src="assets/js/auth-core.js?v=18"></script>
+<script src="assets/js/messaging.js?v=18"></script>
+<script src="assets/js/notifications.js?v=18"></script>
+<script src="assets/js/nav-engine.js?v=18"></script>
+<script src="assets/js/training.js?v=18"></script>
+<script src="assets/js/components.js?v=18"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
@@ -32,16 +39,16 @@
 </div>
 </div>
 </div>
-<script src="sw-register.js?v=17"></script>
+<script src="sw-register.js?v=18"></script>
 <script>
-// v17: Carga reglas y precedentes de forma independiente
+// v18: Carga reglas y precedentes de forma independiente
 async function loadRules() {
     try {
         var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
         if (error) throw error;
         var container = document.getElementById('rules-container');
         if (!data || data.length === 0) {
-            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reglas configuradas. Contacta a un administrador.</div>';
+            AhComponents.inject('empty-state', { message: 'No hay reglas configuradas. Contacta a un administrador.' }, 'rules-container');
             return;
         }
         container.innerHTML = data.map(function(s) {
@@ -51,21 +58,20 @@ async function loadRules() {
         }).join('');
     } catch(e) {
         console.error('[Rules]', e);
-        document.getElementById('rules-container').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + (e.message || e) + '</div>';
+        AhComponents.inject('error-state', { message: 'Error cargando reglamento' }, 'rules-container');
     }
 }
 
-// v17: Carga precedentes de forma independiente, no depende de loadRules
+// v18 FIX: Removido .eq('is_active', true) - la columna no existe en rule_precedents
 async function loadPrecedents() {
     try {
-        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false });
+        var { data, error } = await supabase.from('rule_precedents').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         var container = document.getElementById('precedents-container');
         if (!data || data.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>';
+            AhComponents.inject('empty-state', { message: 'No hay precedentes registrados aun.' }, 'precedents-container');
             return;
         }
-        // Renderizado robusto que maneja campos opcionales
         container.innerHTML = data.map(function(p) {
             var severityLabel = '';
             if (p.severity === 'high') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(198,40,40,0.2);color:#ef5350;">ALTO</span>';
@@ -82,9 +88,7 @@ async function loadPrecedents() {
         }).join('');
     } catch(e) {
         console.error('[Precedents]', e);
-        var container = document.getElementById('precedents-container');
-        var errMsg = (e && e.message) ? e.message : String(e);
-        container.innerHTML = '<div class="text-center py-4 text-sm text-red-400">Error cargando precedentes: ' + errMsg + '</div>';
+        AhComponents.inject('error-state', { message: 'Error cargando precedentes' }, 'precedents-container');
     }
 }
 
