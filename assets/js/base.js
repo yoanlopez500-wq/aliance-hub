@@ -1,4 +1,4 @@
-// assets/js/base.js v12.1 - Alliance Hub utilities + Session persistence
+// assets/js/base.js v12 - Alliance Hub utilities + Session persistence
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
     if (parts.length >= 1 && parts[0] !== 'admin' && parts[0] !== 'chat' && parts[0] !== 'register') {
@@ -52,6 +52,12 @@ async function subscribeToPushNotifications() { try { var reg = await navigator.
 async function unsubscribePush() { try { var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.getSubscription(); if (sub) { await supabase.from('push_subscriptions').delete().eq('endpoint', sub.toJSON().endpoint); await sub.unsubscribe(); } localStorage.removeItem('ah_v2_push_subscribed'); return true; } catch(e) { return false; } }
 function urlBase64ToUint8Array(base64String) { var padding = '='.repeat((4 - base64String.length % 4) % 4); var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); var rawData = window.atob(base64); var outputArray = new Uint8Array(rawData.length); for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
 
+// Player session helpers
+function getPlayerData() { try { var pid = localStorage.getItem('ah_v2_player_id'); var name = localStorage.getItem('ah_v2_player_name'); var token = localStorage.getItem('ah_v2_player_token'); if (!pid || !token) return null; return { playerId: pid, displayName: name, token: token }; } catch(e) { return null; } }
+function setPlayerData(playerId, displayName, token) { localStorage.setItem('ah_v2_player_id', playerId); localStorage.setItem('ah_v2_player_name', displayName); localStorage.setItem('ah_v2_player_token', token); }
+function clearPlayerData() { localStorage.removeItem('ah_v2_player_id'); localStorage.removeItem('ah_v2_player_name'); localStorage.removeItem('ah_v2_player_token'); }
+function requirePlayer() { var pd = getPlayerData(); if (!pd) { showToast('Debes iniciar sesion como jugador primero', 'error'); return false; } return pd; }
+
 // v12.1: Added savePlayerSession for login-player.html
 async function savePlayerSession(playerId, displayName) {
     var result = await generatePlayerToken(playerId, displayName);
@@ -61,4 +67,20 @@ async function savePlayerSession(playerId, displayName) {
     }
     console.error('savePlayerSession failed:', result.message);
     return false;
+}
+
+// Admin guard
+function requireAdmin() {
+    supabase.auth.getSession().then(function(sd) {
+        if (!sd.data.session) {
+            window.location.href = ahPath('admin/login.html');
+        }
+    });
+}
+
+// Player logout
+function logoutPlayer() {
+    clearPlayerData();
+    showToast('Sesion de jugador cerrada', 'success');
+    setTimeout(function() { window.location.href = 'index.html'; }, 500);
 }

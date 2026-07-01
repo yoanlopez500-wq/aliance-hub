@@ -239,6 +239,28 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 <button type="button" onclick="closeSuspendModal()" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
 </div></form></div></div>
 
+<!-- Modal: Edit Result -->
+<div id="edit-result-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#9998; Editar Resultado</h2>
+<button onclick="closeEditResultModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="edit-result-form" class="p-5 space-y-4">
+<input type="hidden" id="er-player-id">
+<div class="rounded-lg p-3" style="background:#0a0e27;border:1px solid #1a237e;">
+<p class="text-sm" style="color:#9fa8da;">Jugador: <span id="er-player-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+<p class="text-xs" style="color:#9fa8da;">Partida: <span id="er-match-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Bajas *</label><input type="number" id="er-kills" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Muertes *</label><input type="number" id="er-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nacion</label><input type="text" id="er-nation" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: USA"></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10003; Guardar Cambios</button>
+<button type="button" onclick="closeEditResultModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
 <script>
 requireAdmin();
 
@@ -353,10 +375,15 @@ async function loadResults() {
 
         var html = '<div class="divide-y" style="border-color:#1a237e;">' + res.map(function(r) {
             var p = playersMap[r.player_id] || {};
-            return '<div class="p-3 flex items-center justify-between hover:bg-white/5 transition-colors">' +
+            return '<div class="p-3 hover:bg-white/5 transition-colors">' +
+                '<div class="flex items-center justify-between">' +
                 '<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
                 '<div><p class="font-medium text-sm" style="color:#e8eaf6;">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs" style="color:#9fa8da;">' + (r.nation || '-') + '</p></div></div>' +
-                '<div class="text-right text-xs"><p style="color:#4caf50;font-weight:bold;">' + (r.kills || 0) + ' bajas</p><p style="color:#ef5350;">' + (r.deaths || 0) + ' muertes</p><p class="font-bold" style="color:#e8eaf6;">KD: ' + (r.kd_ratio || 0) + '</p></div></div>';
+                '<div class="text-right text-xs"><p style="color:#4caf50;font-weight:bold;">' + (r.kills || 0) + ' bajas</p><p style="color:#ef5350;">' + (r.deaths || 0) + ' muertes</p><p class="font-bold" style="color:#e8eaf6;">KD: ' + (r.kd_ratio || 0) + '</p></div></div>' +
+                '<div class="flex gap-1 mt-1 justify-end">' +
+                '<button onclick="openEditResultModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\', ' + (r.kills || 0) + ', ' + (r.deaths || 0) + ', \'' + (r.nation || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.1);color:#ff8f00;border:1px solid rgba(255,143,0,0.2);" title="Editar resultado">&#9998; Editar</button>' +
+                '<button onclick="deleteResult(' + r.player_id + ', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.1);color:#ef5350;border:1px solid rgba(198,40,40,0.2);" title="Eliminar resultado">&#128465;</button>' +
+                '</div></div>';
         }).join('') + '</div>';
         document.getElementById('results-desktop').innerHTML = html;
         document.getElementById('results-mobile').innerHTML = html;
@@ -758,6 +785,59 @@ document.getElementById('manual-register-form').addEventListener('submit', async
         loadRegistrations();
     } catch(err) { showToast('Error: ' + err.message, 'error'); }
 });
+
+// ===== EDIT RESULT =====
+function openEditResultModal(playerId, playerName, kills, deaths, nation) {
+    if (!currentMatch) return;
+    document.getElementById('er-player-id').value = playerId;
+    document.getElementById('er-player-name').textContent = playerName || 'Jugador ' + playerId;
+    document.getElementById('er-match-name').textContent = currentMatch.name || '';
+    document.getElementById('er-kills').value = kills || 0;
+    document.getElementById('er-deaths').value = deaths || 0;
+    document.getElementById('er-nation').value = nation || '';
+    document.getElementById('edit-result-modal').classList.add('active');
+}
+function closeEditResultModal() { document.getElementById('edit-result-modal').classList.remove('active'); }
+
+document.getElementById('edit-result-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('er-player-id').value);
+    var kills = parseInt(document.getElementById('er-kills').value) || 0;
+    var deaths = parseInt(document.getElementById('er-deaths').value) || 0;
+    var nation = document.getElementById('er-nation').value.trim() || null;
+    try {
+        var kd = deaths > 0 ? (kills / deaths) : kills;
+        var { error } = await supabase.from('match_results').update({
+            kills: kills, deaths: deaths, nation: nation, kd_ratio: parseFloat(kd.toFixed(2)),
+            imported_at: new Date().toISOString()
+        }).eq('match_id', matchId).eq('player_id', playerId);
+        if (error) throw error;
+        showToast('Resultado actualizado correctamente', 'success');
+        closeEditResultModal();
+        loadResults();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+async function deleteResult(playerId, playerName) {
+    if (!confirm('Eliminar resultado de ' + (playerName || 'Jugador ' + playerId) + '?')) return;
+    try {
+        var { error } = await supabase.from('match_results').delete().eq('match_id', matchId).eq('player_id', playerId);
+        if (error) throw error;
+        showToast('Resultado eliminado', 'success');
+        loadResults();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== REMOVE REGISTRATION =====
+async function removeRegistration(regId, playerName) {
+    if (!confirm('Quitar a ' + (playerName || 'jugador') + ' de esta partida?')) return;
+    try {
+        var { error } = await supabase.from('match_registrations').delete().eq('id', regId);
+        if (error) throw error;
+        showToast('Registro eliminado', 'success');
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
 
 // ===== SHARE =====
 function copyShareLink() {
