@@ -1,16 +1,16 @@
 /**
  * db-schema.js - Centralized Database Schema for Alliance Hub
- * v18: Single source of truth for all table names and column definitions
+ * v19: Single source of truth for all table names and column definitions
+ *
+ * Changelog v19:
+ *   - rulePrecedents: added playerId, matchId, strikeId, createdBy columns
+ *   - playerStrikes: added rulePrecedentId column for bidirectional linking
+ *   - New select() helper for choosing column sets by name
  *
  * Usage:
  *   DB.from('players').select(DB.cols.players.basic).eq('id', 1)
  *   DB.selectAll('alliances')
  *   DB.from('matches').select('*').eq(DB.cols.matches.status, 'open')
- *
- * Benefits:
- *   - Table/column names defined once, used everywhere
- *   - Changing a column name requires editing only this file
- *   - Active filters handle missing is_active columns gracefully
  */
 
 var DB = (function() {
@@ -52,7 +52,7 @@ var DB = (function() {
                 active: 'active',
                 createdAt: 'created_at'
             },
-            hasIsActive: false, // uses 'active' instead
+            hasIsActive: false,
             activeFilter: { col: 'active', val: true },
             selectSets: {
                 basic: 'id, name, tag, description',
@@ -175,6 +175,7 @@ var DB = (function() {
             },
             orderBy: 'order_index'
         },
+        // v19: rulePrecedents now includes playerId, matchId, strikeId, createdBy
         rulePrecedents: {
             name: 'rule_precedents',
             cols: {
@@ -182,6 +183,12 @@ var DB = (function() {
                 title: 'title',
                 description: 'description',
                 ruleSectionId: 'rule_section_id',
+                // v19 NEW: link to player, match, strike
+                playerId: 'player_id',
+                matchId: 'match_id',
+                strikeId: 'strike_id',
+                // v19 NEW: track creator
+                createdBy: 'created_by',
                 severity: 'severity',
                 strikeType: 'strike_type',
                 resolution: 'resolution',
@@ -189,7 +196,8 @@ var DB = (function() {
             },
             hasIsActive: false,
             selectSets: {
-                basic: 'id, title, description, rule_section_id, severity, strike_type, resolution, created_at',
+                basic: 'id, title, description, rule_section_id, player_id, match_id, strike_id, created_by, severity, strike_type, resolution, created_at',
+                withRelations: 'id, title, description, rule_section_id, player_id, match_id, strike_id, created_by, severity, strike_type, resolution, created_at, players:player_id(current_username), matches:match_id(name)',
                 full: '*'
             },
             orderBy: 'created_at'
@@ -212,18 +220,22 @@ var DB = (function() {
             },
             orderBy: 'created_at'
         },
+        // v19: playerStrikes now includes rulePrecedentId
         playerStrikes: {
             name: 'player_strikes',
             cols: {
                 id: 'id',
                 playerId: 'player_id',
                 isActive: 'is_active',
+                // v19 NEW: link to precedent
+                rulePrecedentId: 'rule_precedent_id',
                 createdAt: 'created_at'
             },
             hasIsActive: true,
             activeFilter: { col: 'is_active', val: true },
             selectSets: {
-                full: '*'
+                full: '*',
+                withPrecedent: 'id, player_id, is_active, rule_precedent_id, created_at'
             },
             orderBy: 'created_at'
         },
@@ -490,6 +502,16 @@ var DB = (function() {
         return null;
     }
 
+    /**
+     * Get select columns string for a table set.
+     * Usage: DB.select('players', 'basic') -> 'id, current_username, ...'
+     */
+    function select(tableKey, setName) {
+        var t = TABLES[tableKey];
+        if (!t || !t.selectSets) return '*';
+        return t.selectSets[setName] || t.selectSets.basic || '*';
+    }
+
     // ===================== INTERNAL HELPERS =====================
 
     function applyActiveFilter(query, tableDef) {
@@ -506,6 +528,7 @@ var DB = (function() {
         from: from,
         selectAll: selectAll,
         selectById: selectById,
+        select: select,
         col: col,
         tableCols: tableCols,
         tableName: tableName,
