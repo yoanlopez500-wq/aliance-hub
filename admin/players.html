@@ -8,11 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Jugadores - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/auth.js?v=18"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -23,32 +24,77 @@
 <input type="text" id="search-player" placeholder="Buscar jugador..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterPlayers(this.value)">
 <select id="filter-status" onchange="loadPlayers()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos</option><option value="active">Activos</option><option value="banned">Baneados</option><option value="suspended">Suspendidos</option></select>
 </div>
-<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="background:#11183a;"><th class="text-left p-3">Jugador</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Kills</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Acciones</th></tr></thead><tbody id="players-tbody"><tr><td colspan="7" class="text-center py-8" style="color:#9fa8da;">Cargando...</td></tr></tbody></table></div>
+<div id="players-table-container" class="overflow-x-auto">
+<table class="w-full text-sm">
+<thead><tr style="background:#11183a;"><th class="text-left p-3">Jugador</th><th class="text-left p-3">Alianza</th><th class="text-right p-3">Kills</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th><th class="text-left p-3">Estado</th><th class="text-left p-3">Acciones</th></tr></thead>
+<tbody id="players-tbody"></tbody>
+</table>
+</div>
 </div>
 <script>
 var allPlayers = [];
+var allAlliances = [];
+
+async function loadAlliances() {
+    try {
+        var { data, error } = await supabase.from('alliances').select('id, name, tag');
+        if (error) throw error;
+        allAlliances = data || [];
+    } catch(e) { console.error('[Players] Error cargando alliances:', e); }
+}
+
+function getAllianceName(allianceId) {
+    if (!allianceId || !allAlliances.length) return null;
+    var a = allAlliances.find(function(x) { return x.id === allianceId; });
+    return a || null;
+}
+
 async function loadPlayers() {
     try {
         var status = document.getElementById('filter-status').value;
-        var q = supabase.from('players').select('*, alliances(name, tag)').order('total_kills', { ascending: false }).limit(100);
+        var q = supabase.from('players').select('*').order('total_kills', { ascending: false }).limit(100);
         if (status) q = q.eq('status', status);
         var { data, error } = await q;
         if (error) throw error;
         allPlayers = data || [];
         renderPlayers(allPlayers);
-    } catch(e) { console.error('[Players]', e); }
+    } catch(e) {
+        console.error('[Players]', e);
+        document.getElementById('players-table-container').innerHTML = '';
+        if (window.AhComponents) {
+            AhComponents.inject('error-state', { message: 'Error cargando jugadores: ' + e.message, onRetry: loadPlayers }, 'players-table-container');
+        } else {
+            document.getElementById('players-tbody').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Error: ' + e.message + '</td></tr>';
+        }
+    }
 }
+
 function renderPlayers(data) {
     var tbody = document.getElementById('players-tbody');
-    if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8" style="color:#9fa8da;">No hay jugadores</td></tr>'; return; }
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8" style="color:#9fa8da;">No hay jugadores</td></tr>';
+        return;
+    }
     tbody.innerHTML = data.map(function(p) {
         var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
-        return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-medium">' + p.current_username + '</td><td class="p-3" style="color:#9fa8da;">' + (p.alliances ? p.alliances.name : '-') + '</td><td class="p-3 text-right">' + (p.total_kills || 0) + '</td><td class="p-3 text-right">' + (p.total_deaths || 0) + '</td><td class="p-3 text-right">' + kd + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3"><a href="../player.html?id=' + p.id + '" class="text-xs font-bold" style="color:#ff8f00;">Ver</a></td></tr>';
+        var alliance = getAllianceName(p.alliance_id);
+        return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-medium">' + (p.current_username || 'Sin nombre') + '</td><td class="p-3" style="color:#9fa8da;">' + (alliance ? alliance.name + ' [' + alliance.tag + ']' : '-') + '</td><td class="p-3 text-right">' + (p.total_kills || 0) + '</td><td class="p-3 text-right">' + (p.total_deaths || 0) + '</td><td class="p-3 text-right">' + kd + '</td><td class="p-3">' + getStatusBadgePlayer(p.status) + '</td><td class="p-3"><a href="../player.html?id=' + p.id + '" class="text-xs font-bold" style="color:#ff8f00;">Ver</a></td></tr>';
     }).join('');
 }
-function filterPlayers(query) { var q = query.toLowerCase(); var filtered = allPlayers.filter(function(p) { return (p.current_username || '').toLowerCase().includes(q); }); renderPlayers(filtered); }
+
+function filterPlayers(query) {
+    var q = query.toLowerCase();
+    var filtered = allPlayers.filter(function(p) { return (p.current_username || '').toLowerCase().includes(q); });
+    renderPlayers(filtered);
+}
+
+async function init() {
+    await loadAlliances();
+    await loadPlayers();
+}
+
 requireAdmin();
-loadPlayers();
+init();
 </script>
 </body>
 </html>

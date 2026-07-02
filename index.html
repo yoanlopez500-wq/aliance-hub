@@ -25,9 +25,22 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
-<script src="assets/js/config.js?v=16"></script>
-<script src="assets/js/base.js?v=16"></script>
-<script src="assets/js/auth.js?v=16"></script>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO, antes de config.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- v18: Modular Architecture - Core -->
+<script src="assets/js/config.js?v=18"></script>
+<script src="assets/js/base.js?v=18"></script>
+<!-- v18: Modular Architecture - Auth & Navigation -->
+<script src="assets/js/roles-data.js?v=18"></script>
+<script src="assets/js/auth-core.js?v=18"></script>
+<script src="assets/js/messaging.js?v=18"></script>
+<script src="assets/js/notifications.js?v=18"></script>
+<script src="assets/js/nav-engine.js?v=18"></script>
+<script src="assets/js/training.js?v=18"></script>
+<!-- v18: Modular Architecture - UI Components -->
+<script src="assets/js/components.js?v=18"></script>
+<!-- v18: Rules PDF Export Module -->
+<script src="assets/js/rules-pdf.js?v=18"></script>
 <script>
 (function() {
     var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
@@ -40,8 +53,7 @@
 })();
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=16"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/theme.js?v=18"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -120,9 +132,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </section>
 <section class="py-16" style="background:#11183a;border-top:1px solid #1a237e">
 <div class="max-w-6xl mx-auto px-4">
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
 <h2 class="text-3xl font-bold">&#128220; Reglamento</h2>
+<div class="flex gap-2">
+<button data-rules-pdf-btn class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;border:1px solid #3949ab;">&#128196; Descargar PDF</button>
 <a href="rules.html" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Ver completo &#8594;</a>
+</div>
 </div>
 <div id="landing-rules" class="grid md:grid-cols-2 gap-4 mb-8">
 <div class="text-center py-8" style="color:#9fa8da;">Cargando reglamento...</div>
@@ -143,6 +158,21 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </div>
 </footer>
 <script>
+function waitForSupabase(callback, attempts) {
+    attempts = attempts || 0;
+    if (typeof window.supabase !== 'undefined' && typeof window.supabase.from === 'function') {
+        callback();
+        return;
+    }
+    if (attempts < 50) {
+        setTimeout(function() { waitForSupabase(callback, attempts + 1); }, 100);
+    } else {
+        console.error('[Landing] Supabase no disponible despues de 5 segundos');
+        document.getElementById('landing-rules').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error de conexion con el servidor</div>';
+        document.getElementById('landing-precedents').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error de conexion</div>';
+    }
+}
+
 async function loadStats() {
     try {
         var p = await supabase.from('players').select('*', { count: 'exact', head: true });
@@ -157,33 +187,51 @@ async function loadStats() {
         document.getElementById('stat-kills').textContent = totalKills.toLocaleString();
     } catch(e) { console.error('[Stats]', e); }
 }
-loadStats();
 
+// FIX #5: Removido .eq('is_active', true) - columna no existe en rule_sections
 async function loadLandingRules() {
     try {
-        var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index').limit(6);
+        var { data, error } = await supabase.from('rule_sections').select('*').order('order_index').limit(6);
         if (error) throw error;
         var container = document.getElementById('landing-rules');
-        if (!data || data.length === 0) { container.innerHTML = '<div class="col-span-2 text-center py-8 rounded-xl" style="background:#0a0e27;border:1px solid #1a237e;color:#9fa8da;">No hay reglas configuradas.</div>'; return; }
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">No hay reglas configuradas.</div>';
+            return;
+        }
         container.innerHTML = data.map(function(s) {
             return '<div class="rounded-xl p-4 fade-in" style="background:#0a0e27;border:1px solid #1a237e;"><h3 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + '</h3><p class="text-sm" style="color:#9fa8da;">' + (s.content || '').substring(0, 150) + ((s.content || '').length > 150 ? '...' : '') + '</p></div>';
         }).join('');
         loadLandingPrecedents();
-    } catch(e) { console.error('[LandingRules]', e); document.getElementById('landing-rules').innerHTML = '<div class="col-span-2 text-center py-8 text-red-400">Error cargando reglamento</div>'; }
+    } catch(e) {
+        console.error('[LandingRules]', e);
+        document.getElementById('landing-rules').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + e.message + '</div>';
+    }
 }
+
+// v18 FIX: Removed .eq('is_active', true) - column does not exist in rule_precedents table
 async function loadLandingPrecedents() {
     try {
-        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4);
+        var { data, error } = await supabase.from('rule_precedents').select('*').order('created_at', { ascending: false }).limit(4);
         if (error) throw error;
         var container = document.getElementById('landing-precedents');
-        if (!data || data.length === 0) { container.innerHTML = '<div class="col-span-2 text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>'; return; }
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>';
+            return;
+        }
         container.innerHTML = data.map(function(p) {
             return '<div class="rounded-lg p-3 fade-in" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-2"><span class="text-lg">&#9878;&#65039;</span><div><h4 class="font-bold text-sm" style="color:#ff8f00;">' + p.title + '</h4><p class="text-xs" style="color:#e8eaf6;">' + p.description + '</p></div></div></div>';
         }).join('');
-    } catch(e) { console.error('[LandingPrecedents]', e); document.getElementById('landing-precedents').innerHTML = '<div class="col-span-2 text-center py-4 text-sm text-red-400">Error cargando precedentes</div>'; }
+    } catch(e) {
+        console.error('[LandingPrecedents]', e);
+        document.getElementById('landing-precedents').innerHTML = '<div class="text-center py-4 text-red-400">Error cargando precedentes: ' + e.message + '</div>';
+    }
 }
-loadLandingRules();
+
+waitForSupabase(function() {
+    loadStats();
+    loadLandingRules();
+});
 </script>
-<script src="sw-register.js?v=16.1"></script>
+<script src="sw-register.js?v=18"></script>
 </body>
 </html>

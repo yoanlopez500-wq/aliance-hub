@@ -7,85 +7,963 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Detalle de Partida - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<!-- FIX #1 + #4: CDN PRIMERO, luego config.js, cache buster v18, scripts modulares -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
-<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select,textarea{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;} input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:none!important;}</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=18"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+input,select,textarea{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
+input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:none!important;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;align-items:center;justify-content:center;padding:1rem;}
+.modal.active{display:flex;}
+</style>
 </head>
 <body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<div id="match-header">Cargando...</div>
-<div id="match-form" class="hidden mt-6">
-<div class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e;">
-<h2 class="text-xl font-bold mb-4">&#9998; Editar Partida</h2>
-<div class="grid md:grid-cols-2 gap-4 mb-4">
-<div><label class="block text-sm mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="m-name" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-sm mb-1" style="color:#9fa8da;">Alianza</label><select id="m-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar...</option></select></div>
+
+<!-- Match Header -->
+<div id="match-header"><div class="text-center py-8" style="color:#9fa8da;">Cargando...</div></div>
+
+<!-- Create Match Section (hidden by default, shown for action=new) -->
+<div id="create-match-section" class="hidden mb-6">
+<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#10133; Nueva Partida</h1>
+<a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a>
 </div>
-<div class="grid md:grid-cols-2 gap-4 mb-4">
-<div><label class="block text-sm mb-1" style="color:#9fa8da;">Estado</label><select id="m-status" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="draft">Borrador</option><option value="open">Abierta</option><option value="in_progress">En curso</option><option value="finished">Finalizada</option><option value="archived">Archivada</option></select></div>
-<div><label class="block text-sm mb-1" style="color:#9fa8da;">Tipo</label><select id="m-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option></select></div>
+<form id="create-match-form" class="space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="cm-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID del Juego</label><input type="text" id="cm-game-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="ID de Supremacy (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contraseña de Partida</label><input type="text" id="cm-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contraseña para unirse (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="cm-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo de Partida</label><select id="cm-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="cm-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
 </div>
-<div class="mb-4"><label class="block text-sm mb-1" style="color:#9fa8da;">Descripcion</label><textarea id="m-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
-<div class="flex gap-2"><button onclick="saveMatch()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button><button onclick="cancelEdit()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button></div>
-</div></div>
-<div id="match-players" class="mt-6"><h2 class="text-xl font-bold mb-3">&#128100; Jugadores Registrados</h2><div id="players-list">Cargando...</div></div>
-<div class="mt-6"><h2 class="text-xl font-bold mb-3">&#128229; Importar Resultados CSV</h2>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion / Reglas</label><textarea id="cm-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">&#10133; Crear Partida</button>
+<a href="matches.html" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</a>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Admin Actions -->
+<div id="admin-actions-section" class="mt-6 hidden">
+<div class="rounded-xl p-4 mb-6" style="background:#11183a;border:1px solid #1a237e;">
+<h2 class="font-bold mb-3 text-sm" style="color:#ff8f00;">&#9889; Acciones</h2>
+<div class="flex flex-wrap gap-2">
+<button onclick="updateStatus('open')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(76,175,80,0.2);color:#4caf50;border:1px solid rgba(76,175,80,0.3);">Abrir Registro</button>
+<button onclick="updateStatus('in_progress')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(33,150,243,0.2);color:#2196f3;border:1px solid rgba(33,150,243,0.3);">Iniciar</button>
+<button onclick="updateStatus('finished')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(156,39,176,0.2);color:#ce93d8;border:1px solid rgba(156,39,176,0.3);">Finalizar</button>
+<button onclick="updateStatus('archived')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,255,255,0.05);color:#9fa8da;border:1px solid rgba(255,255,255,0.1);">Archivar</button>
+<button onclick="openWinnersModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.2);color:#ff8f00;border:1px solid rgba(255,143,0,0.3);">&#127942; Ganadores</button>
+<button onclick="openManualModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.2);color:#ff8f00;border:1px solid rgba(255,143,0,0.3);">&#9998; Resultado Manual</button>
+<button onclick="openCSVModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(0,150,136,0.2);color:#4db6ac;border:1px solid rgba(0,150,136,0.3);">&#128229; Importar CSV</button>
+<button onclick="openEditMatchModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(33,150,243,0.2);color:#2196f3;border:1px solid rgba(33,150,243,0.3);">&#9881; Editar Partida</button>
+<button onclick="deleteMatch()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.2);color:#ef5350;border:1px solid rgba(198,40,40,0.3);">&#128465; Eliminar</button>
+</div></div></div>
+
+<!-- Share Link -->
+<div id="share-section" class="hidden mb-6">
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;">
+<h2 class="font-bold mb-2 text-sm" style="color:#2196f3;">&#128279; Enlace Compartido</h2>
+<div class="flex gap-2">
+<input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border text-xs" style="background:#0a0e27!important;">
+<button onclick="copyShareLink()" class="px-3 py-2 rounded-lg font-bold text-xs hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Copiar</button>
+</div></div></div>
+
+<!-- Pending Registrations -->
+<div id="pending-section" class="hidden mb-6">
+<h2 class="font-bold mb-2 text-sm" style="color:#ff8f00;">&#9203; Solicitudes Pendientes</h2>
+<div id="pending-list" class="space-y-2"></div></div>
+
+<!-- Registrations -->
+<div id="registrations-section" class="mb-6">
+<div class="flex items-center justify-between mb-3">
+<h2 class="text-xl font-bold">&#128100; Registrados (<span id="reg-count">0</span>)</h2>
+<button onclick="openManualRegisterModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">&#10133; Registrar</button>
+</div>
+<div id="reg-desktop" class="hidden md:block rounded-xl overflow-hidden" style="background:#11183a;border:1px solid #1a237e;"><div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando...</div></div>
+<div id="reg-mobile" class="md:hidden space-y-2"></div>
+</div>
+
+<!-- Results -->
+<div id="results-section" class="mb-6">
+<div class="flex items-center justify-between mb-3">
+<h2 class="text-xl font-bold">&#128202; Resultados</h2>
+<button onclick="openManualModal()" class="text-xs font-bold hover:opacity-80 transition" style="color:#ff8f00;">&#10133; Anadir resultado</button>
+</div>
+<div id="results-desktop" class="hidden md:block rounded-xl overflow-hidden" style="background:#11183a;border:1px solid #1a237e;"><div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando...</div></div>
+<div id="results-mobile" class="md:hidden space-y-2"></div>
+</div>
+
+<!-- CSV Import Section (always visible) -->
+<div class="mt-6">
+<h2 class="text-xl font-bold mb-3">&#128229; Importar Resultados CSV</h2>
 <div class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e;">
 <div class="border-2 border-dashed rounded-xl p-6 text-center" style="border-color:#1a237e;" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
 <p style="color:#9fa8da;">Arrastra un archivo CSV aqui o <input type="file" id="csv-file" accept=".csv" onchange="handleFile(this.files[0])" class="hidden"><button onclick="document.getElementById('csv-file').click()" class="px-3 py-1 rounded text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Seleccionar archivo</button></p>
-<p class="text-xs mt-2" style="color:#9fa8da;">Formato: player_id,kills,deaths</p>
+<p class="text-xs mt-2" style="color:#9fa8da;">Formato: player_id,kills,deaths,nacion(opcional)</p>
 </div>
-<div id="csv-preview" class="hidden mt-4"></div>
+<div id="csv-preview-inline" class="hidden mt-4"></div>
 </div></div>
+
+</div><!-- /max-w-6xl -->
+
+<!-- ===== MODALS ===== -->
+<!-- Modal: Apply Strike -->
+<div id="apply-strike-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#c62828,#b71c1c);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white" id="as-title">&#9889; Aplicar Strike</h2>
+<button onclick="closeApplyStrikeModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
+<form id="apply-strike-form" class="p-5 space-y-4">
+<input type="hidden" id="as-player-id">
+<div class="rounded-lg p-3" style="background:#0a0e27;border:1px solid #1a237e;">
+<p class="text-sm" style="color:#9fa8da;">Jugador: <span id="as-player-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+<p class="text-xs" style="color:#9fa8da;">Partida: <span id="as-match-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+</div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo de Strike *</label>
+<select id="as-strike-type" required class="w-full px-3 py-2 rounded-lg border text-sm">
+<option value="">-- Seleccionar tipo --</option>
+</select>
+<p id="as-strike-desc" class="text-xs mt-1 italic" style="color:#9fa8da;"></p></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Razon / Justificacion *</label>
+<textarea id="as-reason" required rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Explica por que se aplica este strike..."></textarea></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Notas adicionales (opcional)</label>
+<input type="text" id="as-notes" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Evidencia, contexto, etc."></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#c62828,#b71c1c);color:#fff;">&#9889; Aplicar Strike</button>
+<button type="button" onclick="closeApplyStrikeModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: CSV Import -->
+<div id="csv-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#00897b,#00695c);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#128229; Importar CSV de Resultados</h2>
+<button onclick="closeCSVModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<div class="p-5 space-y-4">
+<p class="text-sm" style="color:#9fa8da;">Sube el CSV exportado con los resultados de esta partida.</p>
+<div class="border-2 border-dashed rounded-xl p-6 text-center hover:border-[#ff6f00] transition cursor-pointer" style="border-color:#1a237e;" onclick="document.getElementById('csv-file-input').click()">
+<div class="text-3xl mb-2">&#128193;</div>
+<p class="text-sm" style="color:#9fa8da;">Arrastra o haz click para seleccionar CSV</p>
+<input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
+</div>
+<div id="csv-preview" class="hidden">
+<h3 class="font-bold text-sm mb-2" style="color:#e8eaf6;">Vista previa:</h3>
+<div id="csv-preview-content" class="max-h-60 overflow-y-auto rounded-lg p-3 text-xs" style="background:#0a0e27;border:1px solid #1a237e;"></div>
+<div class="flex gap-3 mt-4">
+<button onclick="confirmCSVImport()" class="flex-1 font-bold py-2 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#00897b,#00695c);color:#fff;">&#10003; Confirmar Importacion</button>
+<button onclick="document.getElementById('csv-preview').classList.add('hidden')" class="px-4 py-2 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></div>
+<div id="csv-errors" class="hidden p-3 rounded-lg text-xs" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);color:#ff8f00;"></div>
+</div></div></div>
+
+<!-- Modal: Edit Match -->
+<div id="edit-match-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#9881; Editar Partida</h2>
+<button onclick="closeEditMatchModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="edit-match-form" class="p-5 space-y-4">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="em-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID del Juego</label><input type="text" id="em-game-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="ID de Supremacy (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contraseña de Partida</label><input type="text" id="em-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contraseña para unirse (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="em-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo de Partida</label><select id="em-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="em-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion / Reglas</label><textarea id="em-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">Guardar Cambios</button>
+<button type="button" onclick="closeEditMatchModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: Winners -->
+<div id="winners-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#127942; Registrar Ganadores</h2>
+<button onclick="closeWinnersModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="winners-form" class="p-5 space-y-4">
+<div id="winners-list" class="space-y-3"></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#127942; Guardar Ganadores</button>
+<button type="button" onclick="closeWinnersModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: Manual Result -->
+<div id="manual-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#9998; Anadir Resultado Manual</h2>
+<button onclick="closeManualModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="manual-form" class="p-5 space-y-4">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Buscar Jugador *</label>
+<input type="text" id="mr-player-search" required class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Escribe el nombre del jugador..." oninput="searchPlayers(this.value)">
+<input type="hidden" id="mr-player" required>
+<div id="mr-player-results" class="mt-1 max-h-40 overflow-y-auto rounded-lg border hidden" style="background:#0a0e27;border-color:#1a237e;"></div>
+<p id="mr-player-selected" class="text-xs mt-1 font-bold hidden" style="color:#4caf50;"></p></div>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Bajas</label><input type="number" id="mr-kills" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Muertes</label><input type="number" id="mr-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nacion</label><input type="text" id="mr-nation" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: USA"></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10003; Guardar Resultado</button>
+<button type="button" onclick="closeManualModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: Manual Register Player -->
+<div id="manual-register-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#10133; Registrar Jugador Manualmente</h2>
+<button onclick="closeManualRegisterModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="manual-register-form" class="p-5 space-y-4">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Buscar Jugador *</label>
+<input type="text" id="mreg-player-search" required class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Escribe el nombre del jugador..." oninput="searchPlayersForRegister(this.value)">
+<input type="hidden" id="mreg-player-id" required>
+<div id="mreg-player-results" class="mt-1 max-h-40 overflow-y-auto rounded-lg border hidden" style="background:#0a0e27;border-color:#1a237e;"></div>
+<p id="mreg-player-selected" class="text-xs mt-1 font-bold hidden" style="color:#4caf50;"></p></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Estado del Registro</label>
+<select id="mreg-status" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="confirmed">Confirmado</option><option value="pending">Pendiente</option></select></div>
+<div class="rounded-lg p-3" style="background:rgba(33,150,243,0.1);border:1px solid rgba(33,150,243,0.2);"><p class="text-xs" style="color:#2196f3;">El jugador se registrara en esta partida con el estado seleccionado.</p></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">&#10133; Registrar Jugador</button>
+<button type="button" onclick="closeManualRegisterModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: Suspend Player -->
+<div id="suspend-modal" class="modal">
+<div class="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#e65100,#c62828);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#128721; Suspender Jugador</h2>
+<button onclick="closeSuspendModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="suspend-form" class="p-5 space-y-4">
+<input type="hidden" id="su-player-id">
+<div class="rounded-lg p-3" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);">
+<p class="text-sm" style="color:#ff8f00;">Jugador: <span id="su-player-name" class="font-bold">-</span></p>
+<p class="text-xs" style="color:#9fa8da;">La suspension bloquea al jugador de registrarse en cualquier partida.</p></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Motivo *</label>
+<textarea id="su-reason" required rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Por que se suspende a este jugador..."></textarea></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#c62828,#b71c1c);color:#fff;">&#128721; Suspender</button>
+<button type="button" onclick="closeSuspendModal()" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
+<!-- Modal: Edit Result -->
+<div id="edit-result-modal" class="modal">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<h2 class="text-lg font-bold text-white">&#9998; Editar Resultado</h2>
+<button onclick="closeEditResultModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
+</div>
+<form id="edit-result-form" class="p-5 space-y-4">
+<input type="hidden" id="er-player-id">
+<div class="rounded-lg p-3" style="background:#0a0e27;border:1px solid #1a237e;">
+<p class="text-sm" style="color:#9fa8da;">Jugador: <span id="er-player-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+<p class="text-xs" style="color:#9fa8da;">Partida: <span id="er-match-name" class="font-bold" style="color:#e8eaf6;">-</span></p>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Bajas *</label><input type="number" id="er-kills" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Muertes *</label><input type="number" id="er-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nacion</label><input type="text" id="er-nation" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: USA"></div>
+<div class="flex gap-3 pt-2">
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10003; Guardar Cambios</button>
+<button type="button" onclick="closeEditResultModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+</div></form></div></div>
+
 <script>
-var currentMatchId = null;
-var currentMatch = null;
-async function loadMatch() {
-    var params = new URLSearchParams(window.location.search);
-    var matchId = params.get('id');
-    var action = params.get('action');
-    if (action === 'new') { showCreateForm(); return; }
-    if (!matchId) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">ID no especificado</div>'; return; }
-    currentMatchId = matchId;
-    try {
-        var { data: match, error } = await supabase.from('matches').select('*, alliances(name, tag)').eq('id', matchId).single();
-        if (error) throw error;
-        if (!match) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Partida no encontrada</div>'; return; }
-        currentMatch = match;
-        document.getElementById('match-header').innerHTML = '<div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold">&#127918; ' + (match.name || 'Partida') + '</h1><p class="text-sm" style="color:#9fa8da;">' + (match.alliances ? match.alliances.name : 'Sin alianza') + ' | ' + getTypeBadge(match.type) + ' ' + getStatusBadge(match.status) + '</p></div><button onclick="showEditForm()" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:#1a237e;color:#e8eaf6;">Editar</button></div>';
-        document.getElementById('match-form').classList.add('hidden');
-        loadPlayers(matchId);
-        loadAlliancesDropdown();
-    } catch(e) { console.error('[MatchDetail]', e); document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
-}
-async function loadPlayers(matchId) {
-    try { var { data, error } = await supabase.from('match_registrations').select('*, players(id, current_username, current_alliance_id, status)').eq('match_id', matchId); if (error) throw error; var list = document.getElementById('players-list'); if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Sin jugadores registrados</div>'; return; } list.innerHTML = '<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(function(r) { return '<div class="rounded-lg p-3 flex items-center justify-between" style="background:#11183a;border:1px solid #1a237e;"><div><div class="font-medium">' + (r.players ? r.players.current_username : '?') + '</div><div class="text-xs" style="color:#9fa8da;">' + getStatusBadgePlayer(r.players ? r.players.status : 'active') + '</div></div><button onclick="removePlayer(' + r.id + ')" class="px-2 py-1 rounded text-xs" style="background:rgba(198,40,40,0.3);color:#ef5350;">Quitar</button></div>'; }).join('') + '</div>'; } catch(e) { console.error('[Players]', e); }
-}
-async function loadAlliancesDropdown() { try { var { data } = await supabase.from('alliances').select('id, name').order('name'); var select = document.getElementById('m-alliance'); if (data) select.innerHTML = '<option value="">Seleccionar...</option>' + data.map(function(a) { return '<option value="' + a.id + '">' + a.name + '</option>'; }).join(''); } catch(e) {} }
-function showCreateForm() { document.getElementById('match-header').innerHTML = '<h1 class="text-2xl font-bold">&#10133; Nueva Partida</h1>'; document.getElementById('match-form').classList.remove('hidden'); document.getElementById('match-players').classList.add('hidden'); loadAlliancesDropdown(); }
-function showEditForm() { if (!currentMatch) return; document.getElementById('match-form').classList.remove('hidden'); document.getElementById('m-name').value = currentMatch.name || ''; document.getElementById('m-status').value = currentMatch.status || 'draft'; document.getElementById('m-type').value = currentMatch.type || 'internal'; document.getElementById('m-desc').value = currentMatch.description || ''; document.getElementById('m-alliance').value = currentMatch.alliance_id || ''; }
-function cancelEdit() { document.getElementById('match-form').classList.add('hidden'); }
-async function saveMatch() {
-    var name = document.getElementById('m-name').value.trim();
-    var allianceId = document.getElementById('m-alliance').value || null;
-    var status = document.getElementById('m-status').value;
-    var type = document.getElementById('m-type').value;
-    var desc = document.getElementById('m-desc').value.trim() || null;
-    if (!name) { showToast('Nombre obligatorio', 'error'); return; }
-    try { if (currentMatchId) { var { error } = await supabase.from('matches').update({ name, alliance_id: allianceId, status, type, description: desc }).eq('id', currentMatchId); } else { var { data: newMatch, error } = await supabase.from('matches').insert({ name, alliance_id: allianceId, status, type, description: desc }).select('id').single(); if (newMatch) currentMatchId = newMatch.id; } if (error) throw error; showToast('Guardado', 'success'); if (!currentMatch) window.location.href = 'match-detail.html?id=' + currentMatchId; else { cancelEdit(); loadMatch(); } } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-async function removePlayer(regId) { if (!confirm('Quitar este jugador?')) return; try { var { error } = await supabase.from('match_registrations').delete().eq('id', regId); if (error) throw error; showToast('Jugador quitado', 'success'); loadPlayers(currentMatchId); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
-function handleDrop(e) { e.preventDefault(); var file = e.dataTransfer.files[0]; if (file) handleFile(file); }
-function handleFile(file) { if (!file || !file.name.endsWith('.csv')) { showToast('Solo archivos CSV', 'error'); return; } var reader = new FileReader(); reader.onload = function(e) { parseCSV(e.target.result); }; reader.readAsText(file); }
-function parseCSV(csvText) { var lines = csvText.split('\n').filter(function(l) { return l.trim(); }); var preview = document.getElementById('csv-preview'); preview.classList.remove('hidden'); var html = '<table class="w-full text-sm"><thead><tr style="background:#11183a;"><th class="p-2">Player ID</th><th class="p-2">Kills</th><th class="p-2">Deaths</th></tr></thead><tbody>'; var results = []; for (var i = 1; i < lines.length; i++) { var cols = lines[i].split(','); if (cols.length >= 3) { var pid = parseInt(cols[0].trim()); var kills = parseInt(cols[1].trim()) || 0; var deaths = parseInt(cols[2].trim()) || 0; if (pid) { results.push({ player_id: pid, kills: kills, deaths: deaths }); html += '<tr style="border-bottom:1px solid #1a237e;"><td class="p-2">' + pid + '</td><td class="p-2">' + kills + '</td><td class="p-2">' + deaths + '</td></tr>'; } } } html += '</tbody></table><button onclick="importResults(' + JSON.stringify(results).replace(/"/g, '&quot;') + ')" class="mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Importar ' + results.length + ' resultados</button>'; preview.innerHTML = html; }
-async function importResults(results) { if (!currentMatchId) { showToast('Primero guarda la partida', 'error'); return; } if (!results || results.length === 0) { showToast('No hay resultados para importar', 'error'); return; } try { for (var i = 0; i < results.length; i++) { var r = results[i]; await supabase.from('match_results').upsert({ match_id: currentMatchId, player_id: r.player_id, kills: r.kills, deaths: r.deaths }, { onConflict: 'match_id,player_id' }); await supabase.rpc('increment_player_stats', { p_player_id: r.player_id, p_kills: r.kills, p_deaths: r.deaths }); } showToast(results.length + ' resultados importados', 'success'); document.getElementById('csv-preview').classList.add('hidden'); loadPlayers(currentMatchId); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
 requireAdmin();
+
+var urlParams = new URLSearchParams(window.location.search);
+var matchId = urlParams.get('id');
+var action = urlParams.get('action');
+var currentMatch = null;
+var allStrikeTypes = [];
+var allPlayersCache = [];
+var allPlayersCacheRegister = [];
+var currentAdminId = null;
+var csvParsedData = null;
+
+async function loadMatch() {
+    // Handle create new match flow
+    if (action === 'new') {
+        showCreateForm();
+        return;
+    }
+    if (!matchId) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">No se especifico ID de partida</div>'; return; }
+    try {
+        var sessionData = await supabase.auth.getSession();
+        currentAdminId = sessionData.data.session ? sessionData.data.session.user.id : null;
+
+        var { data: match, error } = await supabase.from('matches').select('*').eq('id', matchId).single();
+        if (error || !match) { document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Partida no encontrada</div>'; return; }
+        currentMatch = match;
+
+        var alliance = null;
+        if (match.alliance_id) {
+            var { data: alli } = await supabase.from('alliances').select('name, tag').eq('id', match.alliance_id).single();
+            alliance = alli;
+        }
+        currentMatch.alliance = alliance;
+
+        var allianceInfo = alliance ? ' [' + alliance.tag + ']' : '';
+        var statusBadge = getStatusBadge(match.status);
+        var typeBadge = getTypeBadge(match.match_type || match.type);
+        var csvBadge = match.csv_imported ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">&#10003; CSV Importado</span>' : '';
+
+        var shareUrl = (window.location.origin + '/aliance-hub/game.html?id=' + matchId);
+
+        document.getElementById('match-header').innerHTML =
+            '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">' +
+            '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#127918; ' + (match.name || 'Partida') + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + ' ' + typeBadge + ' ' + csvBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm hover:opacity-80 transition self-start" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a></div>' +
+            '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm"><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">ID Juego</p><p class="font-bold" style="color:#e8eaf6;">' + (match.game_id || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Max Jugadores</p><p class="font-bold" style="color:#e8eaf6;">' + (match.max_players || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Creada</p><p class="font-bold" style="color:#e8eaf6;">' + formatDate(match.created_at) + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Alianza</p><p class="font-bold" style="color:#e8eaf6;">' + (alliance ? alliance.name : 'Ninguna') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Contrasena</p><p class="font-bold" style="color:#e8eaf6;">' + (match.game_password || match.password || '-') + '</p></div></div>' +
+            (match.description ? '<div class="mt-3 p-3 rounded-lg text-sm" style="background:#0a0e27;color:#9fa8da;">' + match.description + '</div>' : '') +
+            '</div>';
+
+        document.getElementById('share-section').classList.remove('hidden');
+        document.getElementById('share-link').value = shareUrl;
+        document.getElementById('admin-actions-section').classList.remove('hidden');
+
+        await Promise.all([loadRegistrations(), loadResults(), loadPending(), loadStrikeTypesUnified()]);
+    } catch(e) { console.error(e); document.getElementById('match-header').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
+}
+
+// ===== CREATE NEW MATCH =====
+function showCreateForm() {
+    document.getElementById('match-header').classList.add('hidden');
+    document.getElementById('admin-actions-section').classList.add('hidden');
+    document.getElementById('share-section').classList.add('hidden');
+    document.getElementById('pending-section').classList.add('hidden');
+    document.getElementById('registrations-section').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('create-match-section').classList.remove('hidden');
+    loadAllianceSelect('cm-alliance', null);
+}
+
+async function createNewMatch(formData) {
+    try {
+        var { data, error } = await supabase.from('matches').insert({
+            name: formData.name,
+            game_id: formData.game_id || null,
+            game_password: formData.game_password || null,
+            alliance_id: formData.alliance_id || null,
+            match_type: formData.match_type,
+            type: formData.match_type,
+            max_players: formData.max_players || null,
+            description: formData.description || null,
+            status: 'draft',
+            created_by: currentAdminId
+        }).select().single();
+        if (error) throw error;
+        showToast('Partida creada correctamente', 'success');
+        setTimeout(function() { window.location.href = 'match-detail.html?id=' + data.id; }, 800);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+document.getElementById('create-match-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var formData = {
+        name: document.getElementById('cm-name').value.trim(),
+        game_id: document.getElementById('cm-game-id').value.trim() || null,
+        game_password: document.getElementById('cm-password').value.trim() || null,
+        alliance_id: document.getElementById('cm-alliance').value || null,
+        match_type: document.getElementById('cm-type').value,
+        max_players: parseInt(document.getElementById('cm-max').value) || null,
+        description: document.getElementById('cm-desc').value.trim() || null
+    };
+    if (!formData.name) { showToast('El nombre es obligatorio', 'warning'); return; }
+    if (!currentAdminId) {
+        var sessionData = await supabase.auth.getSession();
+        currentAdminId = sessionData.data.session ? sessionData.data.session.user.id : null;
+    }
+    await createNewMatch(formData);
+});
+
+async function loadRegistrations() {
+    try {
+        var { data: registrations, error } = await supabase.from('match_registrations').select('*').eq('match_id', matchId).order('registered_at', { ascending: false });
+        if (error) throw error;
+        var regs = registrations || [];
+        document.getElementById('reg-count').textContent = regs.length;
+        if (regs.length === 0) { document.getElementById('reg-desktop').innerHTML = '<div class="text-center py-6 text-sm" style="color:#9fa8da;">Sin registrados</div>'; document.getElementById('reg-mobile').innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">Sin registrados</div>'; return; }
+
+        var playerIds = regs.map(function(r) { return r.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+        var { data: players } = await supabase.from('players').select('id, current_username, total_kills, total_deaths, games_played, reputation_score, status').in('id', playerIds);
+        var playersMap = {};
+        (players || []).forEach(function(p) { playersMap[p.id] = p; });
+
+        var html = '<div class="divide-y" style="border-color:#1a237e;">' + regs.map(function(r) {
+            var p = playersMap[r.player_id] || {};
+            var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills || 0;
+            var isSuspended = p.status === 'suspended' || p.status === 'banned';
+            var statusBadge = r.status === 'confirmed' || r.status === 'approved' ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">CONFIRMADO</span>' :
+                              r.status === 'pending' ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">PENDIENTE</span>' :
+                              r.status === 'rejected' ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">RECHAZADO</span>' :
+                              '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da;">' + (r.status || '?') + '</span>';
+            var playerStatusBadge = isSuspended ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ml-1" style="background:rgba(198,40,40,0.15);color:#ef5350;">SUSPENDIDO</span>' : '';
+
+            var controls = '';
+            controls += '<button onclick="openApplyStrike(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.1);color:#ff8f00;border:1px solid rgba(255,143,0,0.2);" title="Strike">&#9889;</button>';
+            if (!isSuspended) {
+                controls += '<button onclick="openSuspendModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.1);color:#ff8f00;border:1px solid rgba(255,143,0,0.2);" title="Suspender">&#128721;</button>';
+            } else {
+                controls += '<button onclick="unsuspendPlayer(' + r.player_id + ')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(76,175,80,0.1);color:#4caf50;border:1px solid rgba(76,175,80,0.2);" title="Reactivar">&#10003;</button>';
+            }
+            controls += '<button onclick="removeRegistration(' + r.id + ', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.1);color:#ef5350;border:1px solid rgba(198,40,40,0.2);" title="Quitar">&#128465;</button>';
+
+            return '<div class="p-3 hover:bg-white/5 transition-colors">' +
+                '<div class="flex flex-col sm:flex-row sm:items-center gap-2">' +
+                    '<div class="flex items-center gap-3 flex-1 min-w-0">' +
+                        '<div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:rgba(33,150,243,0.15);color:#2196f3;">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="flex items-center gap-1 flex-wrap">' +
+                                '<span class="font-bold text-sm" style="color:#e8eaf6;">' + (p.current_username || 'Jugador ' + r.player_id) + '</span>' + statusBadge + playerStatusBadge +
+                            '</div>' +
+                            '<div class="text-xs" style="color:#9fa8da;">ID: ' + r.player_id + ' | Rep: ' + (p.reputation_score || 100) + '/100 | KD: ' + kd + ' | ' + (p.games_played || 0) + ' partidas</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex gap-1 flex-shrink-0 flex-wrap">' + controls + '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+        document.getElementById('reg-desktop').innerHTML = html;
+        document.getElementById('reg-mobile').innerHTML = html;
+    } catch(e) { console.error('Error en loadRegistrations:', e); document.getElementById('reg-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + e.message + '</div>'; }
+}
+
+async function loadResults() {
+    try {
+        var { data: results, error } = await supabase.from('match_results').select('*').eq('match_id', matchId).order('imported_at', { ascending: false });
+        if (error) throw error;
+        var res = results || [];
+        if (res.length === 0) { document.getElementById('results-desktop').innerHTML = '<div class="text-center py-6 text-sm" style="color:#9fa8da;">Sin resultados. Importa un CSV o anade manualmente.</div>'; document.getElementById('results-mobile').innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">Sin resultados</div>'; return; }
+
+        var playerIds = res.map(function(r) { return r.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+        var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
+        var playersMap = {};
+        (players || []).forEach(function(p) { playersMap[p.id] = p; });
+
+        var html = '<div class="divide-y" style="border-color:#1a237e;">' + res.map(function(r) {
+            var p = playersMap[r.player_id] || {};
+            return '<div class="p-3 hover:bg-white/5 transition-colors">' +
+                '<div class="flex items-center justify-between">' +
+                '<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                '<div><p class="font-medium text-sm" style="color:#e8eaf6;">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs" style="color:#9fa8da;">' + (r.nation || '-') + '</p></div></div>' +
+                '<div class="text-right text-xs"><p style="color:#4caf50;font-weight:bold;">' + (r.kills || 0) + ' bajas</p><p style="color:#ef5350;">' + (r.deaths || 0) + ' muertes</p><p class="font-bold" style="color:#e8eaf6;">KD: ' + (r.kd_ratio || 0) + '</p></div></div>' +
+                '<div class="flex gap-1 mt-1 justify-end">' +
+                '<button onclick="openEditResultModal(' + r.player_id + ', \'' + (p.current_username || '').replace(/\'/g, "\\'") + '\', ' + (r.kills || 0) + ', ' + (r.deaths || 0) + ', \'' + (r.nation || '').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.1);color:#ff8f00;border:1px solid rgba(255,143,0,0.2);" title="Editar resultado">&#9998; Editar</button>' +
+                '<button onclick="deleteResult(' + r.player_id + ', \'' + (p.current_username || 'Jugador').replace(/\'/g, "\\'") + '\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.1);color:#ef5350;border:1px solid rgba(198,40,40,0.2);" title="Eliminar resultado">&#128465;</button>' +
+                '</div></div>';
+        }).join('') + '</div>';
+        document.getElementById('results-desktop').innerHTML = html;
+        document.getElementById('results-mobile').innerHTML = html;
+    } catch(e) { console.error('Error en loadResults:', e); document.getElementById('results-desktop').innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Error: ' + e.message + '</div>'; }
+}
+
+async function loadPending() {
+    try {
+        var { data: pending, error } = await supabase.from('match_registrations').select('*').eq('match_id', matchId).eq('status', 'pending').order('registered_at', { ascending: false });
+        if (error || !pending || pending.length === 0) { document.getElementById('pending-section').classList.add('hidden'); return; }
+
+        var playerIds = pending.map(function(r) { return r.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+        var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
+        var playersMap = {};
+        (players || []).forEach(function(p) { playersMap[p.id] = p; });
+
+        document.getElementById('pending-section').classList.remove('hidden');
+        document.getElementById('pending-list').innerHTML = pending.map(function(r) {
+            var p = playersMap[r.player_id] || {};
+            return '<div class="flex items-center justify-between p-3 rounded-lg" style="background:rgba(255,143,0,0.05);border:1px solid rgba(255,143,0,0.15);"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">' + (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div><div><p class="font-medium text-sm" style="color:#e8eaf6;">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs" style="color:#9fa8da;">Solicitud pendiente</p></div></div><div class="flex gap-1"><button onclick="updateRegStatus(' + r.id + ', \'confirmed\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(76,175,80,0.2);color:#4caf50;">&#10003;</button><button onclick="updateRegStatus(' + r.id + ', \'rejected\')" class="px-2 py-1 rounded text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.2);color:#ef5350;">&#10005;</button></div></div>';
+        }).join('');
+    } catch(e) { console.error('Error en loadPending:', e); document.getElementById('pending-section').classList.add('hidden'); }
+}
+
+async function loadStrikeTypesUnified() {
+    try {
+        var { data: types, error } = await supabase.from('strike_types').select('*').order('severity');
+        if (!error && types) {
+            allStrikeTypes = types;
+            var activeTypes = types.filter(function(t) { return t.is_active !== false; });
+            var options = activeTypes.map(function(t) {
+                var sevLabel = t.severity === 1 ? 'Leve' : t.severity === 2 ? 'Medio' : 'Grave';
+                return '<option value="' + t.id + '">' + t.code + ' - ' + t.name + ' (' + sevLabel + ')</option>';
+            }).join('');
+            document.getElementById('as-strike-type').innerHTML = '<option value="">-- Seleccionar tipo --</option>' + options;
+        }
+    } catch(e) { console.error('Error loading strike types:', e); }
+}
+
+// ===== STRIKE MODAL =====
+function openApplyStrike(playerId, playerName) {
+    if (!currentMatch) return;
+    document.getElementById('as-player-id').value = playerId;
+    document.getElementById('as-player-name').textContent = playerName || 'Jugador ' + playerId;
+    document.getElementById('as-match-name').textContent = currentMatch.name;
+    document.getElementById('as-reason').value = '';
+    document.getElementById('as-notes').value = '';
+    document.getElementById('apply-strike-modal').classList.add('active');
+}
+function closeApplyStrikeModal() { document.getElementById('apply-strike-modal').classList.remove('active'); }
+
+document.getElementById('as-strike-type').addEventListener('change', function() {
+    var type = allStrikeTypes.find(function(t) { return t.id === this.value; }.bind(this));
+    document.getElementById('as-strike-desc').textContent = type ? (type.description + (type.legend ? ' | ' + type.legend : '')) : '';
+});
+
+document.getElementById('apply-strike-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('as-player-id').value);
+    var typeId = document.getElementById('as-strike-type').value;
+    var reason = document.getElementById('as-reason').value.trim();
+    if (!typeId || !reason) { showToast('Completa todos los campos', 'warning'); return; }
+    try {
+        var { error } = await supabase.from('player_strikes').insert({
+            player_id: playerId,
+            match_id: matchId,
+            strike_type_id: typeId,
+            reason: reason,
+            notes: document.getElementById('as-notes').value.trim() || null,
+            applied_by: currentAdminId
+        });
+        if (error) throw error;
+        showToast('&#9889; Strike aplicado correctamente', 'success');
+        closeApplyStrikeModal();
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+// ===== SUSPEND MODAL =====
+function openSuspendModal(playerId, playerName) {
+    document.getElementById('su-player-id').value = playerId;
+    document.getElementById('su-player-name').textContent = playerName || 'Jugador ' + playerId;
+    document.getElementById('su-reason').value = '';
+    document.getElementById('suspend-modal').classList.add('active');
+}
+function closeSuspendModal() { document.getElementById('suspend-modal').classList.remove('active'); }
+
+document.getElementById('suspend-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('su-player-id').value);
+    var reason = document.getElementById('su-reason').value.trim();
+    if (!reason) { showToast('Escribe un motivo', 'warning'); return; }
+    try {
+        var { error } = await supabase.from('players').update({ status: 'suspended', suspension_reason: reason }).eq('id', playerId);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('Jugador suspendido', 'success');
+        closeSuspendModal();
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+async function unsuspendPlayer(playerId) {
+    if (!confirm('Reactivar este jugador?')) return;
+    try {
+        var { error } = await supabase.from('players').update({ status: 'active', suspension_reason: null }).eq('id', playerId);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('Jugador reactivado', 'success');
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== REGISTRATION STATUS =====
+async function updateRegStatus(regId, status) {
+    try {
+        var { error } = await supabase.from('match_registrations').update({ status: status }).eq('id', regId);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('Solicitud ' + status, 'success');
+        loadPending();
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== STATUS UPDATE =====
+async function updateStatus(newStatus) {
+    if (!confirm('Cambiar estado a ' + newStatus + '?')) return;
+    try {
+        var { error } = await supabase.from('matches').update({ status: newStatus }).eq('id', matchId);
+        if (error) throw error;
+        showToast('Estado actualizado', 'success');
+        loadMatch();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== CSV IMPORT =====
+function openCSVModal() { document.getElementById('csv-modal').classList.add('active'); document.getElementById('csv-preview').classList.add('hidden'); document.getElementById('csv-errors').classList.add('hidden'); }
+function closeCSVModal() { document.getElementById('csv-modal').classList.remove('active'); }
+
+function handleDrop(e) { e.preventDefault(); var file = e.dataTransfer.files[0]; if (file) handleFile(file); }
+function handleFile(file) {
+    if (!file || !file.name.endsWith('.csv')) { showToast('Solo archivos CSV', 'error'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) { parseCSVInline(e.target.result); };
+    reader.readAsText(file);
+}
+
+function parseCSVInline(csvText) {
+    var lines = csvText.split('\n').filter(function(l) { return l.trim(); });
+    var preview = document.getElementById('csv-preview-inline');
+    preview.classList.remove('hidden');
+    var html = '<table class="w-full text-sm"><thead><tr style="background:#0a0e27;"><th class="p-2 text-left">Player ID</th><th class="p-2 text-right">Kills</th><th class="p-2 text-right">Deaths</th><th class="p-2 text-left">Nacion</th></tr></thead><tbody>';
+    var results = [];
+    for (var i = 1; i < lines.length; i++) {
+        var cols = lines[i].split(',');
+        if (cols.length >= 3) {
+            var pid = parseInt(cols[0].trim());
+            var kills = parseInt(cols[1].trim()) || 0;
+            var deaths = parseInt(cols[2].trim()) || 0;
+            var nation = cols[3] ? cols[3].trim() : '';
+            if (pid) { results.push({ player_id: pid, kills: kills, deaths: deaths, nation: nation }); html += '<tr style="border-bottom:1px solid #1a237e;"><td class="p-2">' + pid + '</td><td class="p-2 text-right" style="color:#4caf50;">' + kills + '</td><td class="p-2 text-right" style="color:#ef5350;">' + deaths + '</td><td class="p-2">' + nation + '</td></tr>'; }
+        }
+    }
+    html += '</tbody></table><button onclick="importCSVResults(' + JSON.stringify(results).replace(/"/g, '&quot;') + ')" class="mt-3 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-80 transition" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Importar ' + results.length + ' resultados</button>';
+    preview.innerHTML = html;
+}
+
+async function importCSVResults(results) {
+    if (!matchId) { showToast('Error: ID de partida no disponible', 'error'); return; }
+    if (!results || results.length === 0) { showToast('No hay resultados para importar', 'error'); return; }
+    try {
+        for (var i = 0; i < results.length; i++) {
+            var r = results[i];
+            var kd = r.deaths > 0 ? (r.kills / r.deaths) : r.kills;
+            await supabase.from('match_results').upsert({ match_id: matchId, player_id: r.player_id, kills: r.kills, deaths: r.deaths, nation: r.nation || null, kd_ratio: parseFloat(kd.toFixed(2)) }, { onConflict: 'match_id,player_id' });
+            try { await supabase.rpc('increment_player_stats', { p_player_id: r.player_id, p_kills: r.kills, p_deaths: r.deaths }); } catch(rpcErr) { console.warn('RPC no disponible:', rpcErr); }
+        }
+        await supabase.from('matches').update({ csv_imported: true }).eq('id', matchId);
+        showToast(results.length + ' resultados importados', 'success');
+        document.getElementById('csv-preview-inline').classList.add('hidden');
+        loadResults();
+        loadMatch();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+function handleCSVUpload(input) {
+    var file = input.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            csvParsedData = parseSupremacyCSV(e.target.result);
+            if (csvParsedData.players.length === 0) { document.getElementById('csv-errors').textContent = 'No se encontraron jugadores validos'; document.getElementById('csv-errors').classList.remove('hidden'); return; }
+            document.getElementById('csv-errors').classList.add('hidden');
+            document.getElementById('csv-preview').classList.remove('hidden');
+            document.getElementById('csv-preview-content').innerHTML = '<table class="w-full text-xs"><thead style="background:#0a0e27;"><tr><th class="p-1 text-left">Jugador</th><th class="p-1 text-right">Bajas</th><th class="p-1 text-right">Muertes</th><th class="p-1 text-right">KD</th></tr></thead><tbody>' + csvParsedData.players.map(function(p) { return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-1">' + p.username + '</td><td class="p-1 text-right" style="color:#4caf50;">' + p.kills + '</td><td class="p-1 text-right" style="color:#ef5350;">' + p.deaths + '</td><td class="p-1 text-right font-bold">' + p.kd_ratio + '</td></tr>'; }).join('') + '</tbody></table>';
+        } catch(err) { document.getElementById('csv-errors').textContent = 'Error: ' + err.message; document.getElementById('csv-errors').classList.remove('hidden'); }
+    };
+    reader.readAsText(file);
+}
+
+async function confirmCSVImport() {
+    if (!csvParsedData || !matchId) return;
+    try {
+        for (var i = 0; i < csvParsedData.players.length; i++) {
+            var p = csvParsedData.players[i];
+            await supabase.from('players').upsert({ id: p.player_id, current_username: p.username, last_seen: new Date().toISOString() }, { onConflict: 'id' });
+            await supabase.from('match_results').insert({ match_id: matchId, player_id: p.player_id, nation: p.nation, kills: p.kills, deaths: p.deaths, kd_ratio: p.kd_ratio });
+        }
+        await supabase.from('matches').update({ csv_imported: true }).eq('id', matchId);
+        showToast('CSV importado: ' + csvParsedData.players.length + ' jugadores', 'success');
+        closeCSVModal();
+        loadResults();
+        loadMatch();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== EDIT MATCH =====
+function openEditMatchModal() {
+    if (!currentMatch) return;
+    document.getElementById('em-name').value = currentMatch.name || '';
+    document.getElementById('em-game-id').value = currentMatch.game_id || '';
+    document.getElementById('em-password').value = currentMatch.game_password || currentMatch.password || '';
+    document.getElementById('em-type').value = currentMatch.match_type || currentMatch.type || 'internal';
+    document.getElementById('em-max').value = currentMatch.max_players || '';
+    document.getElementById('em-desc').value = currentMatch.description || '';
+    loadAllianceSelect('em-alliance', currentMatch.alliance_id);
+    document.getElementById('edit-match-modal').classList.add('active');
+}
+function closeEditMatchModal() { document.getElementById('edit-match-modal').classList.remove('active'); }
+
+document.getElementById('edit-match-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        var { error } = await supabase.from('matches').update({
+            name: document.getElementById('em-name').value,
+            game_id: document.getElementById('em-game-id').value || null,
+            game_password: document.getElementById('em-password').value || null,
+            alliance_id: document.getElementById('em-alliance').value || null,
+            match_type: document.getElementById('em-type').value,
+            type: document.getElementById('em-type').value,
+            max_players: parseInt(document.getElementById('em-max').value) || null,
+            description: document.getElementById('em-desc').value || null
+        }).eq('id', matchId);
+        if (error) throw error;
+        showToast('Partida actualizada', 'success');
+        closeEditMatchModal();
+        loadMatch();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+async function loadAllianceSelect(selectId, selectedId) {
+    try {
+        var { data: alliances } = await supabase.from('alliances').select('id, name').order('name');
+        var html = '<option value="">-- Sin alianza --</option>';
+        (alliances || []).forEach(function(a) { html += '<option value="' + a.id + '"' + (a.id === selectedId ? ' selected' : '') + '>' + a.name + '</option>'; });
+        document.getElementById(selectId).innerHTML = html;
+    } catch(e) {}
+}
+
+async function deleteMatch() {
+    if (!confirm('&#9888; Eliminar esta partida permanentemente? Se borraran todos los registros y resultados.')) return;
+    try {
+        await supabase.from('match_results').delete().eq('match_id', matchId);
+        await supabase.from('match_registrations').delete().eq('match_id', matchId);
+        await supabase.from('match_winners').delete().eq('match_id', matchId);
+        var { error } = await supabase.from('matches').delete().eq('id', matchId);
+        if (error) throw error;
+        showToast('Partida eliminada', 'success');
+        setTimeout(function() { window.location.href = 'matches.html'; }, 800);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== WINNERS =====
+async function openWinnersModal() {
+    try {
+        var { data: results } = await supabase.from('match_results').select('*').eq('match_id', matchId).order('kills', { ascending: false });
+        var list = document.getElementById('winners-list');
+        if (!results || results.length === 0) { list.innerHTML = '<p class="text-sm text-center" style="color:#9fa8da;">Sin resultados para seleccionar ganadores</p>'; }
+        else {
+            var playerIds = results.map(function(r) { return r.player_id; }).filter(function(v, i, a) { return a.indexOf(v) === i; });
+            var { data: players } = await supabase.from('players').select('id, current_username').in('id', playerIds);
+            var playersMap = {};
+            (players || []).forEach(function(p) { playersMap[p.id] = p; });
+            list.innerHTML = results.map(function(r, i) {
+                var p = playersMap[r.player_id] || {};
+                return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background:#0a0e27;border:1px solid #1a237e;"><span class="text-lg font-bold w-6" style="color:#ff8f00;">#' + (i+1) + '</span><div class="flex-1"><p class="font-medium text-sm" style="color:#e8eaf6;">' + (p.current_username || 'Jugador ' + r.player_id) + '</p><p class="text-xs" style="color:#9fa8da;">' + r.kills + ' bajas / ' + r.deaths + ' muertes</p></div><input type="checkbox" name="winner" value="' + r.player_id + '" class="w-5 h-5 rounded"></div>';
+            }).join('');
+        }
+        document.getElementById('winners-modal').classList.add('active');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+function closeWinnersModal() { document.getElementById('winners-modal').classList.remove('active'); }
+
+document.getElementById('winners-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var checked = document.querySelectorAll('input[name="winner"]:checked');
+    var winners = Array.from(checked).map(function(cb) { return parseInt(cb.value); });
+    if (winners.length === 0) { showToast('Selecciona al menos un ganador', 'warning'); return; }
+    try {
+        for (var i = 0; i < winners.length; i++) {
+            await supabase.from('match_winners').upsert({ match_id: matchId, player_id: winners[i], position: i+1 }, { onConflict: 'match_id,player_id' });
+        }
+        await supabase.from('matches').update({ winners_declared: true }).eq('id', matchId);
+        showToast(winners.length + ' ganador(es) registrados', 'success');
+        closeWinnersModal();
+        loadMatch();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+// ===== MANUAL RESULT =====
+async function openManualModal() {
+    try {
+        var { data: players } = await supabase.from('players').select('id, current_username').order('current_username').limit(500);
+        allPlayersCache = players || [];
+        document.getElementById('mr-player-search').value = '';
+        document.getElementById('mr-player').value = '';
+        document.getElementById('mr-player-results').classList.add('hidden');
+        document.getElementById('mr-player-results').innerHTML = '';
+        document.getElementById('mr-player-selected').classList.add('hidden');
+        document.getElementById('mr-kills').value = '';
+        document.getElementById('mr-deaths').value = '';
+        document.getElementById('mr-nation').value = '';
+        document.getElementById('manual-modal').classList.add('active');
+    } catch(e) { showToast('Error cargando jugadores', 'error'); }
+}
+function closeManualModal() { document.getElementById('manual-modal').classList.remove('active'); }
+
+function searchPlayers(query) {
+    var resultsDiv = document.getElementById('mr-player-results');
+    if (!query || query.trim().length < 2) { resultsDiv.classList.add('hidden'); return; }
+    var cleanQuery = query.trim().toLowerCase();
+    var matches = allPlayersCache.filter(function(p) { return p.current_username && p.current_username.toLowerCase().indexOf(cleanQuery) !== -1; }).slice(0, 10);
+    if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-center" style="color:#9fa8da;">Sin resultados</div>'; resultsDiv.classList.remove('hidden'); return; }
+    resultsDiv.innerHTML = matches.map(function(p) { return '<div class="cursor-pointer px-3 py-2 text-[13px] hover:bg-white/5 transition" style="border-bottom:1px solid #1a237e;" onclick="selectPlayer(' + p.id + ', \'' + p.current_username.replace(/\'/g, "\\'") + '\')"><span class="font-medium" style="color:#e8eaf6;">' + p.current_username + '</span><span class="ml-2" style="color:#9fa8da;">ID: ' + p.id + '</span></div>'; }).join('');
+    resultsDiv.classList.remove('hidden');
+}
+function selectPlayer(id, name) {
+    document.getElementById('mr-player').value = id;
+    document.getElementById('mr-player-search').value = name;
+    document.getElementById('mr-player-results').classList.add('hidden');
+    document.getElementById('mr-player-selected').textContent = '\u2713 Seleccionado: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('mr-player-selected').classList.remove('hidden');
+}
+
+document.getElementById('manual-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('mr-player').value);
+    var kills = parseInt(document.getElementById('mr-kills').value) || 0;
+    var deaths = parseInt(document.getElementById('mr-deaths').value) || 0;
+    var nation = document.getElementById('mr-nation').value || null;
+    if (!playerId) { showToast('Selecciona un jugador de la busqueda', 'warning'); return; }
+    try {
+        var kd = deaths > 0 ? (kills / deaths) : kills;
+        await supabase.from('match_results').upsert({ match_id: matchId, player_id: playerId, nation: nation, kills: kills, deaths: deaths, kd_ratio: parseFloat(kd.toFixed(2)) }, { onConflict: 'match_id,player_id' });
+        try { await supabase.rpc('increment_player_stats', { p_player_id: playerId, p_kills: kills, p_deaths: deaths }); } catch(rpcErr) { console.warn('RPC no disponible:', rpcErr); }
+        showToast('Resultado guardado', 'success');
+        closeManualModal();
+        loadResults();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+// ===== MANUAL REGISTER PLAYER =====
+async function openManualRegisterModal() {
+    try {
+        var { data: players } = await supabase.from('players').select('id, current_username').order('current_username').limit(500);
+        allPlayersCacheRegister = players || [];
+        document.getElementById('mreg-player-search').value = '';
+        document.getElementById('mreg-player-id').value = '';
+        document.getElementById('mreg-player-results').classList.add('hidden');
+        document.getElementById('mreg-player-results').innerHTML = '';
+        document.getElementById('mreg-player-selected').classList.add('hidden');
+        document.getElementById('mreg-status').value = 'confirmed';
+        document.getElementById('manual-register-modal').classList.add('active');
+    } catch(e) { showToast('Error cargando jugadores', 'error'); }
+}
+function closeManualRegisterModal() { document.getElementById('manual-register-modal').classList.remove('active'); }
+
+function searchPlayersForRegister(query) {
+    var resultsDiv = document.getElementById('mreg-player-results');
+    if (!query || query.trim().length < 2) { resultsDiv.classList.add('hidden'); return; }
+    var cleanQuery = query.trim().toLowerCase();
+    var matches = allPlayersCacheRegister.filter(function(p) { return p.current_username && p.current_username.toLowerCase().indexOf(cleanQuery) !== -1; }).slice(0, 10);
+    if (matches.length === 0) { resultsDiv.innerHTML = '<div class="p-3 text-xs text-center" style="color:#9fa8da;">Sin resultados</div>'; resultsDiv.classList.remove('hidden'); return; }
+    resultsDiv.innerHTML = matches.map(function(p) { return '<div class="cursor-pointer px-3 py-2 text-[13px] hover:bg-white/5 transition" style="border-bottom:1px solid #1a237e;" onclick="selectPlayerForRegister(' + p.id + ', \'' + p.current_username.replace(/\'/g, "\\'") + '\')"><span class="font-medium" style="color:#e8eaf6;">' + p.current_username + '</span><span class="ml-2" style="color:#9fa8da;">ID: ' + p.id + '</span></div>'; }).join('');
+    resultsDiv.classList.remove('hidden');
+}
+function selectPlayerForRegister(id, name) {
+    document.getElementById('mreg-player-id').value = id;
+    document.getElementById('mreg-player-search').value = name;
+    document.getElementById('mreg-player-results').classList.add('hidden');
+    document.getElementById('mreg-player-selected').textContent = '\u2713 Seleccionado: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('mreg-player-selected').classList.remove('hidden');
+}
+
+document.getElementById('manual-register-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('mreg-player-id').value);
+    var status = document.getElementById('mreg-status').value;
+    if (!playerId) { showToast('Selecciona un jugador de la busqueda', 'warning'); return; }
+    try {
+        var { error } = await supabase.from('match_registrations').insert({ match_id: matchId, player_id: playerId, status: status });
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast('Jugador registrado correctamente', 'success');
+        closeManualRegisterModal();
+        loadRegistrations();
+    } catch(err) { showToast('Error: ' + err.message, 'error'); }
+});
+
+// ===== EDIT RESULT =====
+function openEditResultModal(playerId, playerName, kills, deaths, nation) {
+    if (!currentMatch) return;
+    document.getElementById('er-player-id').value = playerId;
+    document.getElementById('er-player-name').textContent = playerName || 'Jugador ' + playerId;
+    document.getElementById('er-match-name').textContent = currentMatch.name || '';
+    document.getElementById('er-kills').value = kills || 0;
+    document.getElementById('er-deaths').value = deaths || 0;
+    document.getElementById('er-nation').value = nation || '';
+    document.getElementById('edit-result-modal').classList.add('active');
+}
+function closeEditResultModal() { document.getElementById('edit-result-modal').classList.remove('active'); }
+
+document.getElementById('edit-result-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var playerId = parseInt(document.getElementById('er-player-id').value);
+    var kills = parseInt(document.getElementById('er-kills').value) || 0;
+    var deaths = parseInt(document.getElementById('er-deaths').value) || 0;
+    var nation = document.getElementById('er-nation').value.trim() || null;
+    try {
+        var kd = deaths > 0 ? (kills / deaths) : kills;
+        var { error } = await supabase.from('match_results').update({
+            kills: kills, deaths: deaths, nation: nation, kd_ratio: parseFloat(kd.toFixed(2)),
+            imported_at: new Date().toISOString()
+        }).eq('match_id', matchId).eq('player_id', playerId);
+        if (error) throw error;
+        showToast('Resultado actualizado correctamente', 'success');
+        closeEditResultModal();
+        loadResults();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+});
+
+async function deleteResult(playerId, playerName) {
+    if (!confirm('Eliminar resultado de ' + (playerName || 'Jugador ' + playerId) + '?')) return;
+    try {
+        var { error } = await supabase.from('match_results').delete().eq('match_id', matchId).eq('player_id', playerId);
+        if (error) throw error;
+        showToast('Resultado eliminado', 'success');
+        loadResults();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== REMOVE REGISTRATION =====
+async function removeRegistration(regId, playerName) {
+    if (!confirm('Quitar a ' + (playerName || 'jugador') + ' de esta partida?')) return;
+    try {
+        var { error } = await supabase.from('match_registrations').delete().eq('id', regId);
+        if (error) throw error;
+        showToast('Registro eliminado', 'success');
+        loadRegistrations();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ===== SHARE =====
+function copyShareLink() {
+    var input = document.getElementById('share-link');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    showToast('Enlace copiado', 'success');
+}
+
+// Parse Supremacy CSV format
+function parseSupremacyCSV(csvText) {
+    var lines = csvText.split('\n').filter(function(l) { return l.trim(); });
+    var players = [];
+    for (var i = 1; i < lines.length; i++) {
+        var cols = lines[i].split(',');
+        if (cols.length >= 3) {
+            var playerId = parseInt(cols[0].trim());
+            var username = cols[1] ? cols[1].trim() : '';
+            var kills = parseInt(cols[2].trim()) || 0;
+            var deaths = parseInt(cols[3] ? cols[3].trim() : '0') || 0;
+            var nation = cols[4] ? cols[4].trim() : '';
+            if (playerId) {
+                var kd = deaths > 0 ? (kills / deaths) : kills;
+                players.push({ player_id: playerId, username: username, kills: kills, deaths: deaths, nation: nation, kd_ratio: parseFloat(kd.toFixed(2)) });
+            }
+        }
+    }
+    return { players: players };
+}
+
 loadMatch();
 </script>
 </body>

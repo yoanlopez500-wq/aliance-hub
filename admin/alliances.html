@@ -1,147 +1,135 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alianzas - Alliance Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=16"></script>
-    <script src="../assets/js/base.js?v=16"></script>
-    <script src="../assets/js/auth.js?v=16"></script>
-    <meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Alianzas - Alliance Hub</title>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- v18: Modular Architecture -->
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<meta name="theme-color" content="#0a0e27">
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
-<body class="bg-slate-900 min-h-screen" data-role="admin">
-    <div id="admin-nav"></div>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="flex items-center justify-between mb-6">
+<h1 class="text-2xl font-bold">&#127988; Alianzas</h1>
+<button onclick="openModal()" class="px-4 py-2 rounded-lg font-bold text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nueva Alianza</button>
+</div>
+<div id="alliances-list" class="space-y-3"><div class="text-center py-8" style="color:#9fa8da;">Cargando...</div></div>
+</div>
 
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-bold text-white">&#127942; Alianzas</h1>
-            <button onclick="openModal()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">+ Nueva Alianza</button>
-        </div>
-        <div id="alliances-list" class="space-y-3">
-            <div class="text-center py-8 text-slate-400">Cargando...</div>
-        </div>
-    </div>
+<div id="alliance-modal" class="fixed inset-0 hidden items-center justify-center z-50" style="background:rgba(0,0,0,0.5);">
+<div class="rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
+<h2 id="modal-title" class="text-xl font-bold mb-4">Nueva Alianza</h2>
+<input type="hidden" id="edit-id">
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="alliance-name" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Tag (2-10 caracteres) *</label><input type="text" id="alliance-tag" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Descripcion</label><textarea id="alliance-desc" class="w-full px-3 py-2 rounded-lg border text-sm" rows="3"></textarea></div>
+<div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button><button onclick="saveAlliance()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button></div>
+</div></div>
 
-    <!-- Modal -->
-    <div id="alliance-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Nueva Alianza</h2>
-            <input type="hidden" id="edit-id">
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
-                <input type="text" id="alliance-name" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Tag (2-10 caracteres)</label>
-                <input type="text" id="alliance-tag" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm">
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm font-bold text-slate-700 mb-1">Descripcion</label>
-                <textarea id="alliance-desc" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none text-sm" rows="3"></textarea>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm hover:text-slate-800">Cancelar</button>
-                <button onclick="saveAlliance()" class="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-bold text-sm hover:bg-amber-400">Guardar</button>
-            </div>
-        </div>
-    </div>
+<script>
+requireAdmin();
 
-    <script>
-        if (!hasAdminSession()) { window.location.href = 'login.html'; }
+// FIX #3: member_count y total_kills no existen en tabla alliances
+// Cargar alliances sin esas columnas, contar miembros desde alliance_memberships
+async function loadAlliances() {
+    try {
+        var { data: alliances, error } = await supabase.from('alliances').select('id, name, tag, description').order('name');
+        if (error) throw error;
 
-        async function loadAlliances() {
-            var { data: alliances, error } = await supabase
-                .from('alliances')
-                .select('*, players(current_username)')
-                .order('name');
-
-            var container = document.getElementById('alliances-list');
-            if (error || !alliances || alliances.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400">No hay alianzas registradas</div>';
-                return;
+        // Contar miembros por alianza desde alliance_memberships
+        var memberCounts = {};
+        try {
+            var { data: memberships } = await supabase.from('alliance_memberships').select('alliance_id').eq('status', 'approved');
+            if (memberships) {
+                memberships.forEach(function(m) {
+                    memberCounts[m.alliance_id] = (memberCounts[m.alliance_id] || 0) + 1;
+                });
             }
+        } catch(mcErr) { console.warn('[Alliances] Error contando miembros:', mcErr); }
 
-            container.innerHTML = alliances.map(function(a) {
-                var memberCount = a.players ? a.players.length : 0;
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4">' +
-                    '<div class="flex items-center justify-between">' +
-                        '<div>' +
-                            '<h3 class="font-bold text-slate-800">' + a.name + ' <span class="text-slate-400">[' + a.tag + ']</span></h3>' +
-                            '<p class="text-xs text-slate-500">' + (a.description || 'Sin descripcion') + '</p>' +
-                            '<p class="text-xs text-slate-400 mt-1">' + memberCount + ' miembros</p>' +
-                        '</div>' +
-                        '<div class="flex gap-2">' +
-                            '<button onclick="editAlliance(\'' + a.id + '\')" class="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">Editar</button>' +
-                            '<button onclick="deleteAlliance(\'' + a.id + '\')" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">Eliminar</button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
+        var container = document.getElementById('alliances-list');
+        if (!alliances || alliances.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay alianzas registradas</div>';
+            return;
         }
 
-        function openModal() {
-            document.getElementById('alliance-modal').classList.remove('hidden');
-            document.getElementById('alliance-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Nueva Alianza';
-            document.getElementById('edit-id').value = '';
-            document.getElementById('alliance-name').value = '';
-            document.getElementById('alliance-tag').value = '';
-            document.getElementById('alliance-desc').value = '';
-        }
+        container.innerHTML = alliances.map(function(a) {
+            var count = memberCounts[a.id] || 0;
+            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between flex-wrap gap-2"><div><h3 class="font-bold">' + a.name + ' <span style="color:#9fa8da;">[' + (a.tag || '-') + ']</span></h3><p class="text-xs" style="color:#9fa8da;">' + (a.description || 'Sin descripcion') + '</p><p class="text-xs mt-1" style="color:#9fa8da;">' + count + ' miembros</p></div><div class="flex gap-2"><button onclick="editAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:#1a237e;color:#e8eaf6;">Editar</button><button onclick="deleteAlliance(\'' + a.id + '\')" class="px-3 py-1 rounded text-xs font-bold" style="background:rgba(198,40,40,0.2);color:#ef5350;">Eliminar</button></div></div></div>';
+        }).join('');
+    } catch(e) {
+        console.error('[Alliances]', e);
+        document.getElementById('alliances-list').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>';
+    }
+}
 
-        function closeModal() {
-            document.getElementById('alliance-modal').classList.add('hidden');
-            document.getElementById('alliance-modal').classList.remove('flex');
-        }
+function openModal() {
+    document.getElementById('alliance-modal').classList.remove('hidden');
+    document.getElementById('alliance-modal').classList.add('flex');
+    document.getElementById('modal-title').textContent = 'Nueva Alianza';
+    document.getElementById('edit-id').value = '';
+    document.getElementById('alliance-name').value = '';
+    document.getElementById('alliance-tag').value = '';
+    document.getElementById('alliance-desc').value = '';
+}
+function closeModal() {
+    document.getElementById('alliance-modal').classList.add('hidden');
+    document.getElementById('alliance-modal').classList.remove('flex');
+}
 
-        async function editAlliance(id) {
-            var { data: a } = await supabase.from('alliances').select('*').eq('id', id).single();
-            if (!a) return;
+async function editAlliance(id) {
+    var { data: a } = await supabase.from('alliances').select('*').eq('id', id).single();
+    if (!a) return;
+    document.getElementById('alliance-modal').classList.remove('hidden');
+    document.getElementById('alliance-modal').classList.add('flex');
+    document.getElementById('modal-title').textContent = 'Editar Alianza';
+    document.getElementById('edit-id').value = a.id;
+    document.getElementById('alliance-name').value = a.name;
+    document.getElementById('alliance-tag').value = a.tag;
+    document.getElementById('alliance-desc').value = a.description || '';
+}
 
-            document.getElementById('alliance-modal').classList.remove('hidden');
-            document.getElementById('alliance-modal').classList.add('flex');
-            document.getElementById('modal-title').textContent = 'Editar Alianza';
-            document.getElementById('edit-id').value = a.id;
-            document.getElementById('alliance-name').value = a.name;
-            document.getElementById('alliance-tag').value = a.tag;
-            document.getElementById('alliance-desc').value = a.description || '';
-        }
+async function saveAlliance() {
+    var id = document.getElementById('edit-id').value;
+    var name = document.getElementById('alliance-name').value.trim();
+    var tag = document.getElementById('alliance-tag').value.trim();
+    var desc = document.getElementById('alliance-desc').value.trim();
+    if (!name || !tag) { showToast('Nombre y tag son requeridos', 'error'); return; }
+    if (tag.length < 2 || tag.length > 10) { showToast('Tag debe tener 2-10 caracteres', 'error'); return; }
+    var data = { name: name, tag: tag, description: desc || null };
+    var result = id ? await supabase.from('alliances').update(data).eq('id', id) : await supabase.from('alliances').insert([data]);
+    if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
+    showToast('Alianza guardada', 'success');
+    closeModal();
+    loadAlliances();
+}
 
-        async function saveAlliance() {
-            var id = document.getElementById('edit-id').value;
-            var name = document.getElementById('alliance-name').value.trim();
-            var tag = document.getElementById('alliance-tag').value.trim();
-            var desc = document.getElementById('alliance-desc').value.trim();
+async function deleteAlliance(id) {
+    if (!confirm('Eliminar esta alianza?')) return;
+    var { error } = await supabase.from('alliances').delete().eq('id', id);
+    if (error) { showToast('Error: ' + error.message, 'error'); return; }
+    showToast('Alianza eliminada', 'success');
+    loadAlliances();
+}
 
-            if (!name || !tag) { showToast('Nombre y tag son requeridos', 'error'); return; }
-            if (tag.length < 2 || tag.length > 10) { showToast('Tag debe tener 2-10 caracteres', 'error'); return; }
-
-            var data = { name: name, tag: tag, description: desc || null };
-            var result;
-
-            if (id) {
-                result = await supabase.from('alliances').update(data).eq('id', id);
-            } else {
-                result = await supabase.from('alliances').insert([data]);
-            }
-
-            if (result.error) { showToast('Error: ' + result.error.message, 'error'); return; }
-            showToast('Alianza guardada', 'success');
-            closeModal();
-            loadAlliances();
-        }
-
-        async function deleteAlliance(id) {
-            if (!confirm('¿Eliminar esta alianza?')) return;
-            var { error } = await supabase.from('alliances').delete().eq('id', id);
-            if (error) { showToast('Error: ' + error.message, 'error'); return; }
-            showToast('Alianza eliminada', 'success');
-            loadAlliances();
-        }
-
-        loadAlliances();
-    </script>
+loadAlliances();
+</script>
 </body>
 </html>

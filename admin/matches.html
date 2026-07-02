@@ -7,12 +7,20 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Partidas - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO, antes de config.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- v18: Modular Architecture -->
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/roles-data.js?v=18"></script>
+<script src="../assets/js/auth-core.js?v=18"></script>
+<script src="../assets/js/messaging.js?v=18"></script>
+<script src="../assets/js/notifications.js?v=18"></script>
+<script src="../assets/js/nav-engine.js?v=18"></script>
+<script src="../assets/js/training.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -20,30 +28,67 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
 <div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-bold">&#127918; Partidas</h1><p class="text-sm" style="color:#9fa8da;">Gestion de partidas organizadas.</p></div><button onclick="openMatchModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nueva Partida</button></div>
 <div class="flex gap-2 mb-4"><select id="filter-status" onchange="loadMatches()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos los estados</option><option value="draft">Borradores</option><option value="open">Abiertas</option><option value="in_progress">En curso</option><option value="finished">Finalizadas</option><option value="archived">Archivadas</option></select><input type="text" id="search-match" placeholder="Buscar partida..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterMatches(this.value)"></div>
-<div id="matches-list" class="space-y-3">Cargando...</div>
+<div id="matches-list">Cargando...</div>
 </div>
 <script>
 var allMatches = [];
+var allAlliances = [];
+
+// FIX #2: Cargar alliances separadamente (FK join roto en schema)
+async function loadAlliancesMap() {
+    try {
+        var { data, error } = await supabase.from('alliances').select('id, name, tag');
+        if (error) throw error;
+        allAlliances = data || [];
+    } catch(e) { console.error('[Matches] Error cargando alliances:', e); }
+}
+
+function getAlliance(allianceId) {
+    if (!allianceId || !allAlliances.length) return null;
+    return allAlliances.find(function(a) { return a.id === allianceId; }) || null;
+}
+
 async function loadMatches() {
     try {
+        await loadAlliancesMap();
         var status = document.getElementById('filter-status').value;
-        var q = supabase.from('matches').select('*, alliances(name, tag)').order('created_at', { ascending: false }).limit(50);
+        // FIX #2: Query simple sin FK join, mapear alliances en JS
+        var q = supabase.from('matches').select('*').order('created_at', { ascending: false }).limit(50);
         if (status) q = q.eq('status', status);
         var { data, error } = await q;
         if (error) throw error;
         allMatches = data || [];
         renderMatches(allMatches);
-    } catch(e) { console.error('[Matches]', e); }
+    } catch(e) {
+        console.error('[Matches]', e);
+        var list = document.getElementById('matches-list');
+        list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#ef5350;">Error cargando partidas: ' + e.message + '<br><button onclick="loadMatches()" class="mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Reintentar</button></div>';
+    }
 }
+
 function renderMatches(data) {
     var list = document.getElementById('matches-list');
-    if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas</div>'; return; }
-    list.innerHTML = data.map(function(m) {
-        return '<a href="match-detail.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">' + (m.name || 'Partida') + '</h3><p class="text-xs" style="color:#9fa8da;">' + (m.alliances ? m.alliances.name : 'Sin alianza') + '</p></div><div class="flex items-center gap-2">' + getStatusBadge(m.status) + '<span class="text-xs" style="color:#9fa8da;">' + formatDate(m.created_at) + '</span></div></div></a>';
-    }).join('');
+    if (!data || data.length === 0) {
+        list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas. Crea la primera.</div>';
+        return;
+    }
+    list.innerHTML = '<div class="space-y-3">' + data.map(function(m) {
+        var alliance = getAlliance(m.alliance_id);
+        var allianceLabel = alliance ? ' [' + alliance.tag + ']' : '';
+        var typeBadge = m.match_type === 'duel' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(198,40,40,0.15);color:#ef5350;">DUELO</span>' : m.match_type === 'internal' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(33,150,243,0.15);color:#2196f3;">INTERNA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(156,39,176,0.15);color:#ce93d8;">GLOBAL</span>';
+        var statusBadge = m.status === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ABIERTA</span>' : m.status === 'in_progress' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN CURSO</span>' : m.status === 'finished' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">FINALIZADA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">BORRADOR</span>';
+        return '<a href="match-detail.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">' + (m.name || 'Partida') + allianceLabel + '</h3><p class="text-xs mt-1" style="color:#9fa8da;">' + formatDate(m.created_at) + ' | Max: ' + (m.max_players || '-') + ' jugadores</p></div><div class="flex items-center gap-1">' + statusBadge + typeBadge + '</div></div></a>';
+    }).join('') + '</div>';
 }
-function filterMatches(query) { var q = query.toLowerCase(); var filtered = allMatches.filter(function(m) { return (m.name || '').toLowerCase().includes(q); }); renderMatches(filtered); }
+
+function filterMatches(query) {
+    var q = query.toLowerCase();
+    var filtered = allMatches.filter(function(m) { return (m.name || '').toLowerCase().includes(q); });
+    renderMatches(filtered);
+}
+
 function openMatchModal() { window.location.href = 'match-detail.html?action=new'; }
+
 requireAdmin();
 loadMatches();
 </script>

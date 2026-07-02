@@ -8,11 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Chat Reports - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/auth.js?v=18"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -22,8 +23,21 @@
 <div id="chat-reports-list">Cargando...</div>
 </div>
 <script>
+var allPlayers = {};
+
+async function loadPlayersMap() {
+    try { var { data } = await supabase.from('players').select('id, current_username'); (data || []).forEach(function(p) { allPlayers[p.id] = p.current_username; }); } catch(e) { console.error('[ChatReports] Error cargando players:', e); }
+}
+
 async function loadChatReports() {
-    try { var { data, error } = await supabase.from('chat_reports').select('*, players(id, current_username)').order('created_at', { ascending: false }).limit(50); if (error) throw error; var list = document.getElementById('chat-reports-list'); if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes de chat</div>'; return; } list.innerHTML = '<div class="space-y-3">' + data.map(function(r) { return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte de ' + (r.players ? r.players.current_username : r.player_id) + '</h3><p class="text-sm" style="color:#9fa8da;">' + r.reason + '</p></div><span class="text-xs" style="color:#9fa8da;">' + formatDate(r.created_at) + '</span></div></div>'; }).join('') + '</div>'; } catch(e) { console.error('[ChatReports]', e); }
+    try {
+        await loadPlayersMap();
+        var { data, error } = await supabase.from('chat_reports').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        var list = document.getElementById('chat-reports-list');
+        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes de chat</div>'; return; }
+        list.innerHTML = '<div class="space-y-3">' + data.map(function(r) { var playerName = allPlayers[r.player_id] || 'Jugador ' + r.player_id; return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte de ' + playerName + '</h3><p class="text-sm" style="color:#9fa8da;">' + r.reason + '</p></div><span class="text-xs" style="color:#9fa8da;">' + formatDate(r.created_at) + '</span></div></div>'; }).join('') + '</div>';
+    } catch(e) { console.error('[ChatReports]', e); }
 }
 requireAdmin();
 loadChatReports();

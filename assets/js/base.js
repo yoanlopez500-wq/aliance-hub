@@ -51,3 +51,36 @@ async function verifyPlayerLogin(playerId, token) { try { var { data } = await s
 async function subscribeToPushNotifications() { try { var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY) }); var subJson = JSON.parse(JSON.stringify(sub)); await supabase.from('push_subscriptions').upsert({ endpoint: subJson.endpoint, p256dh: subJson.keys ? subJson.keys.p256dh : null, auth: subJson.keys ? subJson.keys.auth : null, player_id: getPlayerData() ? parseInt(getPlayerData().playerId) : null }, { onConflict: 'endpoint' }); localStorage.setItem('ah_v2_push_subscribed', 'true'); return true; } catch(e) { console.error('Push error:', e); return false; } }
 async function unsubscribePush() { try { var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.getSubscription(); if (sub) { await supabase.from('push_subscriptions').delete().eq('endpoint', sub.toJSON().endpoint); await sub.unsubscribe(); } localStorage.removeItem('ah_v2_push_subscribed'); return true; } catch(e) { return false; } }
 function urlBase64ToUint8Array(base64String) { var padding = '='.repeat((4 - base64String.length % 4) % 4); var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); var rawData = window.atob(base64); var outputArray = new Uint8Array(rawData.length); for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
+
+// Player session helpers
+function getPlayerData() { try { var pid = localStorage.getItem('ah_v2_player_id'); var name = localStorage.getItem('ah_v2_player_name'); var token = localStorage.getItem('ah_v2_player_token'); if (!pid || !token) return null; return { playerId: pid, displayName: name, token: token }; } catch(e) { return null; } }
+function setPlayerData(playerId, displayName, token) { localStorage.setItem('ah_v2_player_id', playerId); localStorage.setItem('ah_v2_player_name', displayName); localStorage.setItem('ah_v2_player_token', token); }
+function clearPlayerData() { localStorage.removeItem('ah_v2_player_id'); localStorage.removeItem('ah_v2_player_name'); localStorage.removeItem('ah_v2_player_token'); }
+function requirePlayer() { var pd = getPlayerData(); if (!pd) { showToast('Debes iniciar sesion como jugador primero', 'error'); return false; } return pd; }
+
+// v12.1: Added savePlayerSession for login-player.html
+async function savePlayerSession(playerId, displayName) {
+    var result = await generatePlayerToken(playerId, displayName);
+    if (result.success) {
+        setPlayerData(playerId, displayName, result.token);
+        return true;
+    }
+    console.error('savePlayerSession failed:', result.message);
+    return false;
+}
+
+// Admin guard
+function requireAdmin() {
+    supabase.auth.getSession().then(function(sd) {
+        if (!sd.data.session) {
+            window.location.href = ahPath('admin/login.html');
+        }
+    });
+}
+
+// Player logout
+function logoutPlayer() {
+    clearPlayerData();
+    showToast('Sesion de jugador cerrada', 'success');
+    setTimeout(function() { window.location.href = 'index.html'; }, 500);
+}

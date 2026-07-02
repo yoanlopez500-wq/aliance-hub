@@ -8,15 +8,14 @@
 <meta http-equiv="Expires" content="0">
 <title>Reportes - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=16"></script>
+<script src="../assets/js/theme.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=16"></script>
-<script src="../assets/js/base.js?v=16"></script>
-<script src="../assets/js/auth.js?v=16"></script>
+<script src="../assets/js/config.js?v=18"></script>
+<script src="../assets/js/base.js?v=18"></script>
+<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/auth.js?v=18"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
-.search-result{cursor:pointer;padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
-.evidence-img{cursor:pointer;width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0;transition:border .15s}
 input,textarea,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
 input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </style>
@@ -31,7 +30,7 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 <select id="filter-status" onchange="loadReports()" class="px-3 py-2 rounded-lg border text-sm"><option value="all">Todos</option><option value="open" selected>Abiertos</option><option value="resolved">Resueltos</option><option value="dismissed">Desestimados</option></select>
 </div>
 </div>
-<div id="reports-list" class="space-y-3">Cargando...</div>
+<div id="reports-list">Cargando...</div>
 </div>
 <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
 <div class="rounded-xl p-6 w-full max-w-2xl mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:80vh;overflow-y:auto;">
@@ -42,41 +41,101 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 </div></div>
 <script>
 var currentReportId = null;
+var ruleSectionsMap = {};
+
+async function loadRuleSections() {
+    try {
+        var { data, error } = await supabase.from('rule_sections').select('id, title').order('order_index');
+        if (error) throw error;
+        ruleSectionsMap = {};
+        var select = document.getElementById('filter-rule');
+        select.innerHTML = '<option value="">Todas las reglas</option>';
+        if (data) {
+            data.forEach(function(r) { ruleSectionsMap[r.id] = r; select.innerHTML += '<option value="' + r.id + '">' + r.title + '</option>'; });
+        }
+    } catch(e) { console.error('[Reports] Error cargando reglas:', e); }
+}
+
 async function loadReports() {
     try {
         var ruleFilter = document.getElementById('filter-rule').value;
         var statusFilter = document.getElementById('filter-status').value;
-        var q = supabase.from('player_reports').select('*, players!player_reports_reported_player_id_fkey(id, current_username), rule_sections(title)').order('created_at', { ascending: false }).limit(50);
+        var q = supabase.from('player_reports').select('*').order('created_at', { ascending: false }).limit(50);
         if (ruleFilter) q = q.eq('rule_section_id', ruleFilter);
         if (statusFilter !== 'all') q = q.eq('status', statusFilter);
         var { data, error } = await q;
         if (error) throw error;
         var list = document.getElementById('reports-list');
-        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes</div>'; return; }
+        if (!data || data.length === 0) {
+            list.innerHTML = '';
+            if (window.AhComponents) AhComponents.inject('empty-state', { message: 'No hay reportes' }, 'reports-list');
+            else list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes</div>';
+            return;
+        }
         list.innerHTML = data.map(function(r) {
             var statusBadge = r.status === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">ABIERTO</span>' : r.status === 'resolved' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">RESUELTO</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(158,158,158,0.15);color:#9e9e9e;">DESESTIMADO</span>';
-            var ruleBadge = r.rule_sections ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-2" style="background:#1a237e;color:#9fa8da;">' + r.rule_sections.title + '</span>' : '';
-            return '<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition cursor-pointer" onclick="openDetail(\'' + r.id + '\')"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte contra ' + (r.players ? r.players.current_username : r.reported_player_id) + '</h3><p class="text-sm text-slate-600 mt-1">' + r.description + '</p></div>' + statusBadge + '</div><div class="flex gap-2 mt-2">' + ruleBadge + '<span class="text-xs text-slate-400">' + formatDate(r.created_at) + '</span></div></div>';
+            var ruleTitle = ruleSectionsMap[r.rule_section_id] ? ruleSectionsMap[r.rule_section_id].title : 'Regla #' + r.rule_section_id;
+            var ruleBadge = '<span class="px-2 py-0.5 rounded text-xs font-bold ml-2" style="background:#1a237e;color:#9fa8da;">' + ruleTitle + '</span>';
+            return '<div class="rounded-xl p-4 mb-3 cursor-pointer transition" style="background:#11183a;border:1px solid #1a237e;" onclick="openDetail(\'' + r.id + '\')"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte contra jugador #' + r.reported_player_id + '</h3><p class="text-sm mt-1" style="color:#9fa8da;">' + (r.description || '').substring(0, 120) + '...</p></div>' + statusBadge + '</div><div class="flex gap-2 mt-2">' + ruleBadge + '<span class="text-xs" style="color:#9fa8da;">' + formatDate(r.created_at) + '</span></div></div>';
         }).join('');
-        loadRuleFilter();
-    } catch(e) { console.error('[Reports]', e); }
+    } catch(e) {
+        console.error('[Reports]', e);
+        document.getElementById('reports-list').innerHTML = '';
+        if (window.AhComponents) AhComponents.inject('error-state', { message: 'Error cargando reportes: ' + e.message, onRetry: loadReports }, 'reports-list');
+        else document.getElementById('reports-list').innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>';
+    }
 }
-async function loadRuleFilter() {
-    try { var { data } = await supabase.from('rule_sections').select('id, title').eq('is_active', true).order('order_index'); var select = document.getElementById('filter-rule'); if (data) select.innerHTML = '<option value="">Todas las reglas</option>' + data.map(function(r) { return '<option value="' + r.id + '">' + r.title + '</option>'; }).join(''); } catch(e) {}
-}
+
 async function openDetail(id) {
     currentReportId = id;
-    try { var { data, error } = await supabase.from('player_reports').select('*, players!player_reports_reported_player_id_fkey(id, current_username), rule_sections(title, content)').eq('id', id).single(); if (error) throw error; document.getElementById('detail-modal').classList.remove('hidden'); document.getElementById('d-title').textContent = 'Reporte contra ' + (data.players ? data.players.current_username : data.reported_player_id); document.getElementById('d-content').innerHTML = '<p class="text-sm mb-2"><strong>Descripcion:</strong> ' + data.description + '</p>' + (data.rule_sections ? '<p class="text-sm mb-2"><strong>Regla:</strong> ' + data.rule_sections.title + '</p><p class="text-sm mb-2 p-2 rounded" style="background:#0a0e27;">' + data.rule_sections.content + '</p>' : '') + '<p class="text-xs" style="color:#9fa8da;">Fecha: ' + formatDateTime(data.created_at) + '</p>'; loadPrecedentSuggestions(data.rule_section_id); } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    try {
+        var { data, error } = await supabase.from('player_reports').select('*').eq('id', id).single();
+        if (error) throw error;
+        document.getElementById('detail-modal').classList.remove('hidden');
+        var ruleTitle = ruleSectionsMap[data.rule_section_id] ? ruleSectionsMap[data.rule_section_id].title : 'Regla #' + data.rule_section_id;
+        document.getElementById('d-title').textContent = 'Reporte contra jugador #' + data.reported_player_id;
+        document.getElementById('d-content').innerHTML = '<p class="text-sm mb-2"><strong>Descripcion:</strong> ' + data.description + '</p><p class="text-sm mb-2"><strong>Regla:</strong> ' + ruleTitle + '</p><p class="text-xs" style="color:#9fa8da;">Fecha: ' + formatDateTime(data.created_at) + '</p>';
+        loadPrecedentSuggestions(data.rule_section_id);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
+
 async function loadPrecedentSuggestions(ruleSectionId) {
     if (!ruleSectionId) { document.getElementById('d-precedents').classList.add('hidden'); return; }
-    try { var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', ruleSectionId).eq('is_active', true); var div = document.getElementById('d-precedents'); if (data && data.length > 0) { div.classList.remove('hidden'); div.innerHTML = '<h4 class="font-bold text-sm mb-2" style="color:#ff8f00;">&#9878;&#65039; Precedentes relacionados:</h4>' + data.map(function(p) { return '<p class="text-sm">&#8226; <strong>' + p.title + ':</strong> ' + p.description + '</p>'; }).join(''); } else { div.classList.add('hidden'); } } catch(e) {}
+    try {
+        var { data } = await supabase.from('rule_precedents').select('*').eq('rule_section_id', ruleSectionId);
+        var div = document.getElementById('d-precedents');
+        if (data && data.length > 0) { div.classList.remove('hidden'); div.innerHTML = '<h4 class="font-bold text-sm mb-2" style="color:#ff8f00;">&#9878;&#65039; Precedentes relacionados:</h4>' + data.map(function(p) { return '<p class="text-sm">&#8226; <strong>' + p.title + ':</strong> ' + p.description + '</p>'; }).join(''); }
+        else { div.classList.add('hidden'); }
+    } catch(e) { document.getElementById('d-precedents').classList.add('hidden'); }
 }
+
 function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); currentReportId = null; }
-async function resolveReport() { if (!currentReportId) return; try { var { error } = await supabase.from('player_reports').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', currentReportId); if (error) throw error; showToast('Reporte resuelto', 'success'); closeDetail(); loadReports(); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
-async function dismissReport() { if (!currentReportId) return; try { var { error } = await supabase.from('player_reports').update({ status: 'dismissed', resolved_at: new Date().toISOString() }).eq('id', currentReportId); if (error) throw error; showToast('Reporte desestimado', 'info'); closeDetail(); loadReports(); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+
+async function resolveReport() {
+    if (!currentReportId) return;
+    try {
+        var { error } = await supabase.from('player_reports').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', currentReportId);
+        if (error) throw error;
+        showToast('Reporte resuelto', 'success'); closeDetail(); loadReports();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function dismissReport() {
+    if (!currentReportId) return;
+    try {
+        var { error } = await supabase.from('player_reports').update({ status: 'dismissed', resolved_at: new Date().toISOString() }).eq('id', currentReportId);
+        if (error) throw error;
+        showToast('Reporte desestimado', 'info'); closeDetail(); loadReports();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function init() {
+    await loadRuleSections();
+    await loadReports();
+}
+
 requireAdmin();
-loadReports();
+init();
 </script>
 </body>
 </html>

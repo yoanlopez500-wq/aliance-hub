@@ -7,12 +7,21 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Reglamento - Alliance Hub</title>
-<script src="assets/js/theme.js?v=16"></script>
+<!-- v18: Modular Architecture -->
+<script src="assets/js/theme.js?v=18"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=16"></script>
-<script src="assets/js/base.js?v=16"></script>
-<script src="assets/js/auth.js?v=16"></script>
+<script src="assets/js/config.js?v=18"></script>
+<script src="assets/js/base.js?v=18"></script>
+<script src="assets/js/roles-data.js?v=18"></script>
+<script src="assets/js/auth-core.js?v=18"></script>
+<script src="assets/js/messaging.js?v=18"></script>
+<script src="assets/js/notifications.js?v=18"></script>
+<script src="assets/js/nav-engine.js?v=18"></script>
+<script src="assets/js/training.js?v=18"></script>
+<script src="assets/js/components.js?v=18"></script>
+<!-- v18: Rules PDF Export Module -->
+<script src="assets/js/rules-pdf.js?v=18"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
@@ -21,7 +30,10 @@
 <div class="max-w-4xl mx-auto px-4 py-8">
 <h1 class="text-3xl font-bold mb-2">&#128220; Reglamento de Alliance Hub</h1>
 <p class="text-sm mb-6" style="color:#9fa8da;">Normativa oficial para partidas, torneos y comportamiento de jugadores.</p>
-<div class="mb-4"><input type="text" id="search-rules" placeholder="Buscar en el reglamento..." class="w-full px-4 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" oninput="filterRules(this.value)"></div>
+<div class="flex flex-col sm:flex-row gap-3 mb-4">
+<input type="text" id="search-rules" placeholder="Buscar en el reglamento..." class="flex-1 px-4 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" oninput="filterRules(this.value)">
+<button data-rules-pdf-btn class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition active:scale-[0.98]" style="background:linear-gradient(135deg,#1a237e,#283593);color:#fff;border:1px solid #3949ab;">&#128196; Descargar PDF</button>
+</div>
 <div id="rules-container" class="space-y-4">
 <div class="text-center py-8" style="color:#9fa8da;">Cargando reglamento...</div>
 </div>
@@ -32,38 +44,68 @@
 </div>
 </div>
 </div>
-<script src="sw-register.js?v=16.1"></script>
+<script src="sw-register.js?v=18"></script>
 <script>
+// v18: Carga reglas y precedentes de forma independiente
 async function loadRules() {
     try {
         var { data, error } = await supabase.from('rule_sections').select('*').eq('is_active', true).order('order_index');
         if (error) throw error;
         var container = document.getElementById('rules-container');
-        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reglas configuradas. Contacta a un administrador.</div>'; return; }
+        if (!data || data.length === 0) {
+            AhComponents.inject('empty-state', { message: 'No hay reglas configuradas. Contacta a un administrador.' }, 'rules-container');
+            return;
+        }
         container.innerHTML = data.map(function(s) {
-            var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' : s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
-            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + (s.title + ' ' + s.content).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
+            var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' :
+                        s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + ((s.title || '') + ' ' + (s.content || '')).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
         }).join('');
-        loadPrecedents();
-    } catch(e) { console.error('[Rules]', e); document.getElementById('rules-container').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando reglamento: ' + e.message + '</div>'; }
+    } catch(e) {
+        console.error('[Rules]', e);
+        AhComponents.inject('error-state', { message: 'Error cargando reglamento' }, 'rules-container');
+    }
 }
+
+// v18 FIX: Removido .eq('is_active', true) - la columna no existe en rule_precedents
 async function loadPrecedents() {
     try {
-        var { data, error } = await supabase.from('rule_precedents').select('*').eq('is_active', true).order('created_at', { ascending: false });
+        var { data, error } = await supabase.from('rule_precedents').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         var container = document.getElementById('precedents-container');
-        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>'; return; }
+        if (!data || data.length === 0) {
+            AhComponents.inject('empty-state', { message: 'No hay precedentes registrados aun.' }, 'precedents-container');
+            return;
+        }
         container.innerHTML = data.map(function(p) {
-            return '<div class="rounded-lg p-4" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-3"><span class="text-2xl">&#9878;&#65039;</span><div class="flex-1"><h4 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + p.title + '</h4><p class="text-sm mb-2" style="color:#e8eaf6;">' + p.description + '</p><p class="text-xs" style="color:#9fa8da;">Aplicado en: ' + formatDate(p.created_at) + '</p></div></div></div>';
+            var severityLabel = '';
+            if (p.severity === 'high') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(198,40,40,0.2);color:#ef5350;">ALTO</span>';
+            else if (p.severity === 'medium') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(255,143,0,0.2);color:#ff8f00;">MEDIO</span>';
+            else if (p.severity === 'low') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(76,175,80,0.2);color:#4caf50;">LEVE</span>';
+
+            var strikeInfo = p.strike_type ? '<p class="text-xs mt-1" style="color:#ff8f00;">Strike: ' + p.strike_type + '</p>' : '';
+            var resolutionInfo = p.resolution ? '<p class="text-xs mt-1" style="color:#4caf50;">Resolucion: ' + p.resolution + '</p>' : '';
+            var sectionRef = p.rule_section_id ? '<span class="text-[10px] ml-1" style="color:#9fa8da;">(Sec. #' + p.rule_section_id + ')</span>' : '';
+            var dateStr = '';
+            try { dateStr = formatDate(p.created_at); } catch(e) { dateStr = '-'; }
+
+            return '<div class="rounded-lg p-4" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-3"><span class="text-2xl">&#9878;&#65039;</span><div class="flex-1"><h4 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + p.title + sectionRef + severityLabel + '</h4><p class="text-sm mb-2" style="color:#e8eaf6;">' + p.description + '</p>' + strikeInfo + resolutionInfo + '<p class="text-xs mt-2" style="color:#9fa8da;">Aplicado: ' + dateStr + '</p></div></div></div>';
         }).join('');
-    } catch(e) { console.error('[Precedents]', e); document.getElementById('precedents-container').innerHTML = '<div class="text-center py-4 text-sm text-red-400">Error cargando precedentes</div>'; }
+    } catch(e) {
+        console.error('[Precedents]', e);
+        AhComponents.inject('error-state', { message: 'Error cargando precedentes' }, 'precedents-container');
+    }
 }
+
 function filterRules(query) {
     var items = document.querySelectorAll('#rules-container > div[data-search]');
     var q = query.toLowerCase();
     items.forEach(function(item) { item.style.display = item.dataset.search.includes(q) ? '' : 'none'; });
 }
+
+// Cargar ambos de forma independiente
 loadRules();
+loadPrecedents();
 </script>
 </body>
 </html>
