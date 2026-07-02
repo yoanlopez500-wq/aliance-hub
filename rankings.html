@@ -156,14 +156,38 @@ async function loadRankings() {
 
 async function loadAlliances() {
     try {
-        var res = await supabase.from('alliances').select('id, name, tag, member_count, total_kills').order('total_kills', { ascending: false }).limit(50);
+        // FIX: La tabla alliances NO tiene columnas member_count ni total_kills
+        // Cargar alianzas base + players para calcular stats
+        var res = await supabase.from('alliances').select('id, name, tag, description').order('name');
         if (res.error) throw res.error;
+
+        // Cargar players para contar miembros y kills por alianza
+        var playersRes = await supabase.from('players').select('current_alliance_id, total_kills');
+        var playerStats = {};
+        if (!playersRes.error && playersRes.data) {
+            playersRes.data.forEach(function(p) {
+                if (!p.current_alliance_id) return;
+                if (!playerStats[p.current_alliance_id]) {
+                    playerStats[p.current_alliance_id] = { count: 0, kills: 0 };
+                }
+                playerStats[p.current_alliance_id].count++;
+                playerStats[p.current_alliance_id].kills += (p.total_kills || 0);
+            });
+        }
+
         var c = document.getElementById('alliances-list');
         if (!res.data || res.data.length === 0) { c.innerHTML = '<div class="text-center py-8 text-ah-muted">Sin alianzas registradas</div>'; return; }
-        c.innerHTML = '<div class="grid md:grid-cols-2 gap-4">' + res.data.map(function(a, i) {
-            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center gap-3"><div class="text-2xl font-bold" style="color:#ff8f00;">#' + (i+1) + '</div><div class="flex-1"><h3 class="font-bold text-lg">' + a.name + '</h3><p class="text-xs text-ah-muted">[' + (a.tag || '-') + ']</p></div></div><div class="grid grid-cols-2 gap-3 mt-3"><div class="rounded-lg p-2 text-center" style="background:#0a0e27;"><p class="text-xs text-ah-muted">Miembros</p><p class="font-bold">' + (a.member_count || 0) + '</p></div><div class="rounded-lg p-2 text-center" style="background:#0a0e27;"><p class="text-xs text-ah-muted">Bajas</p><p class="font-bold" style="color:#4caf50;">' + (a.total_kills || 0) + '</p></div></div></div>';
+
+        // Sort by kills descending
+        var sorted = res.data.map(function(a) {
+            var stats = playerStats[a.id] || { count: 0, kills: 0 };
+            return { id: a.id, name: a.name, tag: a.tag, description: a.description, member_count: stats.count, total_kills: stats.kills };
+        }).sort(function(a, b) { return b.total_kills - a.total_kills; });
+
+        c.innerHTML = '<div class="grid md:grid-cols-2 gap-4">' + sorted.map(function(a, i) {
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center gap-3"><div class="text-2xl font-bold" style="color:#ff8f00;">#' + (i+1) + '</div><div class="flex-1"><h3 class="font-bold text-lg">' + a.name + '</h3><p class="text-xs text-ah-muted">[' + (a.tag || '-') + ']</p></div></div><div class="grid grid-cols-2 gap-3 mt-3"><div class="rounded-lg p-2 text-center" style="background:#0a0e27;"><p class="text-xs text-ah-muted">Miembros</p><p class="font-bold">' + (a.member_count || 0) + '</p></div><div class="rounded-lg p-2 text-center" style="background:#0a0e27;"><p class="text-xs text-ah-muted">Bajas</p><p class="font-bold" style="color:#4caf50;">' + (a.total_kills || 0).toLocaleString() + '</p></div></div></div>';
         }).join('') + '</div>';
-    } catch(e) { console.error('[Rankings] alianzas:', e); document.getElementById('alliances-list').innerHTML = '<div class="text-center py-8 text-red-400">Error alianzas</div>'; }
+    } catch(e) { console.error('[Rankings] alianzas:', e); document.getElementById('alliances-list').innerHTML = '<div class="text-center py-8 text-red-400">Error alianzas: ' + (e.message || e) + '</div>'; }
 }
 
 // v17 FIX: Usa tabla 'matches' con match_type='duel' en lugar de tabla 'duels' que no existe
