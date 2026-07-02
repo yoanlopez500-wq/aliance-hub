@@ -3,20 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel de Alianza - Alliance Hub</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=18"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Panel de Lider - Alliance Hub</title>
+<!-- FIX #1: Supabase CDN MUST be first, before config.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- v18: Modular Architecture - Core -->
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
+<!-- v18: DB Schema Centralizer -->
+<script src="assets/js/db-schema.js?v=18"></script>
+<!-- v18: Modular Architecture - Auth & Navigation -->
+<script src="assets/js/roles-data.js?v=18"></script>
+<script src="assets/js/auth-core.js?v=18"></script>
+<script src="assets/js/messaging.js?v=18"></script>
+<script src="assets/js/notifications.js?v=18"></script>
+<script src="assets/js/nav-engine.js?v=18"></script>
+<script src="assets/js/training.js?v=18"></script>
+<!-- v18: Modular Architecture - UI Components -->
 <script src="assets/js/components.js?v=18"></script>
-<script src="assets/js/auth.js?v=18"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/theme.js?v=18"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 body { font-family: 'Inter', system-ui, sans-serif; }
 .fade-in { animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.tab-active { border-bottom: 2px solid #ff6f00; color: #ff8f00; }
+.tab-active { border-bottom: 2px solid #ff6f00; color: #ff6f00; }
 .tab-inactive { border-bottom: 2px solid transparent; color: #9fa8da; }
 .tab-inactive:hover { color: #e8eaf6; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -28,86 +42,98 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 
 <div class="max-w-6xl mx-auto px-4 py-6">
 
-    <!-- Alliance Header -->
-    <div id="alliance-header" class="mb-6 fade-in">
-        <div class="flex flex-wrap items-center gap-4 mb-2">
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold" style="background: linear-gradient(135deg, #1a237e, #283593);">&#127988;</div>
-            <div class="flex-1">
-                <h1 class="text-2xl font-bold text-white" id="alliance-name">Cargando...</h1>
-                <p class="text-sm" style="color: #9fa8da;" id="alliance-tag">--</p>
-            </div>
-            <div class="flex gap-2 flex-wrap">
-                <a href="admin/duel-manager.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">&#9876;&#65039; Preparar Duelo</a>
-                <a href="admin/matches.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #e8eaf6;">&#10133; Nueva Partida</a>
-            </div>
-        </div>
-    </div>
+<!-- Alliance Header -->
+<div id="alliance-header" class="mb-6 fade-in">
+<div class="flex flex-wrap items-center gap-4 mb-2">
+<div class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold" style="background: linear-gradient(135deg, #1a237e, #283593);">&#127988;</div>
+<div class="flex-1">
+<h1 class="text-2xl font-bold text-white" id="alliance-name">Cargando...</h1>
+<p class="text-sm" style="color: #9fa8da;" id="alliance-tag">--</p>
+</div>
+<div class="flex gap-2 flex-wrap">
+<a href="admin/duel-manager.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">&#9876;&#65039; Preparar Duelo</a>
+<a href="admin/matches.html" class="px-4 py-2 rounded-lg text-sm font-bold transition active:scale-[0.98]" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e; color: #e8eaf6;">&#10133; Nueva Partida</a>
+</div>
+</div>
+</div>
 
-    <!-- Tabs -->
-    <div class="flex gap-6 mb-6 border-b overflow-x-auto scrollbar-hide" style="border-color: #1a237e;">
-        <button onclick="switchTab('members')" id="tab-members" class="tab-active pb-3 text-sm font-medium whitespace-nowrap transition">&#128101; Miembros</button>
-        <button onclick="switchTab('requests')" id="tab-requests" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#128233; Solicitudes <span id="req-badge" class="hidden px-1.5 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(239,83,80,0.3);color:#ef5350">0</span></button>
-        <button onclick="switchTab('rankings')" id="tab-rankings" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127942; Ranking Interno</button>
-        <button onclick="switchTab('duels')" id="tab-duels" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#9876;&#65039; Duelos</button>
-        <button onclick="switchTab('global')" id="tab-global" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127758; Ranking Global</button>
-    </div>
+<!-- Tabs -->
+<div class="flex gap-6 mb-6 border-b overflow-x-auto scrollbar-hide" style="border-color: #1a237e;">
+<button onclick="switchTab('members')" id="tab-members" class="tab-active pb-3 text-sm font-medium whitespace-nowrap transition">&#128101; Miembros</button>
+<button onclick="switchTab('requests')" id="tab-requests" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#128233; Solicitudes <span id="req-badge" class="hidden px-1.5 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(239,83,80,0.3);color:#ef5350">0</span></button>
+<button onclick="switchTab('rankings')" id="tab-rankings" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127942; Ranking Interno</button>
+<button onclick="switchTab('duels')" id="tab-duels" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#9876;&#65039; Duelos</button>
+<button onclick="switchTab('global')" id="tab-global" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127758; Ranking Global</button>
+</div>
 
-    <!-- TAB: Members -->
-    <div id="panel-members" class="fade-in">
-        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <h3 class="text-sm font-bold text-white mb-2">&#10133; Inscribir Jugador Directamente</h3>
-            <p class="text-xs mb-3" style="color: #9fa8da;">Como lider, puedes agregar jugadores sin que soliciten. Ingresa su ID.</p>
-            <div class="flex gap-2">
-                <input type="number" id="add-player-id" placeholder="ID del jugador" class="flex-1 px-3 py-2 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
-                <button onclick="addMemberDirectly()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Agregar</button>
-            </div>
-            <div id="add-member-error" class="mt-2 text-xs hidden" style="color: #ef5350;"></div>
-            <div id="add-member-success" class="mt-2 text-xs hidden" style="color: #4caf50;"></div>
-        </div>
-        <div class="grid gap-3" id="members-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando miembros...</div></div>
-    </div>
+<!-- TAB: Members -->
+<div id="panel-members" class="fade-in">
+<div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+<h3 class="text-sm font-bold text-white mb-2">&#10133; Inscribir Jugador Directamente</h3>
+<p class="text-xs mb-3" style="color: #9fa8da;">Como lider, puedes agregar jugadores sin que soliciten. Ingresa su ID.</p>
+<div class="flex gap-2">
+<input type="number" id="add-player-id" placeholder="ID del jugador" class="flex-1 px-3 py-2 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
+<button onclick="addMemberDirectly()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Agregar</button>
+</div>
+<div id="add-member-error" class="mt-2 text-xs hidden" style="color: #ef5350;"></div>
+<div id="add-member-success" class="mt-2 text-xs hidden" style="color: #4caf50;"></div>
+</div>
+<div class="grid gap-3" id="members-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando miembros...</div></div>
+</div>
 
-    <!-- TAB: Requests -->
-    <div id="panel-requests" class="hidden fade-in">
-        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <h3 class="text-sm font-bold text-white mb-1">&#128233; Solicitudes Pendientes</h3>
-            <p class="text-xs" style="color: #9fa8da;">Jugadores que solicitaron unirse a tu alianza. Aprueba o rechaza cada solicitud.</p>
-        </div>
-        <div id="requests-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando solicitudes...</div></div>
-    </div>
+<!-- TAB: Requests -->
+<div id="panel-requests" class="hidden fade-in">
+<div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+<h3 class="text-sm font-bold text-white mb-1">&#128233; Solicitudes Pendientes</h3>
+<p class="text-xs" style="color: #9fa8da;">Jugadores que solicitaron unirse a tu alianza. Aprueba o rechaza cada solicitud.</p>
+</div>
+<div id="requests-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando solicitudes...</div></div>
+</div>
 
-    <!-- TAB: Rankings -->
-    <div id="panel-rankings" class="hidden">
-        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <div class="flex items-center gap-2 mb-4">
-                <span class="text-sm font-medium" style="color: #9fa8da;">Filtrar por tipo:</span>
-                <select id="ranking-filter" onchange="loadRankings()" class="px-3 py-1.5 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
-                    <option value="all">Todas las partidas</option>
-                    <option value="internal">Partidas internas</option>
-                    <option value="duel">Duelos de alianza</option>
-                </select>
-            </div>
-            <div id="rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings...</div></div>
-        </div>
-    </div>
+<!-- TAB: Rankings (Internal) -->
+<div id="panel-rankings" class="hidden">
+<div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+<div class="flex items-center gap-2 mb-4">
+<span class="text-sm font-medium" style="color: #9fa8da;">Filtrar por tipo:</span>
+<select id="ranking-filter" onchange="loadRankings()" class="px-3 py-1.5 rounded-lg text-sm text-white" style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;">
+<option value="all">Todas las partidas</option>
+<option value="internal">Partidas internas</option>
+<option value="duel">Duelos de alianza</option>
+</select>
+</div>
+<div id="rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings...</div></div>
+</div>
+</div>
 
-    <!-- TAB: Duels -->
-    <div id="panel-duels" class="hidden">
-        <div id="duels-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando duelos...</div></div>
-    </div>
+<!-- TAB: Duels -->
+<div id="panel-duels" class="hidden">
+<div id="duels-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando duelos...</div></div>
+</div>
 
-    <!-- TAB: Global -->
-    <div id="panel-global" class="hidden">
-        <div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-sm mb-4" style="color: #9fa8da;">Este ranking muestra la posicion de los jugadores de tu alianza en el ranking global de AllianceHub.</p>
-            <div id="global-rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings globales...</div></div>
-        </div>
-    </div>
+<!-- TAB: Global -->
+<div id="panel-global" class="hidden">
+<div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+<p class="text-sm mb-4" style="color: #9fa8da;">Este ranking muestra la posicion de los jugadores de tu alianza en el ranking global de AllianceHub.</p>
+<div id="global-rankings-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando rankings globales...</div></div>
+</div>
+</div>
 
 </div>
 
 <script>
-requireMinRole('alliance_leader');
+// Wait for Supabase to be ready
+function waitForSupabase(callback, attempts) {
+    attempts = attempts || 0;
+    if (typeof window.supabase !== 'undefined' && typeof window.supabase.from === 'function') {
+        callback();
+        return;
+    }
+    if (attempts < 50) {
+        setTimeout(function() { waitForSupabase(callback, attempts + 1); }, 100);
+    } else {
+        console.error('[LeaderDashboard] Supabase not available after 5s');
+    }
+}
 
 var myAllianceId = null;
 var myAllianceData = null;
@@ -115,28 +141,43 @@ var allianceMembers = [];
 var currentTab = 'members';
 
 async function init() {
-    var admin = await getAdminRole();
-    if (!admin || !admin.alliance_id) {
-        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center" style="background: #0a0e27; color: #9fa8da;">' +
-            '<div class="text-center"><div class="text-4xl mb-4">&#9888;&#65039;</div><h2 class="text-xl font-bold text-white mb-2">Sin Alianza Asignada</h2>' +
-            '<p class="mb-4">No tienes una alianza asignada. Contacta a un superadmin.</p>' +
-            '<a href="admin/index.html" class="px-4 py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Ir al Dashboard</a></div></div>';
-        return;
+    try {
+        var admin = await getAdminRole();
+        if (!admin || admin.role !== 'alliance_leader') {
+            console.error('[LeaderDashboard] Not alliance_leader:', admin);
+            window.location.href = ahPath('index.html');
+            return;
+        }
+        if (!admin.alliance_id) {
+            document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center" style="background: #0a0e27; color: #9fa8da;">' +
+                '<div class="text-center"><div class="text-4xl mb-4">&#9888;&#65039;</div><h2 class="text-xl font-bold text-white mb-2">Sin Alianza Asignada</h2>' +
+                '<p class="mb-4">No tienes una alianza asignada. Contacta a un superadmin.</p>' +
+                '<a href="admin/index.html" class="px-4 py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Ir al Dashboard</a></div></div>';
+            return;
+        }
+        myAllianceId = admin.alliance_id;
+        await loadAllianceData();
+        loadMembers();
+        loadPendingRequests();
+    } catch(e) {
+        console.error('[LeaderDashboard] Init error:', e);
+        document.querySelector('.max-w-6xl').innerHTML = '<div class="text-center py-12 text-red-400">Error cargando panel: ' + e.message + '</div>';
     }
-    myAllianceId = admin.alliance_id;
-    await loadAllianceData();
-    loadMembers();
-    loadPendingRequests();
 }
 
 async function loadAllianceData() {
-    var { data, error } = await supabase.from('alliances').select('*').eq('id', myAllianceId).single();
-    if (data) {
-        myAllianceData = data;
-        document.getElementById('alliance-name').textContent = data.name;
-        document.getElementById('alliance-tag').textContent = '[' + (data.tag || '---') + '] ' + (data.description || '');
-    }
+    try {
+        var ac = DB.tableCols('alliances');
+        var { data, error } = await DB.from('alliances').select(DB.cols.alliances.full).eq('id', myAllianceId).single();
+        if (data) {
+            myAllianceData = data;
+            document.getElementById('alliance-name').textContent = data[ac.name];
+            document.getElementById('alliance-tag').textContent = '[' + (data[ac.tag] || '---') + '] ' + (data[ac.description] || '');
+        }
+    } catch(e) { console.error('[LeaderDashboard] Alliance data error:', e); }
 }
+
+// ===================== ADD MEMBER =====================
 
 async function addMemberDirectly() {
     var input = document.getElementById('add-player-id');
@@ -149,25 +190,27 @@ async function addMemberDirectly() {
     if (!playerId || playerId <= 0) { errorEl.textContent = 'ID de jugador invalido'; errorEl.classList.remove('hidden'); return; }
 
     try {
-        var { data: player, error: pErr } = await supabase.from('players').select('id, current_username').eq('id', playerId).maybeSingle();
+        var pc = DB.tableCols('players');
+        var { data: player, error: pErr } = await DB.from('players').select([pc.id, pc.username].join(', ')).eq(pc.id, playerId).maybeSingle();
         if (pErr) throw pErr;
         if (!player) { errorEl.textContent = 'Jugador no encontrado con ID ' + playerId; errorEl.classList.remove('hidden'); return; }
 
-        var { data: existing } = await supabase.from('alliance_memberships').select('status').eq('player_id', playerId).maybeSingle();
-        if (existing && existing.status === 'approved') { errorEl.textContent = 'Este jugador ya esta en una alianza'; errorEl.classList.remove('hidden'); return; }
+        var ac = DB.tableCols('allianceMemberships');
+        var { data: existing } = await DB.from('allianceMemberships').select(ac.status).eq(ac.playerId, playerId).maybeSingle();
+        if (existing && existing[ac.status] === 'approved') { errorEl.textContent = 'Este jugador ya esta en una alianza'; errorEl.classList.remove('hidden'); return; }
 
-        var { error: mErr } = await supabase.from('alliance_memberships').upsert({
-            player_id: playerId,
-            alliance_id: myAllianceId,
-            status: 'approved',
-            requested_by: 'leader',
-            approved_at: new Date().toISOString()
+        var { error: mErr } = await DB.from('allianceMemberships').upsert({
+            [ac.playerId]: playerId,
+            [ac.allianceId]: myAllianceId,
+            [ac.status]: 'approved',
+            [ac.requestedBy]: 'leader',
+            [ac.approvedAt]: new Date().toISOString()
         }, { onConflict: 'player_id_alliance_id' });
         if (mErr) throw mErr;
 
-        await supabase.from('players').update({ current_alliance_id: myAllianceId }).eq('id', playerId);
+        await DB.from('players').update({ [pc.allianceId]: myAllianceId }).eq(pc.id, playerId);
 
-        successEl.textContent = player.current_username + ' agregado exitosamente!';
+        successEl.textContent = player[pc.username] + ' agregado exitosamente!';
         successEl.classList.remove('hidden');
         input.value = '';
         loadMembers();
@@ -179,23 +222,26 @@ async function addMemberDirectly() {
     }
 }
 
+// ===================== REQUESTS =====================
+
 async function loadPendingRequests() {
     try {
-        var { data: requests, error } = await supabase.from('alliance_memberships')
+        var ac = DB.tableCols('allianceMemberships');
+        var { data: requests, error } = await DB.from('allianceMemberships')
             .select('*')
-            .eq('alliance_id', myAllianceId)
-            .eq('status', 'pending')
-            .eq('requested_by', 'player')
-            .order('requested_at', { ascending: false });
+            .eq(ac.allianceId, myAllianceId)
+            .eq(ac.status, 'pending')
+            .eq(ac.requestedBy, 'player')
+            .order(ac.requestedAt, { ascending: false });
 
         if (error) throw error;
 
-        // Load player names separately
-        var playerIds = (requests || []).map(function(r) { return r.player_id; }).filter(Boolean);
+        var playerIds = (requests || []).map(function(r) { return r[ac.playerId]; }).filter(Boolean);
         var playerMap = {};
         if (playerIds.length > 0) {
-            var { data: players } = await supabase.from('players').select('id, current_username, games_played, total_kills, total_deaths').in('id', playerIds);
-            (players || []).forEach(function(p) { playerMap[p.id] = p; });
+            var pc = DB.tableCols('players');
+            var { data: players } = await DB.from('players').select([pc.id, pc.username, pc.gamesPlayed, pc.kills, pc.deaths].join(', ')).in(pc.id, playerIds);
+            (players || []).forEach(function(p) { playerMap[p[pc.id]] = p; });
         }
 
         var badge = document.getElementById('req-badge');
@@ -211,18 +257,19 @@ async function loadPendingRequests() {
         }
 
         container.innerHTML = requests.map(function(r) {
-            var p = playerMap[r.player_id] || {};
-            var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : '0.00';
+            var p = playerMap[r[ac.playerId]] || {};
+            var pc = DB.tableCols('players');
+            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : '0.00';
             return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
                 '<div class="flex items-center gap-3 mb-3">' +
                     '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
-                        (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                        (p[pc.username] ? p[pc.username].charAt(0).toUpperCase() : '?') + '</div>' +
                     '<div class="flex-1 min-w-0">' +
-                        '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + r.player_id) + '</p>' +
-                        '<p class="text-xs" style="color: #9fa8da;">ID: ' + r.player_id + ' &middot; ' + (p.games_played || 0) + ' partidas &middot; KD: ' + kd + '</p>' +
-                        '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Solicitado: ' + formatDate(r.requested_at) + '</p></div></div>' +
+                        '<p class="font-bold text-white text-sm truncate">' + (p[pc.username] || 'Jugador ' + r[ac.playerId]) + '</p>' +
+                        '<p class="text-xs" style="color: #9fa8da;">ID: ' + r[ac.playerId] + ' &middot; ' + (p[pc.gamesPlayed] || 0) + ' partidas &middot; KD: ' + kd + '</p>' +
+                        '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Solicitado: ' + formatDate(r[ac.requestedAt]) + '</p></div></div>' +
                 '<div class="flex gap-2">' +
-                    '<button onclick="approveRequest(\'' + r.id + '\', ' + r.player_id + ')" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid rgba(76,175,80,0.3);">&#10003; Aprobar</button>' +
+                    '<button onclick="approveRequest(\'' + r.id + '\', ' + r[ac.playerId] + ')" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid rgba(76,175,80,0.3);">&#10003; Aprobar</button>' +
                     '<button onclick="rejectRequest(\'' + r.id + '\')" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background: rgba(239,83,80,0.15); color: #ef5350; border: 1px solid rgba(239,83,80,0.3);">&#10007; Rechazar</button>' +
                 '</div></div>';
         }).join('');
@@ -234,11 +281,13 @@ async function loadPendingRequests() {
 
 async function approveRequest(membershipId, playerId) {
     try {
-        var { error } = await supabase.from('alliance_memberships')
-            .update({ status: 'approved', approved_at: new Date().toISOString() })
+        var ac = DB.tableCols('allianceMemberships');
+        var pc = DB.tableCols('players');
+        var { error } = await DB.from('allianceMemberships')
+            .update({ [ac.status]: 'approved', [ac.approvedAt]: new Date().toISOString() })
             .eq('id', membershipId);
         if (error) throw error;
-        await supabase.from('players').update({ current_alliance_id: myAllianceId }).eq('id', playerId);
+        await DB.from('players').update({ [pc.allianceId]: myAllianceId }).eq(pc.id, playerId);
         showToast('Solicitud aprobada!', 'success');
         loadPendingRequests();
         if (currentTab === 'members') loadMembers();
@@ -248,8 +297,9 @@ async function approveRequest(membershipId, playerId) {
 async function rejectRequest(membershipId) {
     if (!confirm('Rechazar esta solicitud?')) return;
     try {
-        var { error } = await supabase.from('alliance_memberships')
-            .update({ status: 'rejected', rejected_at: new Date().toISOString() })
+        var ac = DB.tableCols('allianceMemberships');
+        var { error } = await DB.from('allianceMemberships')
+            .update({ [ac.status]: 'rejected', [ac.approvedAt]: null })
             .eq('id', membershipId);
         if (error) throw error;
         showToast('Solicitud rechazada', 'info');
@@ -257,12 +307,15 @@ async function rejectRequest(membershipId) {
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
+// ===================== MEMBERS =====================
+
 async function loadMembers() {
     try {
-        var { data: memberships, error: mErr } = await supabase.from('alliance_memberships')
-            .select('player_id, requested_by, approved_at')
-            .eq('alliance_id', myAllianceId)
-            .eq('status', 'approved');
+        var ac = DB.tableCols('allianceMemberships');
+        var { data: memberships, error: mErr } = await DB.from('allianceMemberships')
+            .select([ac.playerId, ac.requestedBy, ac.approvedAt].join(', '))
+            .eq(ac.allianceId, myAllianceId)
+            .eq(ac.status, 'approved');
         if (mErr) throw mErr;
 
         var container = document.getElementById('members-list');
@@ -272,31 +325,32 @@ async function loadMembers() {
             return;
         }
 
-        var playerIds = memberships.map(function(m) { return m.player_id; });
-        var { data: players, error: pErr } = await supabase.from('players')
-            .select('id, current_username, status, games_played, total_kills, total_deaths, last_seen')
-            .in('id', playerIds)
-            .order('current_username');
+        var playerIds = memberships.map(function(m) { return m[ac.playerId]; });
+        var pc = DB.tableCols('players');
+        var { data: players, error: pErr } = await DB.from('players')
+            .select([pc.id, pc.username, pc.status, pc.gamesPlayed, pc.kills, pc.deaths, pc.lastSeen].join(', '))
+            .in(pc.id, playerIds)
+            .order(pc.username);
         if (pErr) throw pErr;
 
         allianceMembers = players || [];
         var memberMap = {};
-        memberships.forEach(function(m) { memberMap[m.player_id] = m; });
+        memberships.forEach(function(m) { memberMap[m[ac.playerId]] = m; });
 
         container.innerHTML = players.map(function(p) {
-            var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
-            var statusColor = p.status === 'active' ? '#4caf50' : p.status === 'suspended' ? '#ff8f00' : '#ef5350';
-            var addedBy = memberMap[p.id]?.requested_by === 'leader' ? ' (por lider)' : '';
+            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : p[pc.kills] > 0 ? p[pc.kills].toFixed(2) : '0.00';
+            var statusColor = p[pc.status] === 'active' ? '#4caf50' : p[pc.status] === 'suspended' ? '#ff8f00' : '#ef5350';
+            var addedBy = memberMap[p[pc.id]] && memberMap[p[pc.id]][ac.requestedBy] === 'leader' ? ' (por lider)' : '';
             return '<div class="rounded-xl p-4 flex items-center gap-4 transition hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;">' +
                 '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
-                    (p.current_username ? p.current_username.charAt(0).toUpperCase() : '?') + '</div>' +
+                    (p[pc.username] ? p[pc.username].charAt(0).toUpperCase() : '?') + '</div>' +
                 '<div class="flex-1 min-w-0">' +
-                    '<p class="font-bold text-white text-sm truncate">' + (p.current_username || 'Jugador ' + p.id) + addedBy + '</p>' +
-                    '<p class="text-xs" style="color: #9fa8da;">ID: ' + p.id + ' &middot; ' + (p.games_played || 0) + ' partidas</p></div>' +
+                    '<p class="font-bold text-white text-sm truncate">' + (p[pc.username] || 'Jugador ' + p[pc.id]) + addedBy + '</p>' +
+                    '<p class="text-xs" style="color: #9fa8da;">ID: ' + p[pc.id] + ' &middot; ' + (p[pc.gamesPlayed] || 0) + ' partidas</p></div>' +
                 '<div class="text-right flex-shrink-0">' +
                     '<p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
-                    '<p class="text-xs" style="color: #9fa8da;">' + (p.total_kills || 0) + 'K / ' + (p.total_deaths || 0) + 'D</p></div>' +
-                '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p.status || 'active') + '</span></div>';
+                    '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.kills] || 0) + 'K / ' + (p[pc.deaths] || 0) + 'D</p></div>' +
+                '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p[pc.status] || 'active') + '</span></div>';
         }).join('');
     } catch(e) {
         console.error('[Leader] Members error:', e);
@@ -304,109 +358,176 @@ async function loadMembers() {
     }
 }
 
+// ===================== RANKINGS =====================
+
 async function loadRankings() {
     var filter = document.getElementById('ranking-filter').value;
     var container = document.getElementById('rankings-list');
     container.innerHTML = '<div class="text-center py-4" style="color: #9fa8da;">Cargando...</div>';
     if (!myAllianceId) return;
 
-    var query = supabase.from('match_registrations')
-        .select('player_id, status, matches!inner(match_type, alliance_id)')
-        .eq('matches.alliance_id', myAllianceId)
-        .in('status', ['confirmed', 'played']);
-    if (filter !== 'all') query = query.eq('matches.match_type', filter);
+    try {
+        var mc = DB.tableCols('matches');
+        var { data: iMatches } = await DB.from('matches').select('id')
+            .eq(mc.allianceId, myAllianceId);
+        var matchIds = (iMatches || []).map(function(m) { return m[mc.id] || m.id; });
 
-    var { data: regs, error } = await query;
-    if (error || !regs) { container.innerHTML = '<div class="text-center py-4" style="color: #ef5350;">Error cargando rankings</div>'; return; }
+        if (matchIds.length === 0) {
+            container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay partidas registradas.</div>';
+            return;
+        }
 
-    var playerGames = {};
-    regs.forEach(function(r) { if (!playerGames[r.player_id]) playerGames[r.player_id] = 0; playerGames[r.player_id]++; });
+        var rc = DB.tableCols('matchRegistrations');
+        var query = DB.from('matchRegistrations')
+            .select([rc.playerId, rc.status, 'matches!inner(match_type, alliance_id)'].join(', '))
+            .in(rc.matchId, matchIds)
+            .in(rc.status, ['confirmed', 'played']);
 
-    var sorted = Object.keys(playerGames).map(function(pid) {
-        return { player_id: parseInt(pid), games: playerGames[pid] };
-    }).sort(function(a, b) { return b.games - a.games; });
+        if (filter !== 'all') {
+            query = query.eq('matches.match_type', filter);
+        }
 
-    var pids = sorted.map(function(s) { return s.player_id; });
-    var { data: players } = await supabase.from('players').select('id, current_username').in('id', pids);
-    var nameMap = {}; (players || []).forEach(function(p) { nameMap[p.id] = p.current_username; });
+        var { data: regs, error } = await query;
+        if (error || !regs) {
+            container.innerHTML = '<div class="text-center py-4" style="color: #ef5350;">Error cargando rankings</div>';
+            return;
+        }
 
-    if (sorted.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings aun</div>'; return; }
+        var playerGames = {};
+        regs.forEach(function(r) {
+            if (!playerGames[r[rc.playerId]]) playerGames[r[rc.playerId]] = 0;
+            playerGames[r[rc.playerId]]++;
+        });
 
-    container.innerHTML = '<div class="space-y-2">' + sorted.map(function(s, idx) {
-        var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
-        return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
-            '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
-            '<div class="flex-1"><p class="font-bold text-sm text-white">' + (nameMap[s.player_id] || 'Jugador ' + s.player_id) + '</p></div>' +
-            '<span class="text-sm font-bold" style="color: #ff8f00;">' + s.games + ' partidas</span></div>';
-    }).join('') + '</div>';
+        var sorted = Object.keys(playerGames).map(function(pid) {
+            return { player_id: parseInt(pid), games: playerGames[pid] };
+        }).sort(function(a, b) { return b.games - a.games; });
+
+        if (sorted.length === 0) {
+            container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings aun</div>';
+            return;
+        }
+
+        var pids = sorted.map(function(s) { return s.player_id; });
+        var pc = DB.tableCols('players');
+        var { data: players } = await DB.from('players').select([pc.id, pc.username].join(', ')).in(pc.id, pids);
+        var nameMap = {}; (players || []).forEach(function(p) { nameMap[p[pc.id]] = p[pc.username]; });
+
+        container.innerHTML = '<div class="space-y-2">' + sorted.map(function(s, idx) {
+            var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
+            return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
+                '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
+                '<div class="flex-1"><p class="font-bold text-sm text-white">' + (nameMap[s.player_id] || 'Jugador ' + s.player_id) + '</p></div>' +
+                '<span class="text-sm font-bold" style="color: #ff8f00;">' + s.games + ' partidas</span></div>';
+        }).join('') + '</div>';
+    } catch(e) {
+        console.error('[Leader] Rankings error:', e);
+        container.innerHTML = '<div class="text-center py-4 text-red-400">Error cargando rankings</div>';
+    }
 }
+
+// ===================== DUELS (using matches table) =====================
 
 async function loadDuels() {
     var container = document.getElementById('duels-list');
     if (!myAllianceId) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">Sin alianza asignada</div>'; return; }
 
-    var { data: teams, error } = await supabase.from('alliance_duel_teams')
-        .select('*').eq('alliance_id', myAllianceId).order('created_at', { ascending: false });
+    try {
+        var mc = DB.tableCols('matches');
+        var { data: duelsA, error: errA } = await DB.from('matches')
+            .select(DB.cols.matches.basic)
+            .eq(mc.allianceAId, myAllianceId)
+            .eq(mc.matchType, 'duel')
+            .order(mc.createdAt, { ascending: false });
+        var { data: duelsB, error: errB } = await DB.from('matches')
+            .select(DB.cols.matches.basic)
+            .eq(mc.allianceBId, myAllianceId)
+            .eq(mc.matchType, 'duel')
+            .order(mc.createdAt, { ascending: false });
 
-    if (error) { container.innerHTML = '<div class="text-center py-8" style="color: #ef5350;">Error: ' + error.message + '</div>'; return; }
-    if (!teams || teams.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e;">' +
-            '<div class="text-4xl mb-2">&#9876;&#65039;</div><p style="color: #9fa8da;">No tienes equipos de duelo preparados.</p>' +
-            '<a href="admin/duel-manager.html" class="inline-block mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Preparar Equipo</a></div>';
-        return;
+        if (errA) throw errA;
+
+        var allDuels = [];
+        (duelsA || []).forEach(function(d) { allDuels.push(d); });
+        (duelsB || []).forEach(function(d) { if (!allDuels.find(function(x) { return (x[mc.id] || x.id) === (d[mc.id] || d.id); })) allDuels.push(d); });
+        allDuels.sort(function(a, b) { return new Date(b[mc.createdAt]) - new Date(a[mc.createdAt]); });
+
+        if (allDuels.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 rounded-xl" style="background: #11183a; border: 1px solid #1a237e;">' +
+                '<div class="text-4xl mb-2">&#9876;&#65039;</div><p style="color: #9fa8da;">No tienes duelos registrados.</p>' +
+                '<a href="admin/duel-manager.html" class="inline-block mt-3 px-4 py-2 rounded-lg text-sm font-bold" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">Preparar Equipo</a></div>';
+            return;
+        }
+
+        var oppIds = allDuels.map(function(d) { return d[mc.allianceAId] === myAllianceId ? d[mc.allianceBId] : d[mc.allianceAId]; }).filter(function(v, i, a) { return v && a.indexOf(v) === i; });
+        var ac = DB.tableCols('alliances');
+        var { data: alliances } = await DB.from('alliances').select([ac.id, ac.name, ac.tag].join(', ')).in(ac.id, oppIds);
+        var allMap = {}; (alliances || []).forEach(function(a) { allMap[a[ac.id]] = a; });
+
+        container.innerHTML = allDuels.map(function(d) {
+            var oppId = d[mc.allianceAId] === myAllianceId ? d[mc.allianceBId] : d[mc.allianceAId];
+            var opp = allMap[oppId] || { name: 'Desconocida', tag: '?' };
+            return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
+                '<div class="flex items-center justify-between mb-2"><span class="font-bold text-white">' + d[mc.name] + '</span>' +
+                getStatusBadge(d[mc.status]) + '</div>' +
+                '<p class="text-sm mb-1" style="color: #9fa8da;">&#9876;&#65039; vs [' + opp[ac.tag] + '] ' + opp[ac.name] + '</p>' +
+                '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">' + formatDate(d[mc.createdAt]) + ' | Max: ' + d[mc.maxPlayers] + ' jugadores</p>' +
+                '<a href="game.html?id=' + (d[mc.id] || d.id) + '" class="inline-block mt-2 text-sm font-bold" style="color: #ff8f00;">Ver partida &rarr;</a></div>';
+        }).join('');
+    } catch(e) {
+        console.error('[Leader] Duels error:', e);
+        container.innerHTML = '<div class="text-center py-8 text-red-400">Error cargando duelos: ' + e.message + '</div>';
     }
-
-    // Load matches separately
-    var matchIds = teams.map(function(t) { return t.match_id; }).filter(Boolean);
-    var matchMap = {};
-    if (matchIds.length > 0) {
-        var { data: matches } = await supabase.from('matches').select('id, name, status').in('id', matchIds);
-        (matches || []).forEach(function(m) { matchMap[m.id] = m; });
-    }
-
-    container.innerHTML = teams.map(function(t) {
-        var statusColors = { forming: '#ff8f00', ready: '#4caf50', matched: '#2196f3', active: '#ff6f00', completed: '#9fa8da' };
-        var statusLabels = { forming: 'Formando', ready: 'Listo', matched: 'Emparejado', active: 'En curso', completed: 'Completado' };
-        var sc = statusColors[t.status] || '#9fa8da';
-        var playerCount = t.player_ids ? t.player_ids.length : 0;
-        var matchLink = t.match_id && matchMap[t.match_id] ? '<a href="admin/match-detail.html?id=' + t.match_id + '" class="inline-block mt-2 text-sm font-bold" style="color: #ff8f00;">Ver partida &rarr;</a>' : '';
-        return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
-            '<div class="flex items-center justify-between mb-2"><span class="font-bold text-white">Equipo de Duelo</span>' +
-            '<span class="text-xs px-2 py-1 rounded font-bold" style="background: ' + sc + '22; color: ' + sc + ';">' + (statusLabels[t.status] || t.status) + '</span></div>' +
-            '<p class="text-sm mb-1" style="color: #9fa8da;">' + playerCount + '/5 jugadores seleccionados</p>' +
-            '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Creado: ' + new Date(t.created_at).toLocaleDateString() + '</p>' + matchLink + '</div>';
-    }).join('');
 }
+
+// ===================== GLOBAL RANKINGS =====================
 
 async function loadGlobalRankings() {
     var container = document.getElementById('global-rankings-list');
     container.innerHTML = '<div class="text-center py-4" style="color: #9fa8da;">Cargando...</div>';
     if (!myAllianceId) return;
 
-    var { data: memberships } = await supabase.from('alliance_memberships')
-        .select('player_id')
-        .eq('alliance_id', myAllianceId)
-        .eq('status', 'approved');
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        var { data: memberships } = await DB.from('allianceMemberships')
+            .select(ac.playerId)
+            .eq(ac.allianceId, myAllianceId)
+            .eq(ac.status, 'approved');
 
-    if (!memberships || memberships.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>'; return; }
+        if (!memberships || memberships.length === 0) {
+            container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>';
+            return;
+        }
 
-    var playerIds = memberships.map(function(m) { return m.player_id; });
-    var { data: players } = await supabase.from('players')
-        .select('*').in('id', playerIds).order('total_kills', { ascending: false });
+        var playerIds = memberships.map(function(m) { return m[ac.playerId]; });
+        var pc = DB.tableCols('players');
+        var { data: players } = await DB.from('players')
+            .select([pc.id, pc.username, pc.gamesPlayed, pc.kills, pc.deaths, pc.wins].join(', '))
+            .in(pc.id, playerIds)
+            .order(pc.kills, { ascending: false });
 
-    if (!players || players.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>'; return; }
+        if (!players || players.length === 0) {
+            container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>';
+            return;
+        }
 
-    container.innerHTML = '<div class="space-y-2">' + players.map(function(p, idx) {
-        var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
-        var kd = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00';
-        return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
-            '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
-            '<div class="flex-1"><p class="font-bold text-sm text-white">' + (p.current_username || 'Jugador ' + p.id) + '</p>' +
-            '<p class="text-xs" style="color: #9fa8da;">' + (p.games_played || 0) + ' partidas jugadas</p></div>' +
-            '<div class="text-right"><p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
-            '<p class="text-xs" style="color: #9fa8da;">' + (p.total_kills || 0) + 'K / ' + (p.total_deaths || 0) + 'D</p></div></div>';
-    }).join('') + '</div>';
+        container.innerHTML = '<div class="space-y-2">' + players.map(function(p, idx) {
+            var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
+            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : p[pc.kills] > 0 ? p[pc.kills].toFixed(2) : '0.00';
+            return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
+                '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
+                '<div class="flex-1"><p class="font-bold text-sm text-white">' + (p[pc.username] || 'Jugador ' + p[pc.id]) + '</p>' +
+                '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.gamesPlayed] || 0) + ' partidas jugadas</p></div>' +
+                '<div class="text-right"><p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
+                '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.kills] || 0) + 'K / ' + (p[pc.deaths] || 0) + 'D</p></div></div>';
+        }).join('') + '</div>';
+    } catch(e) {
+        console.error('[Leader] Global rankings error:', e);
+        container.innerHTML = '<div class="text-center py-8 text-red-400">Error cargando rankings</div>';
+    }
 }
+
+// ===================== TAB SWITCHING =====================
 
 function switchTab(tab) {
     currentTab = tab;
@@ -425,7 +546,19 @@ function switchTab(tab) {
     if (tab === 'requests') loadPendingRequests();
 }
 
-init();
+// ===================== INIT =====================
+
+waitForSupabase(function() {
+    if (typeof requireMinRole === 'function') {
+        requireMinRole('alliance_leader').then(function() {
+            init();
+        }).catch(function(e) {
+            console.error('[LeaderDashboard] Role check failed:', e);
+        });
+    } else {
+        init();
+    }
+});
 </script>
 </body>
 </html>

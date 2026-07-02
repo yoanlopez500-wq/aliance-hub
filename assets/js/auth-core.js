@@ -1,4 +1,4 @@
-// assets/js/auth-core.js v1 - Autenticacion, roles y sesiones
+// assets/js/auth-core.js v2 - Autenticacion, roles y sesiones
 // Depende de: base.js, roles-data.js
 
 // ===================== PERMISOS =====================
@@ -161,12 +161,14 @@ async function logout() {
 async function logoutAll() {
     if (window.__ahNotifInterval) { clearInterval(window.__ahNotifInterval); window.__ahNotifInterval = null; }
     if (typeof clearPlayerData === 'function') clearPlayerData();
+    if (typeof clearModePreference === 'function') clearModePreference();
     await supabase.auth.signOut();
     window.location.href = ahPath('index.html');
 }
 
 async function switchToPlayerMode() {
     if (!hasPlayerSession()) { window.location.href = ahPath('login-player.html'); return; }
+    if (typeof setModePreference === 'function') setModePreference('player');
     window.location.href = ahPath('dashboard.html');
 }
 
@@ -174,6 +176,7 @@ async function switchToAdminMode() {
     try {
         var admin = await getAdminRole();
         if (!admin) { window.location.href = ahPath('login.html'); return; }
+        if (typeof setModePreference === 'function') setModePreference('admin');
         var target = admin.role === 'alliance_leader' ? 'leader-dashboard.html' : 'admin/index.html';
         window.location.href = ahPath(target);
     } catch(e) { window.location.href = ahPath('login.html'); }
@@ -181,6 +184,7 @@ async function switchToAdminMode() {
 
 function playerLogout() {
     if (typeof clearPlayerData === 'function') clearPlayerData();
+    if (typeof clearModePreference === 'function') clearModePreference();
     isAdmin().then(function(isAdmin) {
         if (isAdmin) window.location.href = ahPath('admin/index.html');
         else window.location.href = ahPath('index.html');
