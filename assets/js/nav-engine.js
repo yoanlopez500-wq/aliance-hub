@@ -1,5 +1,5 @@
-// assets/js/nav-engine.js v1 - Motor de navegacion por rol
-// Depende de: base.js, roles-data.js, auth-core.js, notifications.js
+// assets/js/nav-engine.js v2 - Motor de navegacion por rol con mode preference
+// Depende de: base.js, roles-data.js, auth-core.js, notifications.js, pwa-utils.js
 
 window.__ahNavRetryCount = 0;
 
@@ -34,10 +34,32 @@ async function initAdminNav() {
 
         var isAdminPage = document.body.getAttribute('data-role') === 'admin';
         var isLeaderPage = document.body.getAttribute('data-role') === 'alliance_leader';
+        var isPublicPage = document.body.getAttribute('data-role') === 'public';
 
-        // DUAL MODE
+        // Check mode preference
+        var modePref = typeof getModePreference === 'function' ? getModePreference() : null;
+
+        // DUAL MODE: both admin and player sessions active
         if (adminSession && isPlayer) {
             var admin = await getAdminRole();
+
+            // If user explicitly chose player mode, render player nav (even on admin pages)
+            if (modePref === 'player') {
+                renderPlayerNav(nav, playerData, adminSession);
+                return;
+            }
+
+            // If user explicitly chose admin mode, render admin nav
+            if (modePref === 'admin') {
+                if (isAdminPage || isLeaderPage) {
+                    renderAdminNav(nav, adminSession, admin || { role: 'moderator' });
+                } else {
+                    renderAdminOnPublicNav(nav, adminSession);
+                }
+                return;
+            }
+
+            // No preference: use page context to decide
             renderFluidNav(nav, adminSession, admin || { role: 'moderator' }, playerData, isAdminPage || isLeaderPage);
             return;
         }
@@ -239,7 +261,7 @@ function renderPlayerNav(nav, playerData, adminSession) {
         '</nav>';
 }
 
-function renderAdminOnPublicNav(nav, session) {
+function renderAdminOnPublicNav(nav, adminSession) {
     var hasPlayer = hasPlayerSession();
     var playerBtn = hasPlayer
         ? '<button onclick="switchToPlayerMode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-green-700 hover:bg-green-600 text-white">&#127918; Modo Jugador</button>'
