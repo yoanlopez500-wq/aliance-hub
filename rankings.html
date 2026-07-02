@@ -13,6 +13,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
+<!-- v18: DB Schema Centralizer -->
+<script src="assets/js/db-schema.js?v=18"></script>
 <script src="assets/js/roles-data.js?v=18"></script>
 <script src="assets/js/auth-core.js?v=18"></script>
 <script src="assets/js/messaging.js?v=18"></script>
@@ -72,12 +74,13 @@ function showError(msg) { var el = document.getElementById('error-banner'); el.t
 function getAllianceTag(aid) { return (allianceMap[aid] && allianceMap[aid].tag) ? allianceMap[aid].tag : '-'; }
 
 function effectiveKills(player) {
-    var sanc = sanctionsCache[player.id];
+    var pc = DB.tableCols('players');
+    var sanc = sanctionsCache[player[pc.id]];
     if (sanc && sanc.kills_after != null) return Math.round(sanc.kills_after);
-    var total = player.total_kills || 0;
-    var nullified = nullifiedCache[player.id] || 0;
+    var total = player[pc.kills] || 0;
+    var nullified = nullifiedCache[player[pc.id]] || 0;
     var killsWN = Math.max(0, total - nullified);
-    var strikes = strikesCache[player.id] || 0;
+    var strikes = strikesCache[player[pc.id]] || 0;
     if (strikes === 1) return Math.round(killsWN * 0.9);
     if (strikes === 2) return Math.round(killsWN * 0.7);
     if (strikes >= 3) return Math.round(killsWN * 0.5);
@@ -85,9 +88,10 @@ function effectiveKills(player) {
 }
 
 function getPenaltyPct(player) {
-    var sanc = sanctionsCache[player.id];
+    var pc = DB.tableCols('players');
+    var sanc = sanctionsCache[player[pc.id]];
     if (sanc && sanc.penalty_pct != null) return sanc.penalty_pct;
-    var strikes = strikesCache[player.id] || 0;
+    var strikes = strikesCache[player[pc.id]] || 0;
     if (strikes === 1) return 10;
     if (strikes === 2) return 30;
     if (strikes >= 3) return 50;
@@ -96,36 +100,40 @@ function getPenaltyPct(player) {
 
 async function loadSanctions() {
     try {
-        var res = await supabase.from('player_sanctions').select('player_id, kills_after, penalty_pct').order('created_at', { ascending: false });
+        var sc = DB.tableCols('playerSanctions');
+        var res = await DB.from('playerSanctions').select([sc.playerId, sc.killsAfter, sc.penaltyPct].join(', ')).order(sc.createdAt, { ascending: false });
         if (res.error) throw res.error;
         sanctionsCache = {};
-        (res.data || []).forEach(function(s) { if (!sanctionsCache[s.player_id]) sanctionsCache[s.player_id] = { kills_after: s.kills_after, penalty_pct: s.penalty_pct || 0 }; });
+        (res.data || []).forEach(function(s) { if (!sanctionsCache[s[sc.playerId]]) sanctionsCache[s[sc.playerId]] = { kills_after: s[sc.killsAfter], penalty_pct: s[sc.penaltyPct] || 0 }; });
     } catch(e) { console.error('[Rankings] Error sanciones:', e); sanctionsCache = {}; }
 }
 
 async function loadData() {
     try {
-        var res = await supabase.from('alliances').select('id, name, tag').order('name');
+        var ac = DB.tableCols('alliances');
+        var res = await DB.from('alliances').select([ac.id, ac.name, ac.tag].join(', ')).order(ac.name);
         if (res.error) throw res.error;
         allianceMap = {};
         document.getElementById('filter-alliance').innerHTML = '<option value="">Todas las alianzas</option>' +
-            (res.data || []).map(function(a) { allianceMap[a.id] = { name: a.name, tag: a.tag }; return '<option value="' + a.id + '">' + a.name + '</option>'; }).join('');
+            (res.data || []).map(function(a) { allianceMap[a[ac.id]] = { name: a[ac.name], tag: a[ac.tag] }; return '<option value="' + a[ac.id] + '">' + a[ac.name] + '</option>'; }).join('');
     } catch(e) { console.error('[Rankings] Error alianzas:', e); }
 
     try {
-        var res2 = await supabase.from('match_nullified_kills').select('player_id, kills_nullified');
+        var nkc = DB.tableCols('matchNullifiedKills');
+        var res2 = await DB.from('matchNullifiedKills').select([nkc.playerId, nkc.killsNullified].join(', '));
         if (res2.error) throw res2.error;
         nullifiedCache = {};
-        (res2.data || []).forEach(function(r) { nullifiedCache[r.player_id] = (nullifiedCache[r.player_id] || 0) + r.kills_nullified; });
+        (res2.data || []).forEach(function(r) { nullifiedCache[r[nkc.playerId]] = (nullifiedCache[r[nkc.playerId]] || 0) + r[nkc.killsNullified]; });
     } catch(e) { console.error('[Rankings] Error nullified:', e); nullifiedCache = {}; }
 
     await loadSanctions();
 
     try {
-        var res3 = await supabase.from('player_strikes').select('player_id').eq('is_active', true);
+        var stc = DB.tableCols('playerStrikes');
+        var res3 = await DB.from('playerStrikes').select(stc.playerId).eq(stc.isActive, true);
         if (res3.error) throw res3.error;
         strikesCache = {};
-        (res3.data || []).forEach(function(s) { strikesCache[s.player_id] = (strikesCache[s.player_id] || 0) + 1; });
+        (res3.data || []).forEach(function(s) { strikesCache[s[stc.playerId]] = (strikesCache[s[stc.playerId]] || 0) + 1; });
     } catch(e) { console.error('[Rankings] Error strikes:', e); strikesCache = {}; }
 
     try { await loadRankings(); } catch(e) { console.error('[Rankings] jugadores:', e); }
@@ -137,9 +145,10 @@ async function loadData() {
 async function loadRankings() {
     try {
         var af = document.getElementById('filter-alliance').value;
-        var q = supabase.from('players').select('id, current_username, current_alliance_id, total_kills, total_deaths, games_played, status, last_seen');
-        if (af) q = q.eq('current_alliance_id', af);
-        var res = await q.order('total_kills', { ascending: false }).limit(100);
+        var pc = DB.tableCols('players');
+        var q = DB.from('players').select(DB.cols.players.ranking);
+        if (af) q = q.eq(pc.allianceId, af);
+        var res = await q.order(pc.kills, { ascending: false }).limit(100);
         if (res.error) throw res.error;
         var players = res.data || [];
         players.sort(function(a, b) { return effectiveKills(b) - effectiveKills(a); });
@@ -149,39 +158,35 @@ async function loadRankings() {
             var penalty = getPenaltyPct(p);
             var killClass = penalty > 0 ? 'kill-nullified' : '';
             var badge = penalty > 0 ? '<span class="text-[10px] px-1 py-0.5 rounded font-bold ml-1" style="background:rgba(198,40,40,0.2);color:#ef5350">-' + penalty + '%</span>' : '';
-            return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-bold text-ah-muted">' + (i+1) + '</td><td class="p-3 font-medium"><a href="player.html?id=' + p.id + '" style="color:#ff8f00;">' + p.current_username + '</a>' + badge + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p.current_alliance_id) + '</td><td class="p-3 text-right text-ah-muted">' + (p.games_played || 0) + '</td><td class="p-3 text-right font-bold ' + killClass + '" style="color:' + (eff > 0 ? '#4caf50' : '#9fa8da') + ';">' + eff + '</td><td class="p-3 text-right text-ah-muted">' + (p.total_deaths || 0) + '</td><td class="p-3 text-right font-bold">' + (p.total_deaths > 0 ? (eff / p.total_deaths).toFixed(2) : (eff > 0 ? eff.toFixed(2) : '0')) + '</td><td class="p-3 text-right">' + (penalty > 0 ? '<span title="Penalizacion por strikes/sanciones" style="color:#ef5350;">&#9889;</span>' : '') + '</td></tr>';
+            return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-bold text-ah-muted">' + (i+1) + '</td><td class="p-3 font-medium"><a href="player.html?id=' + p[pc.id] + '" style="color:#ff8f00;">' + p[pc.username] + '</a>' + badge + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p[pc.allianceId]) + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.gamesPlayed] || 0) + '</td><td class="p-3 text-right font-bold ' + killClass + '" style="color:' + (eff > 0 ? '#4caf50' : '#9fa8da') + ';">' + eff + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.deaths] || 0) + '</td><td class="p-3 text-right font-bold">' + (p[pc.deaths] > 0 ? (eff / p[pc.deaths]).toFixed(2) : (eff > 0 ? eff.toFixed(2) : '0')) + '</td><td class="p-3 text-right">' + (penalty > 0 ? '<span title="Penalizacion por strikes/sanciones" style="color:#ef5350;">&#9889;</span>' : '') + '</td></tr>';
         }).join('');
     } catch(e) { console.error('[Rankings] jugadores:', e); document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ' + e.message + '</td></tr>'; }
 }
 
 async function loadAlliances() {
     try {
-        // FIX: La tabla alliances NO tiene columnas member_count ni total_kills
-        // Cargar alianzas base + players para calcular stats
-        var res = await supabase.from('alliances').select('id, name, tag, description').order('name');
+        var ac = DB.tableCols('alliances');
+        var pc = DB.tableCols('players');
+        var res = await DB.from('alliances').select(DB.cols.alliances.basic);
         if (res.error) throw res.error;
 
-        // Cargar players para contar miembros y kills por alianza
-        var playersRes = await supabase.from('players').select('current_alliance_id, total_kills');
+        var playersRes = await DB.from('players').select([pc.allianceId, pc.kills].join(', '));
         var playerStats = {};
         if (!playersRes.error && playersRes.data) {
             playersRes.data.forEach(function(p) {
-                if (!p.current_alliance_id) return;
-                if (!playerStats[p.current_alliance_id]) {
-                    playerStats[p.current_alliance_id] = { count: 0, kills: 0 };
-                }
-                playerStats[p.current_alliance_id].count++;
-                playerStats[p.current_alliance_id].kills += (p.total_kills || 0);
+                if (!p[pc.allianceId]) return;
+                if (!playerStats[p[pc.allianceId]]) playerStats[p[pc.allianceId]] = { count: 0, kills: 0 };
+                playerStats[p[pc.allianceId]].count++;
+                playerStats[p[pc.allianceId]].kills += (p[pc.kills] || 0);
             });
         }
 
         var c = document.getElementById('alliances-list');
         if (!res.data || res.data.length === 0) { c.innerHTML = '<div class="text-center py-8 text-ah-muted">Sin alianzas registradas</div>'; return; }
 
-        // Sort by kills descending
         var sorted = res.data.map(function(a) {
-            var stats = playerStats[a.id] || { count: 0, kills: 0 };
-            return { id: a.id, name: a.name, tag: a.tag, description: a.description, member_count: stats.count, total_kills: stats.kills };
+            var stats = playerStats[a[ac.id]] || { count: 0, kills: 0 };
+            return { id: a[ac.id], name: a[ac.name], tag: a[ac.tag], description: a[ac.description], member_count: stats.count, total_kills: stats.kills };
         }).sort(function(a, b) { return b.total_kills - a.total_kills; });
 
         c.innerHTML = '<div class="grid md:grid-cols-2 gap-4">' + sorted.map(function(a, i) {
@@ -190,46 +195,51 @@ async function loadAlliances() {
     } catch(e) { console.error('[Rankings] alianzas:', e); document.getElementById('alliances-list').innerHTML = '<div class="text-center py-8 text-red-400">Error alianzas: ' + (e.message || e) + '</div>'; }
 }
 
-// v17 FIX: Usa tabla 'matches' con match_type='duel' en lugar de tabla 'duels' que no existe
 async function loadDuels() {
     try {
-        var res = await supabase.from('matches')
-            .select('id, name, alliance_id, status, match_type, created_at')
-            .eq('match_type', 'duel')
-            .order('created_at', { ascending: false })
+        var mc = DB.tableCols('matches');
+        var ac = DB.tableCols('alliances');
+        var res = await DB.from('matches')
+            .select([mc.id, mc.name, mc.allianceId, mc.status, mc.matchType, mc.createdAt].join(', '))
+            .eq(mc.matchType, 'duel')
+            .order(mc.createdAt, { ascending: false })
             .limit(20);
         if (res.error) throw res.error;
         var c = document.getElementById('duels-list');
         if (!res.data || res.data.length === 0) { c.innerHTML = '<div class="text-center py-8 text-ah-muted" style="background:#11183a;border:1px solid #1a237e;border-radius:0.75rem;">Sin duelos finalizados</div>'; return; }
 
-        var allianceIds = res.data.map(function(d) { return d.alliance_id; }).filter(function(v) { return !!v; });
+        var allianceIds = res.data.map(function(d) { return d[mc.allianceId]; }).filter(function(v) { return !!v; });
         var alliancesData = {};
         if (allianceIds.length > 0) {
             try {
-                var aRes = await supabase.from('alliances').select('id, name, tag').in('id', allianceIds);
-                if (aRes.data) aRes.data.forEach(function(a) { alliancesData[a.id] = a; });
+                var aRes = await DB.from('alliances').select([ac.id, ac.name, ac.tag].join(', ')).in(ac.id, allianceIds);
+                if (aRes.data) aRes.data.forEach(function(a) { alliancesData[a[ac.id]] = a; });
             } catch(e) {}
         }
 
         c.innerHTML = res.data.map(function(d) {
-            var alli = alliancesData[d.alliance_id] || {};
-            var statusBadge = d.status === 'finished' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(76,175,80,0.2);color:#4caf50;">FINALIZADO</span>' :
-                              d.status === 'in_progress' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(33,150,243,0.2);color:#2196f3;">EN CURSO</span>' :
-                              '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(255,143,0,0.2);color:#ff8f00;">' + (d.status || 'ABIERTO') + '</span>';
-            return '<div class="rounded-xl p-5 mb-3" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><div class="font-bold">' + (d.name || 'Duelo') + '</div>' + statusBadge + '</div><div class="text-xs text-ah-muted">Alianza: ' + (alli.name || 'N/A') + (alli.tag ? ' [' + alli.tag + ']' : '') + ' | ' + formatDate(d.created_at) + '</div></div>';
+            var alli = alliancesData[d[mc.allianceId]] || {};
+            var statusBadge = d[mc.status] === 'finished' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(76,175,80,0.2);color:#4caf50;">FINALIZADO</span>' :
+                              d[mc.status] === 'in_progress' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(33,150,243,0.2);color:#2196f3;">EN CURSO</span>' :
+                              '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(255,143,0,0.2);color:#ff8f00;">' + (d[mc.status] || 'ABIERTO') + '</span>';
+            return '<div class="rounded-xl p-5 mb-3" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><div class="font-bold">' + (d[mc.name] || 'Duelo') + '</div>' + statusBadge + '</div><div class="text-xs text-ah-muted">Alianza: ' + (alli[ac.name] || 'N/A') + (alli[ac.tag] ? ' [' + alli[ac.tag] + ']' : '') + ' | ' + formatDate(d[mc.createdAt]) + '</div></div>';
         }).join('');
     } catch(e) { console.error('[Rankings] duelos:', e); document.getElementById('duels-list').innerHTML = '<div class="text-center py-8 text-red-400">Error cargando duelos: ' + (e.message || e) + '</div>'; }
 }
 
 async function loadStrikes() {
     try {
-        var res = await supabase.from('player_strikes').select('player_id, is_active, players!inner(id, current_username, current_alliance_id, status, last_seen)').eq('is_active', true).limit(200);
+        var stc = DB.tableCols('playerStrikes');
+        var res = await DB.from('playerStrikes')
+            .select(stc.playerId + ', ' + stc.isActive + ', players!inner(id, current_username, current_alliance_id, status, last_seen)')
+            .eq(stc.isActive, true)
+            .limit(200);
         if (res.error) throw res.error;
         var tbody = document.getElementById('strikes-tbody');
         if (!res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-ah-muted">Sin strikes registrados</td></tr>'; return; }
         var counts = {};
         res.data.forEach(function(s) {
-            var pid = s.player_id;
+            var pid = s[stc.playerId];
             if (!counts[pid]) counts[pid] = { count: 0, player: s.players };
             counts[pid].count++;
         });
