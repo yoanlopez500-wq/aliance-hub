@@ -1,6 +1,6 @@
 /**
  * rules-pdf.js - Alliance Hub Rules PDF Export Module
- * v18.1: Generates downloadable PDF from rule_sections + rule_precedents
+ * v18.2: Generates downloadable PDF from rule_sections + rule_precedents using iframe approach
  *
  * Usage:
  *   1. Include this script: <script src="assets/js/rules-pdf.js?v=18"></script>
@@ -74,20 +74,81 @@
         return map[vis] || 'Publica';
     }
 
-    // --- Build PDF content as DOM element (NOT HTML string with html/body) ---
-    function buildPdfElement(sections, precedents) {
+    // --- Build complete HTML document string for the iframe ---
+    function buildPdfHtml(sections, precedents) {
         var now = getCurrentDateSpanish();
         var totalSections = sections ? sections.length : 0;
         var totalPrecedents = precedents ? precedents.length : 0;
 
-        // Create root container
-        var root = document.createElement('div');
-        root.style.cssText = 'font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:10.5pt;line-height:1.7;color:#1a1a2e;background:#fff;padding:0;margin:0;';
+        // Build TOC
+        var tocHtml = '';
+        if (totalSections > 0) {
+            tocHtml = '<div class="toc"><h2>Indice de Contenido</h2><ul>' +
+                sections.map(function(s, i) {
+                    return '<li><span class="toc-num">' + (i + 1) + '</span> ' + escapeHtml(s.title) + '</li>';
+                }).join('') +
+                (totalPrecedents > 0 ? '<li class="toc-prec"><span class="toc-num">P</span> Precedentes y Jurisprudencia</li>' : '') +
+                '</ul></div>';
+        }
 
-        // Inject styles
-        var styleEl = document.createElement('style');
-        styleEl.textContent =
+        // Build sections
+        var sectionsHtml = '';
+        if (totalSections > 0) {
+            sectionsHtml = sections.map(function(s, i) {
+                var visLabel = getVisibilityLabel(s.visibility);
+                var visBadge = s.visibility && s.visibility !== 'public'
+                    ? '<span class="vis-badge">' + visLabel + '</span>' : '';
+                return '<div class="section' + (i > 0 ? ' page-break' : '') + '">' +
+                    '<div class="section-header">' +
+                    '<span class="section-number">' + (i + 1) + '</span>' +
+                    '<h2 class="section-title">' + escapeHtml(s.title) + visBadge + '</h2>' +
+                    '</div>' +
+                    '<div class="section-content"><p>' + formatContent(s.content) + '</p></div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // Build precedents
+        var precedentsHtml = '';
+        if (totalPrecedents > 0) {
+            precedentsHtml = '<div class="precedents-section page-break">' +
+                '<div class="precedents-header">' +
+                '<span class="precedents-icon">&#9878;</span>' +
+                '<h2>Precedentes y Jurisprudencia</h2>' +
+                '<p class="precedents-desc">Casos resueltos que forman parte del reglamento y sirven como referencia para futuras decisiones.</p>' +
+                '</div>';
+
+            precedentsHtml += precedents.map(function(p) {
+                var sev = getSeverityInfo(p.severity);
+                var sectionRef = '';
+                if (p.rule_section_id && sections) {
+                    var matched = sections.find(function(s) { return s.id === p.rule_section_id; });
+                    if (matched) {
+                        var sIdx = sections.indexOf(matched) + 1;
+                        sectionRef = '<div class="prec-ref">Referencia: Seccion ' + sIdx + ' - ' + escapeHtml(matched.title) + '</div>';
+                    }
+                }
+                var strikeInfo = p.strike_type ? '<div class="prec-strike">Strike aplicado: ' + escapeHtml(p.strike_type) + '</div>' : '';
+                var resolutionInfo = p.resolution ? '<div class="prec-resolution">Resolucion: ' + escapeHtml(p.resolution) + '</div>' : '';
+                var dateInfo = '<div class="prec-date">Fecha: ' + formatDateSpanish(p.created_at) + '</div>';
+
+                return '<div class="precedent-item">' +
+                    '<div class="precedent-title-row">' +
+                    '<h3>' + escapeHtml(p.title) + '</h3>' +
+                    '<span class="severity-badge" style="background:' + sev.bg + ';color:' + sev.color + ';">' + sev.label + '</span>' +
+                    '</div>' +
+                    '<div class="precedent-desc"><p>' + formatContent(p.description) + '</p></div>' +
+                    sectionRef + strikeInfo + resolutionInfo + dateInfo +
+                    '</div>';
+            }).join('');
+
+            precedentsHtml += '</div>';
+        }
+
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+            'body{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:10.5pt;line-height:1.7;color:#1a1a2e;background:#fff;margin:0;padding:0}' +
             'h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:#0a0e27;margin:0}' +
+            '.page-break{page-break-before:always}' +
             '.cover{text-align:center;padding:60px 30px 40px;page-break-after:always}' +
             '.cover-icon{font-size:64px;margin-bottom:20px}' +
             '.cover h1{font-size:28pt;font-weight:700;color:#0a0e27;margin-bottom:8px;letter-spacing:-0.5px}' +
@@ -124,13 +185,10 @@
             '.prec-strike{font-size:9pt;color:#ef6c00;margin-top:4px;font-weight:600}' +
             '.prec-resolution{font-size:9pt;color:#2e7d32;margin-top:4px;font-weight:500}' +
             '.prec-date{font-size:8.5pt;color:#999;margin-top:8px}' +
-            '.empty-state{text-align:center;padding:60px 20px;color:#999;font-style:italic}';
-        root.appendChild(styleEl);
-
-        // --- COVER PAGE ---
-        var cover = document.createElement('div');
-        cover.className = 'cover';
-        cover.innerHTML =
+            '.empty-state{text-align:center;padding:60px 20px;color:#999;font-style:italic}' +
+            '</style></head><body>' +
+            // Cover page
+            '<div class="cover">' +
             '<div class="cover-icon">&#128220;</div>' +
             '<h1>Reglamento Oficial</h1>' +
             '<p class="cover-subtitle">Alliance Hub - Normativa para partidas, torneos y comportamiento de jugadores</p>' +
@@ -139,97 +197,15 @@
             '<p><span class="meta-label">Total secciones:</span> ' + totalSections + '</p>' +
             (totalPrecedents > 0 ? '<p><span class="meta-label">Precedentes registrados:</span> ' + totalPrecedents + '</p>' : '') +
             '</div>' +
-            '<p style="font-size:9pt;color:#999;margin-top:40px;">Este documento es una copia oficial del reglamento vigente en Alliance Hub.<br>Los precedentes forman parte integrante del reglamento.</p>';
-        root.appendChild(cover);
-
-        // --- TABLE OF CONTENTS ---
-        if (totalSections > 0) {
-            var toc = document.createElement('div');
-            toc.className = 'toc';
-            var tocHtml = '<h2>Indice de Contenido</h2><ul>';
-            sections.forEach(function(s, i) {
-                tocHtml += '<li><span class="toc-num">' + (i + 1) + '</span> ' + escapeHtml(s.title) + '</li>';
-            });
-            if (totalPrecedents > 0) {
-                tocHtml += '<li class="toc-prec"><span class="toc-num">P</span> Precedentes y Jurisprudencia</li>';
-            }
-            tocHtml += '</ul>';
-            toc.innerHTML = tocHtml;
-            root.appendChild(toc);
-        }
-
-        // --- SECTIONS ---
-        if (totalSections > 0) {
-            sections.forEach(function(s, i) {
-                var sectionDiv = document.createElement('div');
-                sectionDiv.className = 'section';
-                if (i > 0) sectionDiv.style.pageBreakBefore = 'always';
-
-                var visLabel = getVisibilityLabel(s.visibility);
-                var visBadge = s.visibility && s.visibility !== 'public'
-                    ? '<span class="vis-badge">' + visLabel + '</span>'
-                    : '';
-
-                sectionDiv.innerHTML =
-                    '<div class="section-header">' +
-                    '<span class="section-number">' + (i + 1) + '</span>' +
-                    '<h2 class="section-title">' + escapeHtml(s.title) + visBadge + '</h2>' +
-                    '</div>' +
-                    '<div class="section-content"><p>' + formatContent(s.content) + '</p></div>';
-
-                root.appendChild(sectionDiv);
-            });
-        } else {
-            var empty = document.createElement('div');
-            empty.className = 'empty-state';
-            empty.textContent = 'No hay secciones de reglamento configuradas.';
-            root.appendChild(empty);
-        }
-
-        // --- PRECEDENTS ---
-        if (totalPrecedents > 0) {
-            var precSection = document.createElement('div');
-            precSection.className = 'precedents-section';
-            precSection.style.pageBreakBefore = 'always';
-
-            var precHeader = document.createElement('div');
-            precHeader.className = 'precedents-header';
-            precHeader.innerHTML =
-                '<span class="precedents-icon">&#9878;</span>' +
-                '<h2>Precedentes y Jurisprudencia</h2>' +
-                '<p class="precedents-desc">Casos resueltos que forman parte del reglamento y sirven como referencia para futuras decisiones.</p>';
-            precSection.appendChild(precHeader);
-
-            precedents.forEach(function(p) {
-                var sev = getSeverityInfo(p.severity);
-                var sectionRef = '';
-                if (p.rule_section_id && sections) {
-                    var matched = sections.find(function(s) { return s.id === p.rule_section_id; });
-                    if (matched) {
-                        var sIdx = sections.indexOf(matched) + 1;
-                        sectionRef = '<div class="prec-ref">Referencia: Seccion ' + sIdx + ' - ' + escapeHtml(matched.title) + '</div>';
-                    }
-                }
-                var strikeInfo = p.strike_type ? '<div class="prec-strike">Strike aplicado: ' + escapeHtml(p.strike_type) + '</div>' : '';
-                var resolutionInfo = p.resolution ? '<div class="prec-resolution">Resolucion: ' + escapeHtml(p.resolution) + '</div>' : '';
-                var dateInfo = '<div class="prec-date">Fecha: ' + formatDateSpanish(p.created_at) + '</div>';
-
-                var item = document.createElement('div');
-                item.className = 'precedent-item';
-                item.innerHTML =
-                    '<div class="precedent-title-row">' +
-                    '<h3>' + escapeHtml(p.title) + '</h3>' +
-                    '<span class="severity-badge" style="background:' + sev.bg + ';color:' + sev.color + ';">' + sev.label + '</span>' +
-                    '</div>' +
-                    '<div class="precedent-desc"><p>' + formatContent(p.description) + '</p></div>' +
-                    sectionRef + strikeInfo + resolutionInfo + dateInfo;
-                precSection.appendChild(item);
-            });
-
-            root.appendChild(precSection);
-        }
-
-        return root;
+            '<p style="font-size:9pt;color:#999;margin-top:40px;">Este documento es una copia oficial del reglamento vigente en Alliance Hub.<br>Los precedentes forman parte integrante del reglamento.</p>' +
+            '</div>' +
+            // TOC
+            tocHtml +
+            // Sections
+            (sectionsHtml || '<div class="empty-state">No hay secciones de reglamento configuradas.</div>') +
+            // Precedents
+            precedentsHtml +
+            '</body></html>';
     }
 
     // --- Reset button state ---
@@ -241,10 +217,9 @@
         });
     }
 
-    // --- Main function ---
+    // --- Main function: renders in hidden iframe for reliable multi-page capture ---
     function downloadRulesPDF() {
         loadHtml2PdfLib(function() {
-            // Fetch data from Supabase
             var sectionsPromise = supabase
                 .from('rule_sections')
                 .select('*')
@@ -262,9 +237,8 @@
                     var sectionsError = results[0].error;
                     var precedentsData = results[1].data || [];
 
-                    // Fallback: if is_active filter fails, try without it
                     if (sectionsError) {
-                        console.warn('[RulesPDF] Sections query failed, retrying without is_active filter:', sectionsError);
+                        console.warn('[RulesPDF] Sections query failed, retrying without is_active:', sectionsError);
                         return supabase.from('rule_sections').select('*').order('order_index')
                             .then(function(r) {
                                 return [r.data || [], precedentsData];
@@ -282,71 +256,82 @@
                         return;
                     }
 
-                    // Build DOM element for PDF
-                    var pdfElement = buildPdfElement(sections, precedents);
+                    // Build HTML string for the PDF
+                    var pdfHtml = buildPdfHtml(sections, precedents);
 
-                    // Append to body temporarily (off-screen) so html2pdf can measure it
-                    pdfElement.style.position = 'absolute';
-                    pdfElement.style.left = '-9999px';
-                    pdfElement.style.top = '0';
-                    pdfElement.style.width = '794px'; // A4 width at 96dpi
-                    document.body.appendChild(pdfElement);
+                    // Create hidden iframe for isolated rendering
+                    var iframe = document.createElement('iframe');
+                    iframe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;pointer-events:none;z-index:-1;';
+                    document.body.appendChild(iframe);
 
-                    var filename = 'reglamento-alliance-hub-' + new Date().toISOString().split('T')[0] + '.pdf';
+                    var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(pdfHtml);
+                    iframeDoc.close();
 
-                    var opt = {
-                        margin: [16, 14, 18, 14], // top, left, bottom, right in mm
-                        filename: filename,
-                        image: { type: 'jpeg', quality: 0.96 },
-                        html2canvas: {
-                            scale: 2,
-                            useCORS: true,
-                            letterRendering: true,
-                            logging: false,
-                            windowWidth: 794
-                        },
-                        jsPDF: {
-                            unit: 'mm',
-                            format: 'a4',
-                            orientation: 'portrait',
-                            compress: true
-                        },
-                        pagebreak: {
-                            mode: ['css', 'legacy'],
-                            before: ['.precedents-section'],
-                            avoid: ['.precedent-item', '.toc li', '.section-header']
+                    // Wait for iframe to render before capturing
+                    setTimeout(function() {
+                        var iframeBody = iframeDoc.body;
+                        if (!iframeBody) {
+                            console.error('[RulesPDF] iframe body not available');
+                            document.body.removeChild(iframe);
+                            resetButtonState();
+                            return;
                         }
-                    };
 
-                    html2pdf().set(opt).from(pdfElement).toPdf().get('pdf')
-                        .then(function(pdf) {
-                            // Add page numbers
-                            var totalPages = pdf.internal.getNumberOfPages();
-                            for (var i = 1; i <= totalPages; i++) {
-                                pdf.setPage(i);
-                                pdf.setFontSize(8);
-                                pdf.setTextColor(153, 153, 153);
-                                pdf.text(
-                                    'Reglamento Alliance Hub - Pagina ' + i + ' de ' + totalPages,
-                                    pdf.internal.pageSize.getWidth() / 2,
-                                    pdf.internal.pageSize.getHeight() - 6,
-                                    { align: 'center' }
-                                );
+                        var filename = 'reglamento-alliance-hub-' + new Date().toISOString().split('T')[0] + '.pdf';
+
+                        var opt = {
+                            margin: [16, 14, 18, 14],
+                            filename: filename,
+                            image: { type: 'jpeg', quality: 0.96 },
+                            html2canvas: {
+                                scale: 2,
+                                useCORS: true,
+                                letterRendering: true,
+                                logging: false
+                            },
+                            jsPDF: {
+                                unit: 'mm',
+                                format: 'a4',
+                                orientation: 'portrait',
+                                compress: true
+                            },
+                            pagebreak: {
+                                mode: ['css', 'legacy'],
+                                before: ['.precedents-section'],
+                                avoid: ['.precedent-item', '.toc li', '.section-header']
                             }
-                        })
-                        .save()
-                        .then(function() {
-                            // Cleanup
-                            if (pdfElement.parentNode) pdfElement.parentNode.removeChild(pdfElement);
-                            if (typeof showToast === 'function') showToast('PDF descargado correctamente', 'success');
-                            resetButtonState();
-                        })
-                        .catch(function(err) {
-                            console.error('[RulesPDF] Generation error:', err);
-                            if (pdfElement.parentNode) pdfElement.parentNode.removeChild(pdfElement);
-                            if (typeof showToast === 'function') showToast('Error generando PDF. Intenta de nuevo.', 'error');
-                            resetButtonState();
-                        });
+                        };
+
+                        html2pdf().set(opt).from(iframeBody).toPdf().get('pdf')
+                            .then(function(pdf) {
+                                var totalPages = pdf.internal.getNumberOfPages();
+                                for (var i = 1; i <= totalPages; i++) {
+                                    pdf.setPage(i);
+                                    pdf.setFontSize(8);
+                                    pdf.setTextColor(153, 153, 153);
+                                    pdf.text(
+                                        'Reglamento Alliance Hub - Pagina ' + i + ' de ' + totalPages,
+                                        pdf.internal.pageSize.getWidth() / 2,
+                                        pdf.internal.pageSize.getHeight() - 6,
+                                        { align: 'center' }
+                                    );
+                                }
+                            })
+                            .save()
+                            .then(function() {
+                                document.body.removeChild(iframe);
+                                if (typeof showToast === 'function') showToast('PDF descargado correctamente', 'success');
+                                resetButtonState();
+                            })
+                            .catch(function(err) {
+                                console.error('[RulesPDF] Generation error:', err);
+                                if (iframe.parentNode) document.body.removeChild(iframe);
+                                if (typeof showToast === 'function') showToast('Error generando PDF. Intenta de nuevo.', 'error');
+                                resetButtonState();
+                            });
+                    }, 500); // Wait 500ms for iframe to fully render
                 })
                 .catch(function(err) {
                     console.error('[RulesPDF] Data fetch error:', err);
