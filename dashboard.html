@@ -13,6 +13,8 @@
 <script src="assets/js/theme.js?v=18"></script>
 <script src="assets/js/config.js?v=18"></script>
 <script src="assets/js/base.js?v=18"></script>
+<!-- v18: DB Schema Centralizer -->
+<script src="assets/js/db-schema.js?v=18"></script>
 <script src="assets/js/roles-data.js?v=18"></script>
 <script src="assets/js/auth-core.js?v=18"></script>
 <script src="assets/js/messaging.js?v=18"></script>
@@ -32,10 +34,10 @@
 <script>
 var allAlliances = [];
 
-// FIX #2: Cargar alliances separadamente (FK join roto en schema)
+// Load alliances using centralized DB schema
 async function loadAlliancesMap() {
     try {
-        var { data, error } = await supabase.from('alliances').select('id, name, tag');
+        var { data, error } = await DB.from('alliances').select(DB.cols.alliances.basic);
         if (error) throw error;
         allAlliances = data || [];
     } catch(e) { console.error('[Dashboard] Error cargando alliances:', e); }
@@ -49,19 +51,20 @@ function getAlliance(allianceId) {
 async function loadMatches() {
     try {
         await loadAlliancesMap();
-        // FIX #2: Query simple sin FK join, mapear alliances en JS
-        var { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: false }).limit(50);
+        var mc = DB.tableCols('matches');
+        var { data, error } = await DB.from('matches').select(DB.cols.matches.basic).order(mc.createdAt, { ascending: false }).limit(50);
         if (error) throw error;
         if (!data || data.length === 0) {
             document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas registradas</div>';
             return;
         }
+        var ac = DB.tableCols('alliances');
         document.getElementById('matches-list').innerHTML = '<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">' + data.map(function(m) {
-            var alliance = getAlliance(m.alliance_id);
-            var allianceLabel = alliance ? ' [' + alliance.tag + ']' : '';
-            var statusBadge = m.status === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ABIERTA</span>' : m.status === 'in_progress' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN CURSO</span>' : m.status === 'finished' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">FINALIZADA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">BORRADOR</span>';
-            var typeBadge = m.match_type === 'duel' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(198,40,40,0.15);color:#ef5350;">DUELO</span>' : m.match_type === 'internal' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(33,150,243,0.15);color:#2196f3;">INTERNA</span>' : '';
-            return '<a href="game.html?id=' + m.id + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><div>' + statusBadge + typeBadge + '</div></div><h3 class="font-bold text-lg" style="color:#e8eaf6;">' + (m.name || 'Partida') + allianceLabel + '</h3><p class="text-xs mt-1" style="color:#9fa8da;">' + formatDate(m.created_at) + ' | Max: ' + (m.max_players || '-') + '</p></a>';
+            var alliance = getAlliance(m[mc.allianceId]);
+            var allianceLabel = alliance ? ' [' + alliance[ac.tag] + ']' : '';
+            var statusBadge = m[mc.status] === 'open' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ABIERTA</span>' : m[mc.status] === 'in_progress' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN CURSO</span>' : m[mc.status] === 'finished' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">FINALIZADA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">BORRADOR</span>';
+            var typeBadge = m[mc.matchType] === 'duel' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(198,40,40,0.15);color:#ef5350;">DUELO</span>' : m[mc.matchType] === 'internal' ? '<span class="px-2 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(33,150,243,0.15);color:#2196f3;">INTERNA</span>' : '';
+            return '<a href="game.html?id=' + (m[mc.id] || m.id) + '" class="block rounded-xl p-4 transition hover:opacity-90" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between mb-2"><div>' + statusBadge + typeBadge + '</div></div><h3 class="font-bold text-lg" style="color:#e8eaf6;">' + (m[mc.name] || 'Partida') + allianceLabel + '</h3><p class="text-xs mt-1" style="color:#9fa8da;">' + formatDate(m[mc.createdAt]) + ' | Max: ' + (m[mc.maxPlayers] || '-') + '</p></a>';
         }).join('') + '</div>';
     } catch(e) {
         console.error('[Dashboard]', e);
