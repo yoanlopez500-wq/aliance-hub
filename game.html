@@ -19,8 +19,6 @@
 <script src="assets/js/nav-engine.js?v=18"></script>
 <script src="assets/js/training.js?v=18"></script>
 <script src="assets/js/components.js?v=18"></script>
-<!-- v18: Rules PDF Export Module -->
-<script src="assets/js/rules-pdf.js?v=18"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js?v=18"></script>
 <meta name="theme-color" content="#0a0e27">
@@ -62,18 +60,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <div class="flex items-center justify-center gap-2"><span class="text-xl">&#128680;</span><span class="font-bold" style="color:#ef5350;">Reportar jugador</span></div>
 <p class="text-xs mt-1" style="color:#ef5350;">Viste a alguien haciendo trampa? Reportalo aqui con evidencia.</p></a></div>
 
-<!-- Reglas: link a rules.html + boton descarga PDF -->
+<!-- Reglamento -->
 <div id="rules-link-section" class="hidden mb-6">
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 <a href="rules.html" class="flex items-center justify-between rounded-xl p-4 transition" style="background:#11183a;border:1px solid #1a237e;">
 <div class="flex items-center gap-3"><span class="text-2xl">&#128220;</span><div><p class="font-bold text-sm" style="color:#e8eaf6;">Reglamento Oficial</p><p class="text-xs" style="color:#9fa8da;">Ver reglas, precedentes y jurisprudencia</p></div></div>
 <span class="font-bold text-sm" style="color:#ff8f00;">Ver &rarr;</span>
 </a>
-<button data-rules-pdf-btn class="flex items-center justify-between rounded-xl p-4 transition active:scale-[0.98]" style="background:#11183a;border:1px solid #1a237e;cursor:pointer;">
-<div class="flex items-center gap-3"><span class="text-2xl">&#128196;</span><div><p class="font-bold text-sm" style="color:#e8eaf6;">Descargar Reglamento</p><p class="text-xs" style="color:#9fa8da;">PDF completo con precedentes</p></div></div>
-<span class="font-bold text-sm" style="color:#ff8f00;">&#11123;</span>
-</button>
-</div>
 </div>
 
 <!-- Chat para duelos -->
@@ -156,7 +148,6 @@ async function loadMatch() {
         if (showCredentials) {
             document.getElementById('match-credentials').classList.remove('hidden');
             document.getElementById('cred-game-id').textContent = match.game_id || '---';
-            // FIX #4: Intenta game_password primero, fallback a password
             document.getElementById('cred-password').textContent = match.game_password || match.password || '---';
         }
         if (showWaiting) document.getElementById('waiting-approval-banner').classList.remove('hidden');
