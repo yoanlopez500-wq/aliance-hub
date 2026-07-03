@@ -54,14 +54,25 @@
             cols: {
                 id: 'id',
                 playerId: 'player_id',
-                reason: 'reason',
-                createdBy: 'created_by',
+                strikeTypeId: 'strike_type_id',
+                matchId: 'match_id',
+                ruleSectionId: 'rule_section_id',
                 rulePrecedentId: 'rule_precedent_id',
-                createdAt: 'created_at'
+                reportId: 'report_id',
+                reason: 'reason',
+                appliedBy: 'applied_by',
+                appliedAt: 'applied_at',
+                removedBy: 'removed_by',
+                removedAt: 'removed_at',
+                removalReason: 'removal_reason',
+                status: 'status',
+                isActive: 'is_active',
+                notes: 'notes'
             },
             selectSets: {
-                basic: 'id, player_id, reason, created_by, rule_precedent_id, created_at',
-                withPlayer: 'id, player_id, reason, created_by, rule_precedent_id, created_at, players:player_id(current_username)',
+                basic: 'id, player_id, strike_type_id, match_id, rule_section_id, rule_precedent_id, reason, applied_by, applied_at, status, is_active',
+                withRelations: 'id, player_id, strike_type_id, match_id, rule_section_id, rule_precedent_id, report_id, reason, applied_by, applied_at, removed_by, removed_at, removal_reason, status, is_active, notes, players:player_id(current_username), strike_types:strike_type_id(name), rule_sections:rule_section_id(title), rule_precedents:rule_precedent_id(title)',
+                pending: 'id, player_id, strike_type_id, match_id, rule_section_id, rule_precedent_id, reason, applied_by, applied_at, status, players:player_id(current_username), strike_types:strike_type_id(name)',
                 all: '*'
             }
         },
@@ -346,6 +357,7 @@
         }
     };
 
+    // ===================== ACTIVE FILTERS =====================
     var ACTIVE_FILTERS = {
         players: function() { return { col: SCHEMA.players.cols.status, val: 'active' }; },
         alliances: function() { return { col: SCHEMA.alliances.cols.status, val: 'active' }; },
@@ -353,6 +365,7 @@
         matchRegistrations: function() { return { col: SCHEMA.matchRegistrations.cols.status, val: 'pending', op: 'neq' }; }
     };
 
+    // ===================== PUBLIC API =====================
     window.DB = {
         schema: function(tableKey) { return SCHEMA[tableKey] || null; },
         from: function(tableKey) {
