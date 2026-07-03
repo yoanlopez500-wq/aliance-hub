@@ -7,35 +7,42 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Reglamento - Alliance Hub</title>
-<!-- v18: Modular Architecture -->
-<script src="assets/js/theme.js?v=18"></script>
+<script src="assets/js/theme.js?v=19"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
-<!-- v18: DB Schema Centralizer -->
-<script src="assets/js/db-schema.js?v=18"></script>
-<script src="assets/js/roles-data.js?v=18"></script>
-<script src="assets/js/auth-core.js?v=18"></script>
-<script src="assets/js/messaging.js?v=18"></script>
-<script src="assets/js/notifications.js?v=18"></script>
-<script src="assets/js/nav-engine.js?v=18"></script>
-<script src="assets/js/training.js?v=18"></script>
-<script src="assets/js/components.js?v=18"></script>
+<script src="assets/js/config.js?v=19"></script>
+<script src="assets/js/base.js?v=19"></script>
+<script src="assets/js/roles-data.js?v=19"></script>
+<script src="assets/js/auth-core.js?v=19"></script>
+<script src="assets/js/db-schema.js?v=19"></script>
+<script src="assets/js/messaging.js?v=19"></script>
+<script src="assets/js/notifications.js?v=19"></script>
+<script src="assets/js/nav-engine.js?v=19"></script>
+<script src="assets/js/training.js?v=19"></script>
+<script src="assets/js/components.js?v=19"></script>
 <meta name="theme-color" content="#0a0e27">
-<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.severity-high{background:rgba(198,40,40,0.15);color:#ef5350;border:1px solid rgba(198,40,40,0.3);}
+.severity-medium{background:rgba(255,143,0,0.15);color:#ff8f00;border:1px solid rgba(255,143,0,0.3);}
+.severity-low{background:rgba(76,175,80,0.15);color:#4caf50;border:1px solid rgba(76,175,80,0.3);}
+.precedent-card{transition:all .2s ease}
+.precedent-card:hover{border-color:#ff6f00!important}
+</style>
 </head>
 <body class="min-h-screen" data-role="public">
 <div id="admin-nav"></div>
 <div class="max-w-4xl mx-auto px-4 py-8">
 <h1 class="text-3xl font-bold mb-2">&#128220; Reglamento de Alliance Hub</h1>
 <p class="text-sm mb-6" style="color:#9fa8da;">Normativa oficial para partidas, torneos y comportamiento de jugadores.</p>
-<div class="flex flex-col sm:flex-row gap-3 mb-4">
-<input type="text" id="search-rules" placeholder="Buscar en el reglamento..." class="flex-1 px-4 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" oninput="filterRules(this.value)">
+
+<div class="mb-4">
+<input type="text" id="search-rules" placeholder="Buscar en el reglamento..." class="w-full px-4 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" oninput="filterRules(this.value)">
 </div>
+
 <div id="rules-container" class="space-y-4">
 <div class="text-center py-8" style="color:#9fa8da;">Cargando reglamento...</div>
 </div>
+
 <div class="mt-8 pt-6" style="border-top:1px solid #1a237e;">
 <h2 class="text-xl font-bold mb-4">&#9878;&#65039; Precedentes y Jurisprudencia</h2>
 <div id="precedents-container" class="space-y-3">
@@ -43,58 +50,85 @@
 </div>
 </div>
 </div>
-<script src="sw-register.js?v=18"></script>
+<script src="sw-register.js?v=19"></script>
 <script>
-// v18: Load rules using centralized DB schema
+// v19: Carga reglas y precedentes usando db-schema.js con relaciones completas
 async function loadRules() {
     try {
-        // Use DB_SCHEMA centralized table/column definitions
-        var { data, error } = await DB.from('ruleSections').select(DB.cols.ruleSections.basic);
+        var { data, error } = await DB.selectActive('ruleSections', 'all', 'order_index');
         if (error) throw error;
         var container = document.getElementById('rules-container');
         if (!data || data.length === 0) {
-            AhComponents.inject('empty-state', { message: 'No hay reglas configuradas. Contacta a un administrador.' }, 'rules-container');
+            container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#9fa8da;">No hay reglas configuradas. Contacta a un administrador.</div>';
             return;
         }
         container.innerHTML = data.map(function(s) {
-            var badge = s[DB.tableCols('ruleSections').visibility] === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' :
-                        s[DB.tableCols('ruleSections').visibility] === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
-            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + ((s[DB.tableCols('ruleSections').title] || '') + ' ' + (s[DB.tableCols('ruleSections').content] || '')).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s[DB.tableCols('ruleSections').orderIndex] + 1) + '. ' + s[DB.tableCols('ruleSections').title] + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s[DB.tableCols('ruleSections').content] || '').replace(/\n/g, '<br>') + '</div></div>';
+            var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' :
+                        s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + ((s.title || '') + ' ' + (s.content || '')).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
         }).join('');
     } catch(e) {
         console.error('[Rules]', e);
-        AhComponents.inject('error-state', { message: 'Error cargando reglamento' }, 'rules-container');
+        document.getElementById('rules-container').innerHTML = '<div class="text-center py-8 text-sm" style="color:#ef5350;">Error cargando reglamento. Intenta recargar la pagina.</div>';
     }
 }
 
-// v18: Load precedents using centralized DB schema
+// v19: Precedentes con relaciones jugador, partida y creador
 async function loadPrecedents() {
     try {
-        var { data, error } = await DB.from('rulePrecedents').select(DB.cols.rulePrecedents.basic);
+        // Try full query with relations (v19 schema)
+        var result = await DB.selectAll('rulePrecedents', 'withRelations', 'created_at', false);
+        // Supabase returns errors in result.error, not as exceptions
+        if (result.error) {
+            console.warn('[Precedents] Full query failed, trying basic:', result.error.message);
+            result = await DB.selectAll('rulePrecedents', 'basic', 'created_at', false);
+            if (result.error) {
+                console.warn('[Precedents] Basic query failed, trying minimal:', result.error.message);
+                result = await supabase.from('rule_precedents').select('*').order('created_at', { ascending: false });
+            }
+        }
+        var data = result.data;
+        var error = result.error;
         if (error) throw error;
         var container = document.getElementById('precedents-container');
         if (!data || data.length === 0) {
-            AhComponents.inject('empty-state', { message: 'No hay precedentes registrados aun.' }, 'precedents-container');
+            container.innerHTML = '<div class="text-center py-4 text-sm" style="color:#9fa8da;">No hay precedentes registrados aun.</div>';
             return;
         }
-        var pcols = DB.tableCols('rulePrecedents');
-        container.innerHTML = data.map(function(p) {
-            var severityLabel = '';
-            if (p[pcols.severity] === 'high') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(198,40,40,0.2);color:#ef5350;">ALTO</span>';
-            else if (p[pcols.severity] === 'medium') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(255,143,0,0.2);color:#ff8f00;">MEDIO</span>';
-            else if (p[pcols.severity] === 'low') severityLabel = '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2" style="background:rgba(76,175,80,0.2);color:#4caf50;">LEVE</span>';
 
-            var strikeInfo = p[pcols.strikeType] ? '<p class="text-xs mt-1" style="color:#ff8f00;">Strike: ' + p[pcols.strikeType] + '</p>' : '';
-            var resolutionInfo = p[pcols.resolution] ? '<p class="text-xs mt-1" style="color:#4caf50;">Resolucion: ' + p[pcols.resolution] + '</p>' : '';
-            var sectionRef = p[pcols.ruleSectionId] ? '<span class="text-[10px] ml-1" style="color:#9fa8da;">(Sec. #' + p[pcols.ruleSectionId] + ')</span>' : '';
+        // Load admin names
+        var adminIds = data.map(function(p) { return p.created_by; }).filter(Boolean);
+        var adminNames = {};
+        if (adminIds.length > 0) {
+            try {
+                var { data: admins } = await supabase.from('admin_users').select('id, display_name, role').in('id', adminIds);
+                (admins || []).forEach(function(a) { adminNames[a.id] = a.display_name || a.role || 'Admin'; });
+            } catch(e) {}
+        }
+
+        container.innerHTML = '<div class="space-y-3">' + data.map(function(p) {
+            var severityClass = p.severity === 'high' ? 'severity-high' : p.severity === 'medium' ? 'severity-medium' : 'severity-low';
+            var severityLabel = p.severity === 'high' ? 'ALTO' : p.severity === 'medium' ? 'MEDIO' : 'LEVE';
+            var severityIcon = p.severity === 'high' ? '&#128308;' : p.severity === 'medium' ? '&#128992;' : '&#128994;';
+
+            var playerName = '';
+            if (p.player_id && p.players && p.players.current_username) playerName = p.players.current_username;
+            else if (p.player_id) playerName = 'Jugador #' + p.player_id;
+
+            var matchName = '';
+            if (p.match_id && p.matches && p.matches.name) matchName = p.matches.name;
+            else if (p.match_id) matchName = 'Partida #' + p.match_id;
+
+            var creatorName = p.created_by ? (adminNames[p.created_by] || 'Admin') : 'Sistema';
+
             var dateStr = '';
-            try { dateStr = formatDate(p[pcols.createdAt]); } catch(e) { dateStr = '-'; }
+            try { dateStr = formatDate(p.created_at); } catch(e) { dateStr = '-'; }
 
-            return '<div class="rounded-lg p-4" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-3"><span class="text-2xl">&#9878;&#65039;</span><div class="flex-1"><h4 class="font-bold text-sm mb-1" style="color:#ff8f00;">' + p[pcols.title] + sectionRef + severityLabel + '</h4><p class="text-sm mb-2" style="color:#e8eaf6;">' + p[pcols.description] + '</p>' + strikeInfo + resolutionInfo + '<p class="text-xs mt-2" style="color:#9fa8da;">Aplicado: ' + dateStr + '</p></div></div></div>';
-        }).join('');
+            return '<div class="precedent-card rounded-xl p-4" style="background:#0a0e27;border:1px solid #1a237e;"><div class="flex items-start gap-3"><span class="text-2xl flex-shrink-0">&#9878;&#65039;</span><div class="flex-1 min-w-0"><div class="flex items-center flex-wrap gap-2 mb-1"><h4 class="font-bold text-sm" style="color:#ff8f00;">' + p.title + '</h4><span class="text-[10px] px-2 py-0.5 rounded font-bold ' + severityClass + '">' + severityIcon + ' ' + severityLabel + '</span></div><p class="text-sm mb-2" style="color:#e8eaf6;">' + p.description + '</p><div class="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-2" style="color:#9fa8da;">' + (playerName ? '<span>&#128100; ' + playerName + '</span>' : '') + (matchName ? '<span>&#127918; ' + matchName + '</span>' : '') + (p.strike_type ? '<span style="color:#ff8f00;">&#9889; ' + p.strike_type + '</span>' : '') + '</div>' + (p.resolution ? '<p class="text-xs mb-2 p-2 rounded" style="background:rgba(76,175,80,0.1);color:#4caf50;border-left:3px solid #4caf50;">' + p.resolution + '</p>' : '') + '<p class="text-xs" style="color:#64748b;">Por ' + creatorName + ' &middot; ' + dateStr + '</p></div></div></div>';
+        }).join('') + '</div>';
     } catch(e) {
         console.error('[Precedents]', e);
-        AhComponents.inject('error-state', { message: 'Error cargando precedentes' }, 'precedents-container');
+        document.getElementById('precedents-container').innerHTML = '<div class="text-center py-4 text-sm" style="color:#ef5350;">Error cargando precedentes.</div>';
     }
 }
 
