@@ -37,7 +37,7 @@ var allAlliances = [];
 // Load alliances using centralized DB schema
 async function loadAlliancesMap() {
     try {
-        var { data, error } = await DB.from('alliances').select(DB.cols.alliances.basic);
+        var { data, error } = await DB.from('alliances').select(DB.select('alliances', 'basic'));
         if (error) throw error;
         allAlliances = data || [];
     } catch(e) { console.error('[Dashboard] Error cargando alliances:', e); }
@@ -52,7 +52,7 @@ async function loadMatches() {
     try {
         await loadAlliancesMap();
         var mc = DB.tableCols('matches');
-        var { data, error } = await DB.from('matches').select(DB.cols.matches.basic).order(mc.createdAt, { ascending: false }).limit(50);
+        var { data, error } = await DB.from('matches').select(DB.select('matches', 'basic')).order(DB.col('matches', 'createdAt'), { ascending: false }).limit(50);
         if (error) throw error;
         if (!data || data.length === 0) {
             document.getElementById('matches-list').innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay partidas registradas</div>';

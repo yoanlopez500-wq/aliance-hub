@@ -18,9 +18,9 @@ Plataforma de torneos, rankings y ligas para comunidades de **Supremacy 1914**.
 assets/js/
 ├── config.js          # Supabase client init
 ├── base.js            # Utilidades globales (formatDate, showToast, etc.)
-├── db-schema.js       # Centralizador de schema DB (v19)
-├── auth-core.js       # Autenticacion (login/logout/session)
-├── roles-data.js      # Jerarquia de roles y permisos
+├── db-schema.js       # Centralizador de schema DB (v19) - DB.from(), DB.select(), DB.col()
+├── auth-core.js       # Autenticacion (login/logout/session/roles)
+├── roles-data.js      # Jerarquia de roles y paneles de navegacion
 ├── nav-engine.js      # Navegacion dual (admin/jugador)
 ├── messaging.js       # Chat y mensajeria
 ├── notifications.js   # Notificaciones push
@@ -60,11 +60,19 @@ superadmin > event_admin > moderator > alliance_leader > co_leader > officer
 | Rol | Capacidades |
 |-----|------------|
 | superadmin | Todo CRUD, editar/eliminar precedentes, gestion de admins |
-| event_admin | Crear partidas, gestionar torneos, importar CSV |
-| moderator | Gestionar reportes, aplicar strikes, moderar chat |
+| event_admin | Crear partidas, gestionar torneos, importar CSV, comite de revision |
+| moderator | Gestionar reportes, aplicar strikes, moderar chat, comite de revision |
 | alliance_leader | Panel de alianza, crear partidas internas, gestionar miembros |
 | co_leader | Mismo que lider con restricciones |
 | officer | Ver strikes, gestionar miembros basicos |
+
+## Flujo de Strikes y Precedentes
+
+1. **Moderator** crea un strike con status `pending_precedent`
+2. **Comite de Revision** (superadmin/event_admin) aprueba/rechaza
+3. Si se aprueba: status cambia a `active` y se vincula un precedente
+4. Si se rechaza: status cambia a `rejected`
+5. **Solo superadmin** puede editar/eliminar precedentes existentes
 
 ## Iniciar el Proyecto
 
@@ -91,7 +99,7 @@ SELECT complete_setup();
 ## Convenciones de Codigo
 
 - **Versionado**: `?v=19` en todos los recursos JS/CSS
-- **DB**: Usar `DB.from('tableKey')` y `DB.col('tableKey', 'colKey')` de `db-schema.js`
+- **DB**: Usar `DB.from('tableKey')`, `DB.select('tableKey', 'setName')`, `DB.col('tableKey', 'colKey')`
 - **Auth**: Usar `auth-core.js` directamente (no el shim legacy `auth.js`)
 - **Tabs**: Tablas de 2 espacios en JS, 4 en HTML
 

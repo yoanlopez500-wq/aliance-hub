@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Comite de Revision - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../assets/js/theme.js?v=19"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=19"></script>
+<script src="../assets/js/base.js?v=19"></script>
+<script src="../assets/js/roles-data.js?v=19"></script>
+<script src="../assets/js/auth-core.js?v=19"></script>
+<script src="../assets/js/db-schema.js?v=19"></script>
+<script src="../assets/js/components.js?v=19"></script>
+<script src="../assets/js/nav-engine.js?v=19"></script>
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.status-pending{background:rgba(255,143,0,0.15);color:#ff8f00;border:1px solid rgba(255,143,0,0.3);}
+.status-active{background:rgba(76,175,80,0.15);color:#4caf50;border:1px solid rgba(76,175,80,0.3);}
+.status-rejected{background:rgba(198,40,40,0.15);color:#ef5350;border:1px solid rgba(198,40,40,0.3);}
+.status-removed{background:rgba(158,158,158,0.15);color:#9e9e9e;border:1px solid rgba(158,158,158,0.3);}
+</style>
+</head>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+
+<div class="max-w-6xl mx-auto px-4 py-6">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+<div>
+<h1 class="text-2xl font-bold">&#128736;&#65039; Comite de Revision</h1>
+<p class="text-sm" style="color:#9fa8da;">Aprobar o rechazar strikes con nuevos precedentes propuestos.</p>
+</div>
+<div id="role-badge" class="text-xs px-3 py-1 rounded-full font-bold" style="background:#1a237e;color:#9fa8da;">...</div>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-3 gap-3 mb-6">
+<div class="rounded-xl p-4 text-center" style="background:#11183a;border:1px solid #1a237e;">
+<div class="text-2xl font-bold" style="color:#ff8f00;" id="stat-pending">0</div>
+<div class="text-xs" style="color:#9fa8da;">Pendientes</div>
+</div>
+<div class="rounded-xl p-4 text-center" style="background:#11183a;border:1px solid #1a237e;">
+<div class="text-2xl font-bold" style="color:#4caf50;" id="stat-approved">0</div>
+<div class="text-xs" style="color:#9fa8da;">Aprobados (hoy)</div>
+</div>
+<div class="rounded-xl p-4 text-center" style="background:#11183a;border:1px solid #1a237e;">
+<div class="text-2xl font-bold" style="color:#ef5350;" id="stat-rejected">0</div>
+<div class="text-xs" style="color:#9fa8da;">Rechazados (hoy)</div>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-6 mb-6 border-b" style="border-color:#1a237e;">
+<button id="tab-pending-btn" onclick="switchTab('pending')" class="pb-3 text-sm font-bold transition tab-active" style="border-bottom:2px solid #ff6f00;color:#ff8f00;">&#9203; Pendientes</button>
+<button id="tab-history-btn" onclick="switchTab('history')" class="pb-3 text-sm font-bold transition tab-inactive" style="border-bottom:2px solid transparent;color:#9fa8da;">&#128203; Historial</button>
+</div>
+
+<!-- Pending Tab -->
+<div id="tab-pending">
+<div id="pending-list">Cargando...</div>
+</div>
+
+<!-- History Tab -->
+<div id="tab-history" class="hidden">
+<div id="history-list">Cargando...</div>
+</div>
+</div>
+
+<!-- Aprove/Reject Modal -->
+<div id="action-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#fff;color:#0f172a;">
+<h3 id="action-title" class="text-lg font-bold mb-4">Aprobar Strike</h3>
+<input type="hidden" id="action-strike-id">
+<input type="hidden" id="action-type">
+<div class="mb-3">
+<label class="block text-sm font-medium mb-1">Precedente a vincular (opcional)</label>
+<select id="action-precedent" class="w-full px-3 py-2 rounded-lg border text-sm" style="background:#fff;border-color:#cbd5e1;color:#0f172a;">
+<option value="">Crear nuevo precedente...</option>
+</select>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium mb-1">Comentario del comite</label>
+<textarea id="action-comment" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" style="background:#fff;border-color:#cbd5e1;color:#0f172a;" placeholder="Razon de la decision..."></textarea>
+</div>
+<div class="flex gap-2 justify-end">
+<button onclick="closeActionModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#e2e8f0;color:#0f172a;">Cancelar</button>
+<button onclick="confirmAction()" id="action-confirm-btn" class="px-4 py-2 rounded-lg text-sm font-bold text-white">Confirmar</button>
+</div>
+</div></div>
+
+<script>
+var currentAdmin = null;
+var isSuperAdmin = false;
+var isEventAdmin = false;
+var pendingStrikes = [];
+var allPrecedents = [];
+
+async function init() {
+    try {
+        await requireAdmin();
+        var admin = await getAdminRole();
+        if (!admin) { window.location.href = '../login.html'; return; }
+        currentAdmin = admin;
+        isSuperAdmin = (admin.role === 'superadmin');
+        isEventAdmin = (admin.role === 'event_admin');
+
+        if (!isSuperAdmin && !isEventAdmin) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        var badgeEl = document.getElementById('role-badge');
+        if (badgeEl) {
+            var roleLabel = { superadmin: 'SUPERADMIN', event_admin: 'ADMIN EVENTOS' }[admin.role] || admin.role;
+            var roleColor = { superadmin: '#ef5350', event_admin: '#42a5f5' }[admin.role] || '#9fa8da';
+            badgeEl.textContent = roleLabel;
+            badgeEl.style.background = roleColor + '20';
+            badgeEl.style.color = roleColor;
+        }
+
+        await loadPrecedents();
+        loadPending();
+        loadHistory();
+    } catch(e) {
+        console.error('[ReviewCommittee] Init error:', e);
+        showToast('Error inicializando', 'error');
+    }
+}
+
+function switchTab(tab) {
+    var pendingTab = document.getElementById('tab-pending');
+    var historyTab = document.getElementById('tab-history');
+    var pendingBtn = document.getElementById('tab-pending-btn');
+    var historyBtn = document.getElementById('tab-history-btn');
+    if (tab === 'pending') {
+        pendingTab.classList.remove('hidden'); historyTab.classList.add('hidden');
+        pendingBtn.style.borderBottom = '2px solid #ff6f00'; pendingBtn.style.color = '#ff8f00';
+        historyBtn.style.borderBottom = '2px solid transparent'; historyBtn.style.color = '#9fa8da';
+    } else {
+        pendingTab.classList.add('hidden'); historyTab.classList.remove('hidden');
+        historyBtn.style.borderBottom = '2px solid #ff6f00'; historyBtn.style.color = '#ff8f00';
+        pendingBtn.style.borderBottom = '2px solid transparent'; pendingBtn.style.color = '#9fa8da';
+    }
+}
+
+async function loadPrecedents() {
+    try {
+        var { data, error } = await DB.selectAll('rulePrecedents', 'basic', 'created_at', false);
+        if (error) throw error;
+        allPrecedents = data || [];
+        var opts = '<option value="">Crear nuevo precedente...</option>' +
+            allPrecedents.map(function(p) { return '<option value="' + p.id + '">' + p.title + '</option>'; }).join('');
+        var sel = document.getElementById('action-precedent');
+        if (sel) sel.innerHTML = opts;
+    } catch(e) { console.error('[ReviewCommittee] loadPrecedents:', e); }
+}
+
+async function loadPending() {
+    try {
+        var table = DB.tableName('playerStrikes');
+        var { data, error } = await supabase.from(table)
+            .select(DB.select('playerStrikes', 'pending'))
+            .eq('status', 'pending_precedent')
+            .order('applied_at', { ascending: false });
+        if (error) throw error;
+        pendingStrikes = data || [];
+
+        document.getElementById('stat-pending').textContent = pendingStrikes.length;
+
+        var container = document.getElementById('pending-list');
+        if (pendingStrikes.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#9fa8da;">No hay strikes pendientes de revision. &#9989;</div>';
+            return;
+        }
+
+        container.innerHTML = '<div class="space-y-3">' + pendingStrikes.map(function(s) {
+            var playerName = s.players && s.players.current_username ? s.players.current_username : 'ID: ' + s.player_id;
+            var strikeType = s.strike_types && s.strike_types.name ? s.strike_types.name : 'Strike';
+            var ruleSection = s.rule_sections && s.rule_sections.title ? s.rule_sections.title : 'Sin seccion';
+            var dateStr = '';
+            try { dateStr = formatDate(s.applied_at); } catch(e) { dateStr = '-'; }
+
+            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="text-[10px] px-2 py-0.5 rounded font-bold status-pending">&#9203; PENDIENTE</span><span class="text-sm font-bold" style="color:#ff8f00;">' + strikeType + '</span></div><p class="text-sm mb-1"><strong>Jugador:</strong> ' + playerName + '</p><p class="text-sm mb-1" style="color:#9fa8da;">' + s.reason + '</p><p class="text-xs" style="color:#64748b;">Seccion: ' + ruleSection + ' &middot; ' + dateStr + '</p></div><div class="flex gap-1 flex-shrink-0 ml-2"><button onclick="openActionModal(\'' + s.id + '\', \'approve\')" class="px-3 py-1.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.3);color:#4caf50;">&#10003; Aprobar</button><button onclick="openActionModal(\'' + s.id + '\', \'reject\')" class="px-3 py-1.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.3);color:#ef5350;">&#10007; Rechazar</button></div></div></div>';
+        }).join('') + '</div>';
+    } catch(e) {
+        console.error('[ReviewCommittee] loadPending:', e);
+        document.getElementById('pending-list').innerHTML = '<div class="text-center py-8 text-sm" style="color:#ef5350;">Error cargando pendientes.</div>';
+    }
+}
+
+async function loadHistory() {
+    try {
+        var table = DB.tableName('playerStrikes');
+        var today = new Date().toISOString().split('T')[0];
+        var { data, error } = await supabase.from(table)
+            .select(DB.select('playerStrikes', 'withRelations'))
+            .in('status', ['active', 'rejected'])
+            .gte('applied_at', today)
+            .order('applied_at', { ascending: false });
+        if (error) throw error;
+
+        var approved = (data || []).filter(function(s) { return s.status === 'active'; });
+        var rejected = (data || []).filter(function(s) { return s.status === 'rejected'; });
+        document.getElementById('stat-approved').textContent = approved.length;
+        document.getElementById('stat-rejected').textContent = rejected.length;
+
+        var container = document.getElementById('history-list');
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#9fa8da;">Sin decisiones hoy.</div>';
+            return;
+        }
+
+        container.innerHTML = '<div class="space-y-3">' + data.map(function(s) {
+            var playerName = s.players && s.players.current_username ? s.players.current_username : 'ID: ' + s.player_id;
+            var statusClass = s.status === 'active' ? 'status-active' : 'status-rejected';
+            var statusLabel = s.status === 'active' ? '&#9989; APROBADO' : '&#10007; RECHAZADO';
+            var dateStr = '';
+            try { dateStr = formatDate(s.applied_at); } catch(e) { dateStr = '-'; }
+            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center gap-2 mb-1"><span class="text-[10px] px-2 py-0.5 rounded font-bold ' + statusClass + '">' + statusLabel + '</span></div><p class="text-sm"><strong>' + playerName + '</strong> - ' + s.reason + '</p><p class="text-xs" style="color:#64748b;">' + dateStr + '</p></div>';
+        }).join('') + '</div>';
+    } catch(e) {
+        console.error('[ReviewCommittee] loadHistory:', e);
+        document.getElementById('history-list').innerHTML = '<div class="text-center py-8 text-sm" style="color:#ef5350;">Error cargando historial.</div>';
+    }
+}
+
+function openActionModal(strikeId, type) {
+    document.getElementById('action-modal').classList.remove('hidden');
+    document.getElementById('action-strike-id').value = strikeId;
+    document.getElementById('action-type').value = type;
+    var btn = document.getElementById('action-confirm-btn');
+    if (type === 'approve') {
+        document.getElementById('action-title').textContent = '&#10003; Aprobar Strike';
+        btn.style.background = 'linear-gradient(135deg,#4caf50,#66bb6a)';
+        document.getElementById('action-precedent').parentElement.classList.remove('hidden');
+    } else {
+        document.getElementById('action-title').textContent = '&#10007; Rechazar Strike';
+        btn.style.background = 'linear-gradient(135deg,#c62828,#ef5350)';
+        document.getElementById('action-precedent').parentElement.classList.add('hidden');
+    }
+}
+
+function closeActionModal() {
+    document.getElementById('action-modal').classList.add('hidden');
+}
+
+async function confirmAction() {
+    var strikeId = document.getElementById('action-strike-id').value;
+    var type = document.getElementById('action-type').value;
+    var comment = document.getElementById('action-comment').value.trim();
+    var precedentId = document.getElementById('action-precedent').value;
+
+    try {
+        var table = DB.tableName('playerStrikes');
+
+        if (type === 'approve') {
+            // Aprobar: cambiar status a active, vincular precedente si existe
+            var updateData = { status: 'active', notes: comment || null };
+            if (precedentId) updateData.rule_precedent_id = precedentId;
+            var { error } = await supabase.from(table).update(updateData).eq('id', strikeId);
+            if (error) throw error;
+            showToast('Strike aprobado', 'success');
+        } else {
+            // Rechazar: cambiar status a rejected
+            var { error } = await supabase.from(table)
+                .update({ status: 'rejected', removal_reason: comment || 'Rechazado por el comite' })
+                .eq('id', strikeId);
+            if (error) throw error;
+            showToast('Strike rechazado', 'success');
+        }
+
+        closeActionModal();
+        loadPending();
+        loadHistory();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+init();
+</script>
+</body>
+</html>

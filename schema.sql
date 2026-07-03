@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS match_results (
     deaths integer DEFAULT 0,
     kd_ratio numeric DEFAULT 0,
     raw_csv_data text[],
-    imported_at timestamptz DEFAULT now()
+    imported_at timestamptz DEFAULT now(),
+    UNIQUE(match_id, player_id)
 );
 
 CREATE TABLE IF NOT EXISTS match_winners (
@@ -258,6 +259,7 @@ CREATE TABLE IF NOT EXISTS player_strikes (
     removed_by uuid,
     removed_at timestamptz,
     removal_reason text,
+    status text DEFAULT 'pending_precedent' CHECK (status IN ('pending_precedent', 'active', 'rejected', 'removed')),
     is_active boolean NOT NULL DEFAULT true,
     notes text
 );
@@ -355,6 +357,7 @@ CREATE TABLE IF NOT EXISTS direct_messages (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS admin_users (
     id uuid PRIMARY KEY REFERENCES auth.users(id),
+    role text NOT NULL DEFAULT 'moderator',
     alliance_id uuid REFERENCES alliances(id),
     display_name text,
     supremacy_player_id bigint REFERENCES players(id),
@@ -366,6 +369,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 CREATE TABLE IF NOT EXISTS admin_invites (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     code text NOT NULL UNIQUE,
+    role text NOT NULL DEFAULT 'moderator',
     created_by uuid,
     used boolean DEFAULT false,
     used_by uuid,
@@ -439,18 +443,19 @@ CREATE INDEX IF NOT EXISTS idx_rule_precedents_strike ON rule_precedents(strike_
 CREATE INDEX IF NOT EXISTS idx_rule_precedents_created ON rule_precedents(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_player_strikes_player ON player_strikes(player_id);
 CREATE INDEX IF NOT EXISTS idx_player_strikes_precedent ON player_strikes(rule_precedent_id);
+CREATE INDEX IF NOT EXISTS idx_player_strikes_status ON player_strikes(status);
 CREATE INDEX IF NOT EXISTS idx_alliance_memberships_alliance ON alliance_memberships(alliance_id);
 CREATE INDEX IF NOT EXISTS idx_alliance_memberships_player ON alliance_memberships(player_id);
 
 -- ============================================================
 -- FUNCTIONS
 -- ============================================================
-CREATE OR REPLACE FUNCTION create_invite_code()
+CREATE OR REPLACE FUNCTION create_invite_code(p_role text DEFAULT 'moderator')
 RETURNS text AS $$
 DECLARE new_code text;
 BEGIN
     new_code := upper(substring(md5(random()::text) from 1 for 8));
-    INSERT INTO admin_invites (code, created_by) VALUES (new_code, auth.uid());
+    INSERT INTO admin_invites (code, role, created_by) VALUES (new_code, p_role, auth.uid());
     RETURN new_code;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -550,7 +555,7 @@ CREATE POLICY "Public read rule precedents" ON rule_precedents FOR SELECT USING 
 CREATE POLICY "Public read strike types" ON strike_types FOR SELECT USING (is_active = true);
 CREATE POLICY "Public read player strikes" ON player_strikes FOR SELECT USING (is_active = true);
 
--- Authenticated write policies (to be refined per role)
+-- Authenticated write policies
 CREATE POLICY "Auth write matches" ON matches FOR ALL
     USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Auth write registrations" ON match_registrations FOR ALL

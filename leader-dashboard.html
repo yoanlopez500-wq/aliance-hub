@@ -168,7 +168,7 @@ async function init() {
 async function loadAllianceData() {
     try {
         var ac = DB.tableCols('alliances');
-        var { data, error } = await DB.from('alliances').select(DB.cols.alliances.full).eq('id', myAllianceId).single();
+        var { data, error } = await DB.from('alliances').select(DB.select('alliances', 'all')).eq('id', myAllianceId).single();
         if (data) {
             myAllianceData = data;
             document.getElementById('alliance-name').textContent = data[ac.name];
@@ -435,12 +435,12 @@ async function loadDuels() {
     try {
         var mc = DB.tableCols('matches');
         var { data: duelsA, error: errA } = await DB.from('matches')
-            .select(DB.cols.matches.basic)
+            .select(DB.select('matches', 'basic'))
             .eq(mc.allianceAId, myAllianceId)
             .eq(mc.matchType, 'duel')
             .order(mc.createdAt, { ascending: false });
         var { data: duelsB, error: errB } = await DB.from('matches')
-            .select(DB.cols.matches.basic)
+            .select(DB.select('matches', 'basic'))
             .eq(mc.allianceBId, myAllianceId)
             .eq(mc.matchType, 'duel')
             .order(mc.createdAt, { ascending: false });
