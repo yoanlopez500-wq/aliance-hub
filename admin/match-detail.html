@@ -7,19 +7,19 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Detalle de Partida - Alliance Hub</title>
-<!-- FIX #1 + #4: CDN PRIMERO, luego config.js, cache buster v18, scripts modulares -->
+<!-- FIX #1 + #4: CDN PRIMERO, luego config.js, cache buster v27, scripts modulares -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=18"></script>
-<script src="../assets/js/config.js?v=18"></script>
-<script src="../assets/js/base.js?v=18"></script>
-<script src="../assets/js/roles-data.js?v=18"></script>
-<script src="../assets/js/auth-core.js?v=18"></script>
-<script src="../assets/js/messaging.js?v=18"></script>
-<script src="../assets/js/notifications.js?v=18"></script>
-<script src="../assets/js/nav-engine.js?v=18"></script>
-<script src="../assets/js/training.js?v=18"></script>
-<script src="../assets/js/components.js?v=18"></script>
+<script src="../assets/js/theme.js?v=27"></script>
+<script src="../assets/js/config.js?v=27"></script>
+<script src="../assets/js/base.js?v=27"></script>
+<script src="../assets/js/roles-data.js?v=27"></script>
+<script src="../assets/js/auth-core.js?v=27"></script>
+<script src="../assets/js/messaging.js?v=27"></script>
+<script src="../assets/js/notifications.js?v=27"></script>
+<script src="../assets/js/nav-engine.js?v=27"></script>
+<script src="../assets/js/training.js?v=27"></script>
+<script src="../assets/js/components.js?v=27"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 input,select,textarea{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
@@ -46,12 +46,16 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="cm-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID del Juego</label><input type="text" id="cm-game-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="ID de Supremacy (opcional)"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contraseña de Partida</label><input type="text" id="cm-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contraseña para unirse (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contrase&ntilde;a de Partida</label><input type="text" id="cm-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contrase&ntilde;a para unirse (opcional)"></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="cm-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo de Partida</label><select id="cm-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="cm-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
 </div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion / Reglas</label><textarea id="cm-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="flex items-center gap-2 p-2 rounded-lg" style="background:rgba(255,143,0,0.05);border:1px solid rgba(255,143,0,0.15);">
+<input type="checkbox" id="cm-requires-approval" class="w-4 h-4 rounded" style="accent-color:#ff8f00;">
+<label for="cm-requires-approval" class="text-xs font-medium cursor-pointer" style="color:#e8eaf6;">&#128737;&#65039; Requerir aprobacion de inscripciones</label>
+</div>
 <div class="flex gap-3 pt-2">
 <button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">&#10133; Crear Partida</button>
 <a href="matches.html" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</a>
@@ -185,11 +189,15 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 <form id="edit-match-form" class="p-5 space-y-4">
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="em-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID del Juego</label><input type="text" id="em-game-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="ID de Supremacy (opcional)"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contraseña de Partida</label><input type="text" id="em-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contraseña para unirse (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contrase&ntilde;a de Partida</label><input type="text" id="em-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contrase&ntilde;a para unirse (opcional)"></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="em-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo de Partida</label><select id="em-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="em-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
 <div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion / Reglas</label><textarea id="em-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="flex items-center gap-2 p-2 rounded-lg" style="background:rgba(255,143,0,0.05);border:1px solid rgba(255,143,0,0.15);">
+<input type="checkbox" id="em-requires-approval" class="w-4 h-4 rounded" style="accent-color:#ff8f00;">
+<label for="em-requires-approval" class="text-xs font-medium cursor-pointer" style="color:#e8eaf6;">&#128737;&#65039; Requerir aprobacion de inscripciones</label>
+</div>
 <div class="flex gap-3 pt-2">
 <button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">Guardar Cambios</button>
 <button type="button" onclick="closeEditMatchModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
@@ -332,13 +340,14 @@ async function loadMatch() {
         var statusBadge = getStatusBadge(match.status);
         var typeBadge = getTypeBadge(match.match_type || match.type);
         var csvBadge = match.csv_imported ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">&#10003; CSV Importado</span>' : '';
+        var approvalBadge = match.requires_approval ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">&#128737;&#65039; Aprobacion Requerida</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.1);color:#4caf50;">&#9989; Abierta</span>';
 
         var shareUrl = (window.location.origin + '/aliance-hub/game.html?id=' + matchId);
 
         document.getElementById('match-header').innerHTML =
             '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">' +
-            '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#127918; ' + (match.name || 'Partida') + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + ' ' + typeBadge + ' ' + csvBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm hover:opacity-80 transition self-start" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a></div>' +
-            '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm"><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">ID Juego</p><p class="font-bold" style="color:#e8eaf6;">' + (match.game_id || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Max Jugadores</p><p class="font-bold" style="color:#e8eaf6;">' + (match.max_players || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Creada</p><p class="font-bold" style="color:#e8eaf6;">' + formatDate(match.created_at) + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Alianza</p><p class="font-bold" style="color:#e8eaf6;">' + (alliance ? alliance.name : 'Ninguna') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Contrasena</p><p class="font-bold" style="color:#e8eaf6;">' + (match.game_password || match.password || '-') + '</p></div></div>' +
+            '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#127918; ' + (match.name || 'Partida') + allianceInfo + '</h1><div class="flex gap-2 mt-1 flex-wrap">' + statusBadge + ' ' + typeBadge + ' ' + csvBadge + ' ' + approvalBadge + '</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm hover:opacity-80 transition self-start" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a></div>' +
+            '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm"><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">ID Juego</p><p class="font-bold" style="color:#e8eaf6;">' + (match.game_id || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Max Jugadores</p><p class="font-bold" style="color:#e8eaf6;">' + (match.max_players || '-') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Creada</p><p class="font-bold" style="color:#e8eaf6;">' + formatDate(match.created_at) + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Alianza</p><p class="font-bold" style="color:#e8eaf6;">' + (alliance ? alliance.name : 'Ninguna') + '</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Contrasena</p><p class="font-bold" style="color:#e8eaf6;">' + (match.password || '-') + '</p></div></div>' +
             (match.description ? '<div class="mt-3 p-3 rounded-lg text-sm" style="background:#0a0e27;color:#9fa8da;">' + match.description + '</div>' : '') +
             '</div>';
 
@@ -367,12 +376,12 @@ async function createNewMatch(formData) {
         var { data, error } = await supabase.from('matches').insert({
             name: formData.name,
             game_id: formData.game_id || null,
-            game_password: formData.game_password || null,
+            password: formData.game_password || null,
             alliance_id: formData.alliance_id || null,
             match_type: formData.match_type,
-            type: formData.match_type,
             max_players: formData.max_players || null,
             description: formData.description || null,
+            requires_approval: formData.requires_approval || false,
             status: 'draft',
             created_by: currentAdminId
         }).select().single();
@@ -391,7 +400,8 @@ document.getElementById('create-match-form').addEventListener('submit', async fu
         alliance_id: document.getElementById('cm-alliance').value || null,
         match_type: document.getElementById('cm-type').value,
         max_players: parseInt(document.getElementById('cm-max').value) || null,
-        description: document.getElementById('cm-desc').value.trim() || null
+        description: document.getElementById('cm-desc').value.trim() || null,
+        requires_approval: document.getElementById('cm-requires-approval').checked
     };
     if (!formData.name) { showToast('El nombre es obligatorio', 'warning'); return; }
     if (!currentAdminId) {
@@ -484,6 +494,8 @@ async function loadResults() {
 
 async function loadPending() {
     try {
+        // Only show approval queue if match requires approval
+        if (!currentMatch || !currentMatch.requires_approval) { document.getElementById('pending-section').classList.add('hidden'); return; }
         var { data: pending, error } = await supabase.from('match_registrations').select('*').eq('match_id', matchId).eq('status', 'pending').order('registered_at', { ascending: false });
         if (error || !pending || pending.length === 0) { document.getElementById('pending-section').classList.add('hidden'); return; }
 
@@ -695,10 +707,11 @@ function openEditMatchModal() {
     if (!currentMatch) return;
     document.getElementById('em-name').value = currentMatch.name || '';
     document.getElementById('em-game-id').value = currentMatch.game_id || '';
-    document.getElementById('em-password').value = currentMatch.game_password || currentMatch.password || '';
+    document.getElementById('em-password').value = currentMatch.password || '';
     document.getElementById('em-type').value = currentMatch.match_type || currentMatch.type || 'internal';
     document.getElementById('em-max').value = currentMatch.max_players || '';
     document.getElementById('em-desc').value = currentMatch.description || '';
+    document.getElementById('em-requires-approval').checked = currentMatch.requires_approval || false;
     loadAllianceSelect('em-alliance', currentMatch.alliance_id);
     document.getElementById('edit-match-modal').classList.add('active');
 }
@@ -710,12 +723,12 @@ document.getElementById('edit-match-form').addEventListener('submit', async func
         var { error } = await supabase.from('matches').update({
             name: document.getElementById('em-name').value,
             game_id: document.getElementById('em-game-id').value || null,
-            game_password: document.getElementById('em-password').value || null,
+            password: document.getElementById('em-password').value || null,
             alliance_id: document.getElementById('em-alliance').value || null,
             match_type: document.getElementById('em-type').value,
-            type: document.getElementById('em-type').value,
             max_players: parseInt(document.getElementById('em-max').value) || null,
-            description: document.getElementById('em-desc').value || null
+            description: document.getElementById('em-desc').value || null,
+            requires_approval: document.getElementById('em-requires-approval').checked
         }).eq('id', matchId);
         if (error) throw error;
         showToast('Partida actualizada', 'success');
