@@ -123,7 +123,7 @@ var allianceMap = {};
 async function init() {
     try {
         // Load all alliances using DB schema
-        var { data: all, error: allErr } = await DB.from('alliances').select(DB.cols.alliances.basic);
+        var { data: all, error: allErr } = await DB.from('alliances').select(DB.select('alliances', 'basic'));
         if (allErr) {
             console.error('[AlliancePanel] Error loading alliances:', allErr);
             document.getElementById('alliance-header').innerHTML = '<div class="text-center py-12 text-red-400">Error cargando alianzas: ' + allErr.message + '</div>';
@@ -218,7 +218,7 @@ async function loadAllianceMatches() {
     try {
         var mc = DB.tableCols('matches');
         var { data: matches, error: mErr } = await DB.from('matches')
-            .select(DB.cols.matches.basic)
+            .select(DB.select('matches', 'basic'))
             .eq(mc.allianceId, myAllianceId)
             .eq(mc.isPrivate, false)
             .order(mc.createdAt, { ascending: false })
