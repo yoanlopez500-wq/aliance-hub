@@ -1,46 +1,88 @@
-/**
- * db-schema.js - Centralized Database Schema for Alliance Hub
- * v18: Single source of truth for all table names and column definitions
- *
- * Usage:
- *   DB.from('players').select(DB.cols.players.basic).eq('id', 1)
- *   DB.selectAll('alliances')
- *   DB.from('matches').select('*').eq(DB.cols.matches.status, 'open')
- *
- * Benefits:
- *   - Table/column names defined once, used everywhere
- *   - Changing a column name requires editing only this file
- *   - Active filters handle missing is_active columns gracefully
- */
+// ============================================================
+// assets/js/db-schema.js v19
+// Centralized Database Schema - Single source of truth for all DB mappings
+// Use DB.from('tableKey'), DB.col('tableKey', 'colKey'), DB.select('tableKey', 'setName')
+// ============================================================
 
-var DB = (function() {
+(function() {
     'use strict';
 
-    // ===================== TABLE & COLUMN DEFINITIONS =====================
-    var TABLES = {
-        // Core entities
+    // ===================== SCHEMA DEFINITION =====================
+    var SCHEMA = {
+        // ---- RULES & PRECEDENTS ----
+        ruleSections: {
+            name: 'rule_sections',
+            cols: {
+                id: 'id',
+                title: 'title',
+                content: 'content',
+                visibility: 'visibility',
+                orderIndex: 'order_index',
+                isActive: 'is_active',
+                createdAt: 'created_at'
+            },
+            selectSets: {
+                basic: 'id, title, content, visibility, order_index, is_active',
+                all: '*'
+            }
+        },
+        rulePrecedents: {
+            name: 'rule_precedents',
+            cols: {
+                id: 'id',
+                title: 'title',
+                description: 'description',
+                ruleSectionId: 'rule_section_id',
+                playerId: 'player_id',
+                matchId: 'match_id',
+                strikeId: 'strike_id',
+                createdBy: 'created_by',
+                severity: 'severity',
+                strikeType: 'strike_type',
+                resolution: 'resolution',
+                createdAt: 'created_at'
+            },
+            selectSets: {
+                basic: 'id, title, description, rule_section_id, player_id, match_id, strike_id, created_by, severity, strike_type, resolution, created_at',
+                withRelations: 'id, title, description, rule_section_id, player_id, match_id, strike_id, created_by, severity, strike_type, resolution, created_at, players:player_id(current_username), matches:match_id(name)',
+                withFullRelations: 'id, title, description, rule_section_id, player_id, match_id, strike_id, created_by, severity, strike_type, resolution, created_at, players:player_id(current_username), matches:match_id(name, match_type), player_strikes:strike_id(reason, created_at)',
+                all: '*'
+            }
+        },
+        playerStrikes: {
+            name: 'player_strikes',
+            cols: {
+                id: 'id',
+                playerId: 'player_id',
+                reason: 'reason',
+                createdBy: 'created_by',
+                rulePrecedentId: 'rule_precedent_id',
+                createdAt: 'created_at'
+            },
+            selectSets: {
+                basic: 'id, player_id, reason, created_by, rule_precedent_id, created_at',
+                withPlayer: 'id, player_id, reason, created_by, rule_precedent_id, created_at, players:player_id(current_username)',
+                all: '*'
+            }
+        },
         players: {
             name: 'players',
             cols: {
                 id: 'id',
-                username: 'current_username',
-                allianceId: 'current_alliance_id',
-                kills: 'total_kills',
-                deaths: 'total_deaths',
-                gamesPlayed: 'games_played',
-                wins: 'wins',
-                kdRatio: 'kd_ratio',
+                currentUsername: 'current_username',
                 status: 'status',
+                strikes: 'strikes',
+                totalKills: 'total_kills',
+                totalDeaths: 'total_deaths',
+                gamesPlayed: 'games_played',
                 lastSeen: 'last_seen',
                 createdAt: 'created_at'
             },
-            hasIsActive: false,
             selectSets: {
-                basic: 'id, current_username, current_alliance_id, total_kills, total_deaths, games_played, wins, kd_ratio, status',
-                ranking: 'id, current_username, current_alliance_id, games_played, total_kills, total_deaths, wins, kd_ratio, status, last_seen',
-                full: '*'
-            },
-            orderBy: 'current_username'
+                basic: 'id, current_username, status, strikes',
+                profile: 'id, current_username, status, strikes, total_kills, total_deaths, games_played, last_seen',
+                all: '*'
+            }
         },
         alliances: {
             name: 'alliances',
@@ -49,62 +91,102 @@ var DB = (function() {
                 name: 'name',
                 tag: 'tag',
                 description: 'description',
-                active: 'active',
+                leaderId: 'leader_id',
+                status: 'status',
                 createdAt: 'created_at'
             },
-            hasIsActive: false, // uses 'active' instead
-            activeFilter: { col: 'active', val: true },
             selectSets: {
-                basic: 'id, name, tag, description',
-                full: '*'
+                basic: 'id, name, tag, description, leader_id, status',
+                all: '*'
+            }
+        },
+        allianceMemberships: {
+            name: 'alliance_memberships',
+            cols: {
+                id: 'id',
+                playerId: 'player_id',
+                allianceId: 'alliance_id',
+                status: 'status',
+                requestedAt: 'requested_at',
+                approvedBy: 'approved_by',
+                approvedAt: 'approved_at',
+                notes: 'notes'
             },
-            orderBy: 'name'
+            selectSets: {
+                basic: 'id, player_id, alliance_id, status',
+                withPlayer: 'id, player_id, alliance_id, status, players:player_id(current_username, total_kills, total_deaths)',
+                all: '*'
+            }
+        },
+        adminUsers: {
+            name: 'admin_users',
+            cols: {
+                id: 'id',
+                role: 'role',
+                allianceId: 'alliance_id',
+                displayName: 'display_name',
+                supremacyPlayerId: 'supremacy_player_id',
+                approvedBy: 'approved_by',
+                approvedAt: 'approved_at',
+                status: 'status',
+                createdAt: 'created_at'
+            },
+            selectSets: {
+                basic: 'id, role, alliance_id, display_name, supremacy_player_id, status',
+                withAlliance: 'id, role, alliance_id, display_name, supremacy_player_id, status, alliances:alliance_id(name)',
+                all: '*'
+            }
         },
         matches: {
             name: 'matches',
             cols: {
                 id: 'id',
-                name: 'name',
-                description: 'description',
                 matchType: 'match_type',
-                status: 'status',
+                name: 'name',
+                gameId: 'game_id',
+                description: 'description',
                 allianceId: 'alliance_id',
                 allianceAId: 'alliance_a_id',
                 allianceBId: 'alliance_b_id',
+                leagueId: 'league_id',
+                round: 'round',
                 maxPlayers: 'max_players',
+                status: 'status',
+                winnersDeclared: 'winners_declared',
+                rulesUrl: 'rules_url',
+                password: 'password',
+                showGameId: 'show_game_id',
+                requiresApproval: 'requires_approval',
                 isPrivate: 'is_private',
                 shareToken: 'share_token',
-                password: 'password',
-                gameId: 'game_id',
-                gamePassword: 'game_password',
-                requiresApproval: 'requires_approval',
-                winnersDeclared: 'winners_declared',
+                refereeId: 'referee_id',
+                autoDeleteAt: 'auto_delete_at',
+                createdBy: 'created_by',
                 csvImported: 'csv_imported',
+                notificationsSent: 'notifications_sent',
                 createdAt: 'created_at'
             },
-            hasIsActive: false,
             selectSets: {
-                basic: 'id, name, description, match_type, status, alliance_id, alliance_a_id, alliance_b_id, max_players, is_private, requires_approval, winners_declared, csv_imported, created_at',
-                full: '*'
-            },
-            orderBy: 'created_at'
+                basic: 'id, name, match_type, game_id, status, alliance_id, created_at',
+                list: 'id, name, match_type, game_id, status, alliance_id, alliance_a_id, alliance_b_id, league_id, max_players, created_at',
+                all: '*'
+            }
         },
-        matchRegistrations: {
-            name: 'match_registrations',
+        matchWinners: {
+            name: 'match_winners',
             cols: {
                 id: 'id',
                 matchId: 'match_id',
                 playerId: 'player_id',
-                username: 'username',
-                nation: 'nation',
-                status: 'status',
-                registeredAt: 'registered_at'
+                position: 'position',
+                declaredBy: 'declared_by',
+                declaredAt: 'declared_at'
             },
-            hasIsActive: false,
             selectSets: {
-                full: '*'
-            },
-            orderBy: 'registered_at'
+                basic: 'id, match_id, player_id, position',
+                withPlayer: 'id, match_id, player_id, position, players:player_id(current_username)',
+                all: '*'
+            }
         },
         matchResults: {
             name: 'match_results',
@@ -115,179 +197,134 @@ var DB = (function() {
                 nation: 'nation',
                 kills: 'kills',
                 deaths: 'deaths',
-                kdRatio: 'kd_ratio'
+                kdRatio: 'kd_ratio',
+                rawCsvData: 'raw_csv_data',
+                importedAt: 'imported_at'
             },
-            hasIsActive: false,
             selectSets: {
-                full: '*'
-            },
-            orderBy: 'kd_ratio'
+                basic: 'id, match_id, player_id, kills, deaths, kd_ratio',
+                withPlayer: 'id, match_id, player_id, nation, kills, deaths, kd_ratio, players:player_id(current_username)',
+                all: '*'
+            }
         },
-        matchWinners: {
-            name: 'match_winners',
+        matchRegistrations: {
+            name: 'match_registrations',
             cols: {
                 id: 'id',
                 matchId: 'match_id',
                 playerId: 'player_id',
-                position: 'position'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'position'
-        },
-        allianceMemberships: {
-            name: 'alliance_memberships',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                allianceId: 'alliance_id',
+                nation: 'nation',
                 status: 'status',
-                role: 'role',
-                requestedBy: 'requested_by',
-                requestedAt: 'requested_at',
-                approvedAt: 'approved_at',
-                joinedAt: 'joined_at'
+                registeredAt: 'registered_at',
+                confirmedAt: 'confirmed_at',
+                confirmedBy: 'confirmed_by',
+                notes: 'notes'
             },
-            hasIsActive: false,
             selectSets: {
-                basic: 'player_id, alliance_id, status, role, requested_by, requested_at, approved_at, joined_at',
-                full: '*'
-            },
-            orderBy: 'joined_at'
+                basic: 'id, match_id, player_id, status',
+                withPlayer: 'id, match_id, player_id, nation, status, players:player_id(current_username)',
+                all: '*'
+            }
         },
-        ruleSections: {
-            name: 'rule_sections',
+        leagues: {
+            name: 'leagues',
             cols: {
                 id: 'id',
-                title: 'title',
-                content: 'content',
-                visibility: 'visibility',
-                orderIndex: 'order_index',
-                isActive: 'is_active'
+                name: 'name',
+                season: 'season',
+                startDate: 'start_date',
+                endDate: 'end_date',
+                status: 'status',
+                createdAt: 'created_at'
             },
-            hasIsActive: true,
-            activeFilter: { col: 'is_active', val: true },
             selectSets: {
-                basic: 'id, title, content, visibility, order_index',
-                full: '*'
-            },
-            orderBy: 'order_index'
+                basic: 'id, name, season, status',
+                all: '*'
+            }
         },
-        rulePrecedents: {
-            name: 'rule_precedents',
+        leagueSchedule: {
+            name: 'league_schedule',
             cols: {
                 id: 'id',
-                title: 'title',
-                description: 'description',
-                ruleSectionId: 'rule_section_id',
-                severity: 'severity',
-                strikeType: 'strike_type',
+                leagueId: 'league_id',
+                matchId: 'match_id',
+                round: 'round',
+                scheduledAt: 'scheduled_at',
+                allianceAId: 'alliance_a_id',
+                allianceBId: 'alliance_b_id',
+                status: 'status',
+                createdAt: 'created_at'
+            },
+            selectSets: {
+                basic: 'id, league_id, match_id, round, status',
+                all: '*'
+            }
+        },
+        allianceChat: {
+            name: 'alliance_chat',
+            cols: {
+                id: 'id',
+                matchId: 'match_id',
+                allianceId: 'alliance_id',
+                senderId: 'sender_id',
+                message: 'message',
+                sentAt: 'sent_at'
+            },
+            selectSets: {
+                basic: 'id, match_id, alliance_id, sender_id, message, sent_at',
+                withPlayer: 'id, match_id, alliance_id, sender_id, message, sent_at, players:sender_id(current_username)',
+                all: '*'
+            }
+        },
+        chatReports: {
+            name: 'chat_reports',
+            cols: {
+                id: 'id',
+                channel: 'channel',
+                reportedMessageId: 'reported_message_id',
+                reporterId: 'reporter_id',
+                reporterName: 'reporter_name',
+                reason: 'reason',
+                contextMessages: 'context_messages',
+                status: 'status',
+                reviewedBy: 'reviewed_by',
+                reviewedAt: 'reviewed_at',
                 resolution: 'resolution',
+                reportedAt: 'reported_at'
+            },
+            selectSets: {
+                basic: 'id, channel, reporter_id, reporter_name, reason, status, reported_at',
+                all: '*'
+            }
+        },
+        auditLog: {
+            name: 'audit_log',
+            cols: {
+                id: 'id',
+                action: 'action',
+                entityType: 'entity_type',
+                entityId: 'entity_id',
+                adminId: 'admin_id',
+                details: 'details',
                 createdAt: 'created_at'
             },
-            hasIsActive: false,
             selectSets: {
-                basic: 'id, title, description, rule_section_id, severity, strike_type, resolution, created_at',
-                full: '*'
-            },
-            orderBy: 'created_at'
+                basic: 'id, action, entity_type, entity_id, admin_id, created_at',
+                all: '*'
+            }
         },
-        playerReports: {
-            name: 'player_reports',
+        appSettings: {
+            name: 'app_settings',
             cols: {
                 id: 'id',
-                reportedPlayerId: 'reported_player_id',
-                reporterPlayerId: 'reporter_player_id',
-                ruleSectionId: 'rule_section_id',
-                description: 'description',
-                evidenceUrl: 'evidence_url',
-                status: 'status',
-                createdAt: 'created_at'
+                key: 'key',
+                value: 'value',
+                updatedAt: 'updated_at'
             },
-            hasIsActive: false,
             selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        playerStrikes: {
-            name: 'player_strikes',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                isActive: 'is_active',
-                createdAt: 'created_at'
-            },
-            hasIsActive: true,
-            activeFilter: { col: 'is_active', val: true },
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        playerSanctions: {
-            name: 'player_sanctions',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                killsAfter: 'kills_after',
-                penaltyPct: 'penalty_pct',
-                createdAt: 'created_at'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        matchNullifiedKills: {
-            name: 'match_nullified_kills',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                killsNullified: 'kills_nullified'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'id'
-        },
-        allianceOfficers: {
-            name: 'alliance_officers',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                allianceId: 'alliance_id',
-                role: 'role',
-                title: 'title',
-                permissions: 'permissions',
-                isActive: 'is_active'
-            },
-            hasIsActive: true,
-            activeFilter: { col: 'is_active', val: true },
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'id'
-        },
-        adminUsers: {
-            name: 'admin_users',
-            cols: {
-                id: 'id',
-                role: 'role',
-                allianceId: 'alliance_id',
-                status: 'status',
-                displayName: 'display_name',
-                supremacyPlayerId: 'supremacy_player_id'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
+                basic: 'id, key, value',
+                all: '*'
+            }
         },
         adminInvites: {
             name: 'admin_invites',
@@ -295,225 +332,80 @@ var DB = (function() {
                 id: 'id',
                 code: 'code',
                 role: 'role',
+                createdBy: 'created_by',
                 used: 'used',
-                createdAt: 'created_at',
-                expiresAt: 'expires_at'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        allianceLeaderRequests: {
-            name: 'alliance_leader_requests',
-            cols: {
-                id: 'id',
-                requesterPlayerId: 'requester_player_id',
-                status: 'status',
+                usedBy: 'used_by',
+                usedAt: 'used_at',
+                expiresAt: 'expires_at',
                 createdAt: 'created_at'
             },
-            hasIsActive: false,
             selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        chatMessages: {
-            name: 'chat_messages',
-            cols: {
-                id: 'id',
-                channel: 'channel',
-                senderName: 'sender_name',
-                senderAdminId: 'sender_admin_id',
-                senderRole: 'sender_role',
-                message: 'message',
-                createdAt: 'created_at'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        directMessages: {
-            name: 'direct_messages',
-            cols: {
-                id: 'id',
-                senderAdminId: 'sender_admin_id',
-                recipientAdminId: 'recipient_admin_id',
-                content: 'content',
-                createdAt: 'created_at'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        notifications: {
-            name: 'notifications',
-            cols: {
-                id: 'id',
-                userId: 'user_id',
-                title: 'title',
-                message: 'message',
-                isRead: 'is_read',
-                createdAt: 'created_at'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'created_at'
-        },
-        pushSubscriptions: {
-            name: 'push_subscriptions',
-            cols: {
-                id: 'id',
-                endpoint: 'endpoint',
-                playerId: 'player_id'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'id'
-        },
-        playerTokens: {
-            name: 'player_tokens',
-            cols: {
-                id: 'id',
-                playerId: 'player_id',
-                token: 'token'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'id'
-        },
-        strikeTypes: {
-            name: 'strike_types',
-            cols: {
-                id: 'id',
-                name: 'name',
-                severity: 'severity'
-            },
-            hasIsActive: false,
-            selectSets: {
-                full: '*'
-            },
-            orderBy: 'severity'
+                basic: 'id, code, role, used, created_at',
+                all: '*'
+            }
         }
     };
 
-    // ===================== PUBLIC API =====================
-
-    var cols = {};
-    for (var key in TABLES) {
-        if (TABLES[key].selectSets) {
-            cols[key] = TABLES[key].selectSets;
-        }
-    }
-
-    /**
-     * Start a query builder chain for a table.
-     * Usage: DB.from('players').select(DB.cols.players.basic).eq('id', 1)
-     */
-    function from(tableKey) {
-        var t = TABLES[tableKey];
-        if (!t) { console.error('[DB] Unknown table key:', tableKey); return null; }
-        return supabase.from(t.name);
-    }
-
-    /**
-     * Select all records from a table with active filter applied.
-     * Usage: DB.selectAll('alliances')
-     */
-    function selectAll(tableKey) {
-        var t = TABLES[tableKey];
-        if (!t) { console.error('[DB] Unknown table key:', tableKey); return null; }
-        var q = supabase.from(t.name).select(t.selectSets.basic || '*');
-        return applyActiveFilter(q, t);
-    }
-
-    /**
-     * Select a single record by ID.
-     * Usage: DB.selectById('players', 123)
-     */
-    function selectById(tableKey, id) {
-        var t = TABLES[tableKey];
-        if (!t) { console.error('[DB] Unknown table key:', tableKey); return null; }
-        return supabase.from(t.name).select(t.selectSets.basic || '*').eq('id', id).single();
-    }
-
-    /**
-     * Get the column name for a table key and column key.
-     * Usage: DB.col('players', 'username') -> 'current_username'
-     */
-    function col(tableKey, colKey) {
-        var t = TABLES[tableKey];
-        if (!t) return null;
-        return t.cols[colKey] || colKey;
-    }
-
-    /**
-     * Get the full column definitions for a table.
-     * Usage: DB.tableCols('players') -> { id: 'id', username: 'current_username', ... }
-     */
-    function tableCols(tableKey) {
-        var t = TABLES[tableKey];
-        if (!t) return null;
-        return t.cols;
-    }
-
-    /**
-     * Get the raw table name.
-     * Usage: DB.tableName('players') -> 'players'
-     */
-    function tableName(tableKey) {
-        var t = TABLES[tableKey];
-        if (!t) return tableKey;
-        return t.name;
-    }
-
-    /**
-     * Get the active filter for a table, if any.
-     * Returns { col, val } or null.
-     */
-    function activeFilter(tableKey) {
-        var t = TABLES[tableKey];
-        if (!t) return null;
-        if (t.activeFilter) return t.activeFilter;
-        if (t.hasIsActive) return { col: 'is_active', val: true };
-        return null;
-    }
-
-    // ===================== INTERNAL HELPERS =====================
-
-    function applyActiveFilter(query, tableDef) {
-        if (!tableDef) return query;
-        if (tableDef.activeFilter) {
-            return query.eq(tableDef.activeFilter.col, tableDef.activeFilter.val);
-        }
-        return query;
-    }
-
-    // ===================== EXPORTS =====================
-
-    return {
-        from: from,
-        selectAll: selectAll,
-        selectById: selectById,
-        col: col,
-        tableCols: tableCols,
-        tableName: tableName,
-        cols: cols,
-        activeFilter: activeFilter,
-        // Raw tables access for debugging
-        _tables: TABLES
+    var ACTIVE_FILTERS = {
+        players: function() { return { col: SCHEMA.players.cols.status, val: 'active' }; },
+        alliances: function() { return { col: SCHEMA.alliances.cols.status, val: 'active' }; },
+        matches: function() { return { col: SCHEMA.matches.cols.status, val: 'draft', op: 'neq' }; },
+        matchRegistrations: function() { return { col: SCHEMA.matchRegistrations.cols.status, val: 'pending', op: 'neq' }; }
     };
+
+    window.DB = {
+        schema: function(tableKey) { return SCHEMA[tableKey] || null; },
+        from: function(tableKey) {
+            var s = SCHEMA[tableKey];
+            if (!s) { console.warn('[DB] Unknown table key:', tableKey); return tableKey; }
+            return supabase.from(s.name);
+        },
+        tableName: function(tableKey) {
+            var s = SCHEMA[tableKey];
+            return s ? s.name : tableKey;
+        },
+        col: function(tableKey, colKey) {
+            var s = SCHEMA[tableKey];
+            if (!s) { console.warn('[DB] Unknown table key:', tableKey); return colKey; }
+            return s.cols[colKey] || colKey;
+        },
+        tableCols: function(tableKey) {
+            var s = SCHEMA[tableKey];
+            return s ? s.cols : {};
+        },
+        select: function(tableKey, setName) {
+            var s = SCHEMA[tableKey];
+            if (!s) { console.warn('[DB] Unknown table key:', tableKey); return '*'; }
+            return s.selectSets[setName || 'basic'] || s.selectSets.basic || '*';
+        },
+        activeFilter: function(tableKey) {
+            return ACTIVE_FILTERS[tableKey] ? ACTIVE_FILTERS[tableKey]() : null;
+        },
+        selectActive: function(tableKey, selectSet, orderBy, ascending) {
+            var q = this.from(tableKey).select(this.select(tableKey, selectSet));
+            var af = this.activeFilter(tableKey);
+            if (af) {
+                if (af.op === 'neq') q = q.neq(af.col, af.val);
+                else q = q.eq(af.col, af.val);
+            }
+            if (orderBy) q = q.order(orderBy, { ascending: ascending !== false });
+            return q;
+        },
+        selectAll: function(tableKey, selectSet, orderBy, ascending) {
+            var q = this.from(tableKey).select(this.select(tableKey, selectSet));
+            if (orderBy) q = q.order(orderBy, { ascending: ascending !== false });
+            return q;
+        },
+        selectById: function(tableKey, id, selectSet) {
+            return this.from(tableKey)
+                .select(this.select(tableKey, selectSet))
+                .eq('id', id)
+                .single();
+        }
+    };
+
+    window.DB.TABLES = Object.keys(SCHEMA);
+    window.DB.SCHEMA = SCHEMA;
+
+    console.log('[DB-Schema] v19 initialized. Tables:', window.DB.TABLES.length);
 })();
-
-window.DB = DB;

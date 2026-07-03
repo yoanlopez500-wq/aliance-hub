@@ -25,20 +25,16 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"Alliance Hub","description":"Plataforma de torneos, rankings y ligas para Supremacy 1914","url":"https://yoanlopez500-wq.github.io/aliance-hub/"}
 </script>
-<!-- FIX #1: CDN de Supabase DEBE ir PRIMERO, antes de config.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- v18: Modular Architecture - Core -->
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
-<!-- v18: Modular Architecture - Auth & Navigation -->
-<script src="assets/js/roles-data.js?v=18"></script>
-<script src="assets/js/auth-core.js?v=18"></script>
-<script src="assets/js/messaging.js?v=18"></script>
-<script src="assets/js/notifications.js?v=18"></script>
-<script src="assets/js/nav-engine.js?v=18"></script>
-<script src="assets/js/training.js?v=18"></script>
-<!-- v18: Modular Architecture - UI Components -->
-<script src="assets/js/components.js?v=18"></script>
+<script src="assets/js/config.js?v=19"></script>
+<script src="assets/js/base.js?v=19"></script>
+<script src="assets/js/roles-data.js?v=19"></script>
+<script src="assets/js/auth-core.js?v=19"></script>
+<script src="assets/js/messaging.js?v=19"></script>
+<script src="assets/js/notifications.js?v=19"></script>
+<script src="assets/js/nav-engine.js?v=19"></script>
+<script src="assets/js/training.js?v=19"></script>
+<script src="assets/js/components.js?v=19"></script>
 <script>
 (function() {
     var hasPlayer = localStorage.getItem('ah_v2_player_id') && localStorage.getItem('ah_v2_player_token');
@@ -51,7 +47,7 @@
 })();
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=18"></script>
+<script src="assets/js/theme.js?v=19"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -225,6 +221,6 @@ waitForSupabase(function() {
     loadLandingRules();
 });
 </script>
-<script src="sw-register.js?v=18"></script>
+<script src="sw-register.js?v=19"></script>
 </body>
 </html>
