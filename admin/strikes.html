@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Strikes - Alliance Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- v18: Modular Architecture -->
+<script src="../assets/js/theme.js?v=27"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/config.js?v=27"></script>
+<script src="../assets/js/base.js?v=27"></script>
+<script src="../assets/js/roles-data.js?v=27"></script>
+<script src="../assets/js/auth-core.js?v=27"></script>
+<script src="../assets/js/messaging.js?v=27"></script>
+<script src="../assets/js/notifications.js?v=27"></script>
+<script src="../assets/js/nav-engine.js?v=27"></script>
+<script src="../assets/js/training.js?v=27"></script>
+<script src="../assets/js/components.js?v=27"></script>
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+.strike-card{border:1px solid #1a237e;transition:all .15s}
+.strike-card:hover{border-color:#ff6f00}
+input,textarea,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
+input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
+</style>
+</head>
+<body class="min-h-screen" data-role="admin">
+<div id="admin-nav"></div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="flex items-center justify-between mb-6">
+<div><h1 class="text-2xl font-bold">&#9889; Sistema de Strikes</h1><p class="text-sm" style="color:#9fa8da;">Aplica strikes conectados al reglamento, reportes y precedentes.</p></div>
+<button onclick="openModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Aplicar Strike</button>
+</div>
+<div class="grid md:grid-cols-4 gap-4 mb-6">
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Leves</p><p class="text-2xl font-bold" style="color:#4caf50;" id="stat-leve">-</p></div>
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Medios</p><p class="text-2xl font-bold" style="color:#ff8f00;" id="stat-medio">-</p></div>
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Graves</p><p class="text-2xl font-bold" style="color:#ef5350;" id="stat-grave">-</p></div>
+<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Kill Nullifiers</p><p class="text-2xl font-bold" style="color:#ce93d8;" id="stat-nullifier">-</p></div>
+</div>
+<div class="flex gap-2 mb-4">
+<input type="text" id="search-player" placeholder="Buscar jugador..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterStrikes(this.value)">
+<select id="filter-type" onchange="loadStrikes()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos los tipos</option></select>
+</div>
+<div id="strikes-list" class="space-y-3">Cargando...</div>
+</div>
+<div id="strike-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;">
+<h3 class="text-lg font-bold mb-4">&#9889; Aplicar Strike</h3>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Jugador (ID de Supremacy) *</label><input type="number" id="s-player-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: 24549130"></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Partida</label><select id="s-match" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar partida...</option></select></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Tipo de Strike *</label><select id="s-type" class="w-full px-3 py-2 rounded-lg border text-sm" onchange="showRuleHint()"><option value="">Seleccionar...</option></select></div>
+<div id="rule-hint" class="hidden mb-3 p-3 rounded-lg text-sm" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);color:#ff8f00;"></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Seccion del reglamento violada</label><select id="s-rule" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar seccion...</option></select></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Razon *</label><textarea id="s-reason" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Describe la infraccion..."></textarea></div>
+<div class="mb-4"><label class="block text-sm mb-1" style="color:#9fa8da;">Notas adicionales</label><textarea id="s-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button><button onclick="saveStrike()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Aplicar Strike</button></div>
+</div></div>
+<script>
+var allStrikes = [];
+var strikeTypesMap = {};
+var playersMap = {};
+var matchesMap = {};
+
+async function loadStrikes() {
+    try {
+        // v18: Cargar strike_types por separado ya que la FK no existe en el schema
+        var typesRes = await supabase.from('strike_types').select('*').order('severity');
+        strikeTypesMap = {};
+        (typesRes.data || []).forEach(function(t) { strikeTypesMap[t.id] = t; });
+
+        var { data: strikesData, error } = await supabase.from('player_strikes')
+            .select('*, players(id, current_username, current_alliance_id)')
+            .order('applied_at', { ascending: false })
+            .limit(100);
+        if (error) throw error;
+
+        var matchIds = (strikesData || []).map(function(s) { return s.match_id; }).filter(function(v) { return !!v; });
+        matchesMap = {};
+        if (matchIds.length > 0) {
+            try {
+                var uniqueMatchIds = matchIds.filter(function(v, i, a) { return a.indexOf(v) === i; });
+                var mRes = await supabase.from('matches').select('id, name').in('id', uniqueMatchIds);
+                (mRes.data || []).forEach(function(m) { matchesMap[m.id] = m; });
+            } catch(e) {}
+        }
+
+        allStrikes = (strikesData || []).map(function(s) {
+            s.strike_types = strikeTypesMap[s.strike_type_id] || null;
+            s.matches = s.match_id ? (matchesMap[s.match_id] || null) : null;
+            return s;
+        });
+
+        var counts = { leve: 0, medio: 0, grave: 0, nullifier: 0 };
+        allStrikes.forEach(function(s) {
+            if (s.strike_types) {
+                var sev = s.strike_types.severity;
+                if (sev === 1) counts.leve++;
+                else if (sev === 2) counts.medio++;
+                else if (sev === 3 && s.strike_types.nullifies_kills) counts.nullifier++;
+                else if (sev === 3) counts.grave++;
+            }
+        });
+        document.getElementById('stat-leve').textContent = counts.leve;
+        document.getElementById('stat-medio').textContent = counts.medio;
+        document.getElementById('stat-grave').textContent = counts.grave;
+        document.getElementById('stat-nullifier').textContent = counts.nullifier;
+
+        var list = document.getElementById('strikes-list');
+        if (allStrikes.length === 0) { AhComponents.inject('empty-state', { message: 'No hay strikes registrados', icon: '&#9889;' }, 'strikes-list'); return; }
+        renderStrikes(allStrikes);
+    } catch(e) { console.error('[Strikes]', e); AhComponents.inject('error-state', { message: 'Error: ' + (e.message || e), retry: true, onRetry: 'loadStrikes()' }, 'strikes-list'); }
+}
+
+function renderStrikes(data) {
+    var list = document.getElementById('strikes-list');
+    list.innerHTML = data.map(function(s) {
+        var type = s.strike_types || {};
+        var sevColor = type.severity === 1 ? '#4caf50' : type.severity === 2 ? '#ff8f00' : '#ef5350';
+        var sevLabel = type.severity === 1 ? 'LEVE' : type.severity === 2 ? 'MEDIO' : 'GRAVE';
+        var isNullifier = type.nullifies_kills ? ' <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:#ce93d820;color:#ce93d8;">KILL NULLIFIER</span>' : '';
+        var playerName = s.players ? s.players.current_username : 'Jugador ' + s.player_id;
+        var matchName = s.matches ? s.matches.name : (s.match_id ? 'Partida ' + s.match_id : '-');
+        return '<div class="strike-card rounded-xl p-4" style="background:#11183a;"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold">' + playerName + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' + isNullifier + '</div><p class="text-sm mt-1" style="color:#e8eaf6;">' + s.reason + '</p><p class="text-xs mt-1" style="color:#9fa8da;">Partida: ' + matchName + ' | ' + formatDate(s.applied_at) + (s.strike_types ? ' | ' + s.strike_types.code + ': ' + s.strike_types.name : '') + '</p></div><button onclick="removeStrike(' + s.id + ')" class="px-2 py-1 rounded text-xs" style="background:rgba(198,40,40,0.3);color:#ef5350;">Revocar</button></div></div>';
+    }).join('');
+}
+
+function filterStrikes(query) {
+    var q = query.toLowerCase();
+    var filtered = allStrikes.filter(function(s) { var name = s.players ? s.players.current_username : ''; return name.toLowerCase().includes(q); });
+    renderStrikes(filtered);
+}
+
+async function loadDropdowns() {
+    try {
+        var { data: types } = await supabase.from('strike_types').select('*').eq('is_active', true).order('severity');
+        var typeSelect = document.getElementById('s-type');
+        if (types) typeSelect.innerHTML = '<option value="">Seleccionar...</option>' + types.map(function(t) { return '<option value="' + t.id + '" data-severity="' + t.severity + '" data-legend="' + (t.legend || '') + '">' + t.name + '</option>'; }).join('');
+        var { data: matches } = await supabase.from('matches').select('id, name').order('created_at', { ascending: false }).limit(50);
+        var matchSelect = document.getElementById('s-match');
+        if (matches) matchSelect.innerHTML = '<option value="">Seleccionar partida...</option>' + matches.map(function(m) { return '<option value="' + m.id + '">' + m.name + '</option>'; }).join('');
+        var { data: rules } = await supabase.from('rule_sections').select('id, title').eq('is_active', true).order('order_index');
+        var ruleSelect = document.getElementById('s-rule');
+        if (rules) ruleSelect.innerHTML = '<option value="">Seleccionar seccion...</option>' + rules.map(function(r) { return '<option value="' + r.id + '">' + r.title + '</option>'; }).join('');
+        var filterType = document.getElementById('filter-type');
+        if (types) filterType.innerHTML = '<option value="">Todos los tipos</option>' + types.map(function(t) { return '<option value="' + t.id + '">' + t.name + '</option>'; }).join('');
+    } catch(e) { console.error('[Dropdowns]', e); }
+}
+
+function showRuleHint() {
+    var select = document.getElementById('s-type');
+    var option = select.options[select.selectedIndex];
+    var legend = option.dataset.legend;
+    var hint = document.getElementById('rule-hint');
+    if (legend) { hint.textContent = legend; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
+}
+
+function openModal() { document.getElementById('strike-modal').classList.remove('hidden'); loadDropdowns(); }
+function closeModal() { document.getElementById('strike-modal').classList.add('hidden'); }
+
+async function saveStrike() {
+    var playerId = parseInt(document.getElementById('s-player-id').value);
+    var matchId = document.getElementById('s-match').value || null;
+    var typeId = document.getElementById('s-type').value;
+    var ruleId = document.getElementById('s-rule').value || null;
+    var reason = document.getElementById('s-reason').value.trim();
+    var notes = document.getElementById('s-notes').value.trim() || null;
+    if (!playerId || !typeId || !reason) { showToast('Jugador, tipo y razon son obligatorios', 'error'); return; }
+    try {
+        var { data: { session } } = await supabase.auth.getSession();
+        var { error } = await supabase.from('player_strikes').insert({
+            player_id: playerId,
+            match_id: matchId,
+            strike_type_id: typeId,
+            reason: reason,
+            notes: notes,
+            rule_section_id: ruleId,
+            applied_by: session.user.id
+        });
+        if (error) throw error;
+
+        try {
+            var typeInfo = strikeTypesMap[typeId] || {};
+            var sevLabel = typeInfo.severity === 1 ? 'Leve' : typeInfo.severity === 2 ? 'Medio' : 'Grave';
+            await supabase.from('reports').insert({
+                player_id: playerId,
+                match_id: matchId,
+                type: 'strike_' + sevLabel.toLowerCase(),
+                reason: '[AUTO] Strike ' + sevLabel + ': ' + (typeInfo.name || '') + ' - ' + reason,
+                status: 'resolved',
+                reported_by: session.user.id
+            });
+        } catch(repErr) { console.log('[Strikes] No se pudo crear reporte automatico:', repErr.message); }
+
+        showToast('Strike aplicado correctamente', 'success');
+        closeModal();
+        loadStrikes();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function removeStrike(id) {
+    if (!confirm('Revocar este strike?')) return;
+    try {
+        var { error } = await supabase.from('player_strikes').delete().eq('id', id);
+        if (error) throw error;
+        showToast('Strike revocado', 'success');
+        loadStrikes();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+requireAdmin();
+loadStrikes();
+</script>
+</body>
+</html>
