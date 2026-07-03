@@ -118,9 +118,12 @@
                 playerId: 'player_id',
                 allianceId: 'alliance_id',
                 status: 'status',
+                role: 'role',
+                requestedBy: 'requested_by',
                 requestedAt: 'requested_at',
                 approvedBy: 'approved_by',
                 approvedAt: 'approved_at',
+                rejectedAt: 'rejected_at',
                 notes: 'notes'
             },
             selectSets: {

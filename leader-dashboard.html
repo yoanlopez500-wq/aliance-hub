@@ -10,21 +10,21 @@
 <!-- FIX #1: Supabase CDN MUST be first, before config.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- v18: Modular Architecture - Core -->
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
+<script src="assets/js/config.js?v=27"></script>
+<script src="assets/js/base.js?v=27"></script>
 <!-- v18: DB Schema Centralizer -->
-<script src="assets/js/db-schema.js?v=18"></script>
+<script src="assets/js/db-schema.js?v=27"></script>
 <!-- v18: Modular Architecture - Auth & Navigation -->
-<script src="assets/js/roles-data.js?v=18"></script>
-<script src="assets/js/auth-core.js?v=18"></script>
-<script src="assets/js/messaging.js?v=18"></script>
-<script src="assets/js/notifications.js?v=18"></script>
-<script src="assets/js/nav-engine.js?v=18"></script>
-<script src="assets/js/training.js?v=18"></script>
+<script src="assets/js/roles-data.js?v=27"></script>
+<script src="assets/js/auth-core.js?v=27"></script>
+<script src="assets/js/messaging.js?v=27"></script>
+<script src="assets/js/notifications.js?v=27"></script>
+<script src="assets/js/nav-engine.js?v=27"></script>
+<script src="assets/js/training.js?v=27"></script>
 <!-- v18: Modular Architecture - UI Components -->
-<script src="assets/js/components.js?v=18"></script>
+<script src="assets/js/components.js?v=27"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=18"></script>
+<script src="assets/js/theme.js?v=27"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 body { font-family: 'Inter', system-ui, sans-serif; }
@@ -61,6 +61,7 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 <div class="flex gap-6 mb-6 border-b overflow-x-auto scrollbar-hide" style="border-color: #1a237e;">
 <button onclick="switchTab('members')" id="tab-members" class="tab-active pb-3 text-sm font-medium whitespace-nowrap transition">&#128101; Miembros</button>
 <button onclick="switchTab('requests')" id="tab-requests" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#128233; Solicitudes <span id="req-badge" class="hidden px-1.5 py-0.5 rounded text-xs font-bold ml-1" style="background:rgba(239,83,80,0.3);color:#ef5350">0</span></button>
+<button onclick="switchTab('management')" id="tab-management" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#128737;&#65039; Gestion</button>
 <button onclick="switchTab('rankings')" id="tab-rankings" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127942; Ranking Interno</button>
 <button onclick="switchTab('duels')" id="tab-duels" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#9876;&#65039; Duelos</button>
 <button onclick="switchTab('global')" id="tab-global" class="tab-inactive pb-3 text-sm font-medium whitespace-nowrap transition">&#127758; Ranking Global</button>
@@ -88,6 +89,29 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 <p class="text-xs" style="color: #9fa8da;">Jugadores que solicitaron unirse a tu alianza. Aprueba o rechaza cada solicitud.</p>
 </div>
 <div id="requests-list"><div class="text-center py-8" style="color: #9fa8da;">Cargando solicitudes...</div></div>
+</div>
+
+<!-- TAB: Member Management -->
+<div id="panel-management" class="hidden fade-in">
+<div class="rounded-xl p-4 mb-4" style="background: #11183a; border: 1px solid #1a237e;">
+<h3 class="text-sm font-bold text-white mb-1">&#128737;&#65039; Gestion de Miembros</h3>
+<p class="text-xs" style="color: #9fa8da;">Designar oficiales, suspender, expulsar o transferir liderazgo. Solo el lider puede acceder.</p>
+</div>
+<div class="rounded-xl overflow-x-auto" style="background: #11183a; border: 1px solid #1a237e;">
+<table class="w-full text-sm">
+<thead>
+<tr style="background: rgba(255,255,255,0.03);">
+<th class="text-left p-3" style="color: #9fa8da;">Jugador</th>
+<th class="text-left p-3" style="color: #9fa8da;">Rol</th>
+<th class="text-left p-3" style="color: #9fa8da;">Estado</th>
+<th class="text-right p-3" style="color: #9fa8da;">Acciones</th>
+</tr>
+</thead>
+<tbody id="management-list">
+<tr><td colspan="4" class="text-center py-8" style="color: #9fa8da;">Cargando...</td></tr>
+</tbody>
+</table>
+</div>
 </div>
 
 <!-- TAB: Rankings (Internal) -->
@@ -139,6 +163,7 @@ var myAllianceId = null;
 var myAllianceData = null;
 var allianceMembers = [];
 var currentTab = 'members';
+var currentPlayerId = null;
 
 async function init() {
     try {
@@ -156,6 +181,7 @@ async function init() {
             return;
         }
         myAllianceId = admin.alliance_id;
+        currentPlayerId = admin.supremacy_player_id;
         await loadAllianceData();
         loadMembers();
         loadPendingRequests();
@@ -191,7 +217,7 @@ async function addMemberDirectly() {
 
     try {
         var pc = DB.tableCols('players');
-        var { data: player, error: pErr } = await DB.from('players').select([pc.id, pc.username].join(', ')).eq(pc.id, playerId).maybeSingle();
+        var { data: player, error: pErr } = await DB.from('players').select([pc.id, pc.currentUsername].join(', ')).eq(pc.id, playerId).maybeSingle();
         if (pErr) throw pErr;
         if (!player) { errorEl.textContent = 'Jugador no encontrado con ID ' + playerId; errorEl.classList.remove('hidden'); return; }
 
@@ -210,7 +236,7 @@ async function addMemberDirectly() {
 
         await DB.from('players').update({ [pc.allianceId]: myAllianceId }).eq(pc.id, playerId);
 
-        successEl.textContent = player[pc.username] + ' agregado exitosamente!';
+        successEl.textContent = player[pc.currentUsername] + ' agregado exitosamente!';
         successEl.classList.remove('hidden');
         input.value = '';
         loadMembers();
@@ -240,7 +266,7 @@ async function loadPendingRequests() {
         var playerMap = {};
         if (playerIds.length > 0) {
             var pc = DB.tableCols('players');
-            var { data: players } = await DB.from('players').select([pc.id, pc.username, pc.gamesPlayed, pc.kills, pc.deaths].join(', ')).in(pc.id, playerIds);
+            var { data: players } = await DB.from('players').select([pc.id, pc.currentUsername, pc.gamesPlayed, pc.totalKills, pc.totalDeaths].join(', ')).in(pc.id, playerIds);
             (players || []).forEach(function(p) { playerMap[p[pc.id]] = p; });
         }
 
@@ -259,13 +285,13 @@ async function loadPendingRequests() {
         container.innerHTML = requests.map(function(r) {
             var p = playerMap[r[ac.playerId]] || {};
             var pc = DB.tableCols('players');
-            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : '0.00';
+            var kd = p[pc.totalDeaths] > 0 ? (p[pc.totalKills] / p[pc.totalDeaths]).toFixed(2) : '0.00';
             return '<div class="rounded-xl p-4 mb-3" style="background: #11183a; border: 1px solid #1a237e;">' +
                 '<div class="flex items-center gap-3 mb-3">' +
                     '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
-                        (p[pc.username] ? p[pc.username].charAt(0).toUpperCase() : '?') + '</div>' +
+                        (p[pc.currentUsername] ? p[pc.currentUsername].charAt(0).toUpperCase() : '?') + '</div>' +
                     '<div class="flex-1 min-w-0">' +
-                        '<p class="font-bold text-white text-sm truncate">' + (p[pc.username] || 'Jugador ' + r[ac.playerId]) + '</p>' +
+                        '<p class="font-bold text-white text-sm truncate">' + (p[pc.currentUsername] || 'Jugador ' + r[ac.playerId]) + '</p>' +
                         '<p class="text-xs" style="color: #9fa8da;">ID: ' + r[ac.playerId] + ' &middot; ' + (p[pc.gamesPlayed] || 0) + ' partidas &middot; KD: ' + kd + '</p>' +
                         '<p class="text-xs" style="color: #9fa8da; opacity: 0.7;">Solicitado: ' + formatDate(r[ac.requestedAt]) + '</p></div></div>' +
                 '<div class="flex gap-2">' +
@@ -328,9 +354,9 @@ async function loadMembers() {
         var playerIds = memberships.map(function(m) { return m[ac.playerId]; });
         var pc = DB.tableCols('players');
         var { data: players, error: pErr } = await DB.from('players')
-            .select([pc.id, pc.username, pc.status, pc.gamesPlayed, pc.kills, pc.deaths, pc.lastSeen].join(', '))
+            .select([pc.id, pc.currentUsername, pc.status, pc.gamesPlayed, pc.totalKills, pc.totalDeaths, pc.lastSeen].join(', '))
             .in(pc.id, playerIds)
-            .order(pc.username);
+            .order(pc.currentUsername);
         if (pErr) throw pErr;
 
         allianceMembers = players || [];
@@ -338,18 +364,18 @@ async function loadMembers() {
         memberships.forEach(function(m) { memberMap[m[ac.playerId]] = m; });
 
         container.innerHTML = players.map(function(p) {
-            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : p[pc.kills] > 0 ? p[pc.kills].toFixed(2) : '0.00';
+            var kd = p[pc.totalDeaths] > 0 ? (p[pc.totalKills] / p[pc.totalDeaths]).toFixed(2) : p[pc.totalKills] > 0 ? p[pc.totalKills].toFixed(2) : '0.00';
             var statusColor = p[pc.status] === 'active' ? '#4caf50' : p[pc.status] === 'suspended' ? '#ff8f00' : '#ef5350';
             var addedBy = memberMap[p[pc.id]] && memberMap[p[pc.id]][ac.requestedBy] === 'leader' ? ' (por lider)' : '';
             return '<div class="rounded-xl p-4 flex items-center gap-4 transition hover:opacity-90" style="background: #11183a; border: 1px solid #1a237e;">' +
                 '<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0" style="background: linear-gradient(135deg, #1a237e, #283593);">' +
-                    (p[pc.username] ? p[pc.username].charAt(0).toUpperCase() : '?') + '</div>' +
+                    (p[pc.currentUsername] ? p[pc.currentUsername].charAt(0).toUpperCase() : '?') + '</div>' +
                 '<div class="flex-1 min-w-0">' +
-                    '<p class="font-bold text-white text-sm truncate">' + (p[pc.username] || 'Jugador ' + p[pc.id]) + addedBy + '</p>' +
+                    '<p class="font-bold text-white text-sm truncate">' + (p[pc.currentUsername] || 'Jugador ' + p[pc.id]) + addedBy + '</p>' +
                     '<p class="text-xs" style="color: #9fa8da;">ID: ' + p[pc.id] + ' &middot; ' + (p[pc.gamesPlayed] || 0) + ' partidas</p></div>' +
                 '<div class="text-right flex-shrink-0">' +
                     '<p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
-                    '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.kills] || 0) + 'K / ' + (p[pc.deaths] || 0) + 'D</p></div>' +
+                    '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.totalKills] || 0) + 'K / ' + (p[pc.totalDeaths] || 0) + 'D</p></div>' +
                 '<span class="text-xs px-2 py-1 rounded font-bold flex-shrink-0" style="background: ' + statusColor + '22; color: ' + statusColor + ';">' + (p[pc.status] || 'active') + '</span></div>';
         }).join('');
     } catch(e) {
@@ -410,8 +436,8 @@ async function loadRankings() {
 
         var pids = sorted.map(function(s) { return s.player_id; });
         var pc = DB.tableCols('players');
-        var { data: players } = await DB.from('players').select([pc.id, pc.username].join(', ')).in(pc.id, pids);
-        var nameMap = {}; (players || []).forEach(function(p) { nameMap[p[pc.id]] = p[pc.username]; });
+        var { data: players } = await DB.from('players').select([pc.id, pc.currentUsername].join(', ')).in(pc.id, pids);
+        var nameMap = {}; (players || []).forEach(function(p) { nameMap[p[pc.id]] = p[pc.currentUsername]; });
 
         container.innerHTML = '<div class="space-y-2">' + sorted.map(function(s, idx) {
             var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
@@ -502,9 +528,9 @@ async function loadGlobalRankings() {
         var playerIds = memberships.map(function(m) { return m[ac.playerId]; });
         var pc = DB.tableCols('players');
         var { data: players } = await DB.from('players')
-            .select([pc.id, pc.username, pc.gamesPlayed, pc.kills, pc.deaths, pc.wins].join(', '))
+            .select([pc.id, pc.currentUsername, pc.gamesPlayed, pc.totalKills, pc.totalDeaths, pc.wins].join(', '))
             .in(pc.id, playerIds)
-            .order(pc.kills, { ascending: false });
+            .order(pc.totalKills, { ascending: false });
 
         if (!players || players.length === 0) {
             container.innerHTML = '<div class="text-center py-8" style="color: #9fa8da;">No hay datos de rankings globales</div>';
@@ -513,13 +539,13 @@ async function loadGlobalRankings() {
 
         container.innerHTML = '<div class="space-y-2">' + players.map(function(p, idx) {
             var medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : (idx + 1) + '.';
-            var kd = p[pc.deaths] > 0 ? (p[pc.kills] / p[pc.deaths]).toFixed(2) : p[pc.kills] > 0 ? p[pc.kills].toFixed(2) : '0.00';
+            var kd = p[pc.totalDeaths] > 0 ? (p[pc.totalKills] / p[pc.totalDeaths]).toFixed(2) : p[pc.totalKills] > 0 ? p[pc.totalKills].toFixed(2) : '0.00';
             return '<div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); ' + (idx < 3 ? 'border: 1px solid rgba(255,215,0,0.2);' : '') + '">' +
                 '<span class="text-lg font-bold w-8 text-center" style="color: ' + (idx < 3 ? '#ffd700' : '#9fa8da') + ';">' + medal + '</span>' +
-                '<div class="flex-1"><p class="font-bold text-sm text-white">' + (p[pc.username] || 'Jugador ' + p[pc.id]) + '</p>' +
+                '<div class="flex-1"><p class="font-bold text-sm text-white">' + (p[pc.currentUsername] || 'Jugador ' + p[pc.id]) + '</p>' +
                 '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.gamesPlayed] || 0) + ' partidas jugadas</p></div>' +
                 '<div class="text-right"><p class="text-sm font-bold" style="color: #ff8f00;">' + kd + ' K/D</p>' +
-                '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.kills] || 0) + 'K / ' + (p[pc.deaths] || 0) + 'D</p></div></div>';
+                '<p class="text-xs" style="color: #9fa8da;">' + (p[pc.totalKills] || 0) + 'K / ' + (p[pc.totalDeaths] || 0) + 'D</p></div></div>';
         }).join('') + '</div>';
     } catch(e) {
         console.error('[Leader] Global rankings error:', e);
@@ -527,14 +553,153 @@ async function loadGlobalRankings() {
     }
 }
 
+// ===================== MEMBER MANAGEMENT =====================
+
+async function loadManagement() {
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        var { data: memberships, error: mErr } = await DB.from('allianceMemberships')
+            .select([ac.playerId, ac.role, ac.status, ac.requestedBy, ac.approvedAt].join(', '))
+            .eq(ac.allianceId, myAllianceId)
+            .in(ac.status, ['approved', 'suspended']);
+        if (mErr) throw mErr;
+
+        var container = document.getElementById('management-list');
+        if (!memberships || memberships.length === 0) {
+            container.innerHTML = '<tr><td colspan="4" class="text-center py-8" style="color: #9fa8da;">No hay miembros para gestionar.</td></tr>';
+            return;
+        }
+
+        var playerIds = memberships.map(function(m) { return m[ac.playerId]; });
+        var pc = DB.tableCols('players');
+        var { data: players } = await DB.from('players')
+            .select([pc.id, pc.currentUsername, pc.status, pc.totalKills, pc.totalDeaths].join(', '))
+            .in(pc.id, playerIds);
+        var nameMap = {}; (players || []).forEach(function(p) { nameMap[p[pc.id]] = p; });
+
+        var roleLabels = { member: 'Miembro', officer: 'Oficial', co_leader: 'Co-Lider', leader: 'Lider' };
+        var roleColors = { member: '#9fa8da', officer: '#42a5f5', co_leader: '#66bb6a', leader: '#ff8f00' };
+
+        container.innerHTML = memberships.map(function(m) {
+            var p = nameMap[m[ac.playerId]] || {};
+            var role = m[ac.role] || 'member';
+            var status = m[ac.status];
+            var isSelf = (m[ac.playerId] === currentPlayerId);
+            var roleLabel = roleLabels[role] || role;
+            var roleColor = roleColors[role] || '#9fa8da';
+            var statusBadge = status === 'suspended'
+                ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(255,143,0,0.2);color:#ff8f00;">SUSPENDIDO</span>'
+                : '<span class="text-[10px] px-2 py-0.5 rounded font-bold" style="background:rgba(76,175,80,0.2);color:#4caf50;">ACTIVO</span>';
+
+            // Actions: only for members (not self, not co-leader, not leader)
+            var actions = '';
+            if (!isSelf && role === 'member' && status === 'approved') {
+                actions = '<button onclick="designateOfficer(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold mr-1" style="background:rgba(66,165,245,0.2);color:#42a5f5;">&#11088; Oficial</button>' +
+                    '<button onclick="suspendMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold mr-1" style="background:rgba(255,143,0,0.2);color:#ff8f00;">&#9203; Suspender</button>' +
+                    '<button onclick="expelMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold" style="background:rgba(239,83,80,0.2);color:#ef5350;">&#10007; Expulsar</button>';
+            } else if (!isSelf && role === 'member' && status === 'suspended') {
+                actions = '<button onclick="unsuspendMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold mr-1" style="background:rgba(76,175,80,0.2);color:#4caf50;">&#9989; Reactivar</button>' +
+                    '<button onclick="expelMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold" style="background:rgba(239,83,80,0.2);color:#ef5350;">&#10007; Expulsar</button>';
+            } else if (!isSelf && role === 'officer') {
+                actions = '<button onclick="revokeOfficer(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold mr-1" style="background:rgba(158,158,158,0.2);color:#9e9e9e;">&#8617; Quitar Oficial</button>' +
+                    '<button onclick="suspendMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold mr-1" style="background:rgba(255,143,0,0.2);color:#ff8f00;">&#9203; Suspender</button>' +
+                    '<button onclick="expelMember(' + m[ac.playerId] + ')" class="px-2 py-1 rounded text-xs font-bold" style="background:rgba(239,83,80,0.2);color:#ef5350;">&#10007; Expulsar</button>';
+            } else {
+                actions = '<span style="color:#64748b;">-</span>';
+            }
+
+            return '<tr style="border-bottom:1px solid #1a237e;">' +
+                '<td class="p-3 font-medium">' + (p[pc.currentUsername] || 'ID: ' + m[ac.playerId]) + '</td>' +
+                '<td class="p-3"><span class="text-xs px-2 py-1 rounded font-bold" style="background:' + roleColor + '22; color:' + roleColor + ';">' + roleLabel + '</span></td>' +
+                '<td class="p-3">' + statusBadge + '</td>' +
+                '<td class="p-3 text-right">' + actions + '</td></tr>';
+        }).join('');
+    } catch(e) {
+        console.error('[Leader] Management error:', e);
+        document.getElementById('management-list').innerHTML = '<tr><td colspan="4" class="text-center py-8" style="color: #ef5350;">Error cargando gestion de miembros</td></tr>';
+    }
+}
+
+async function designateOfficer(playerId) {
+    if (!confirm('Designar como Oficial? Tendra permisos de gestion basica.')) return;
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        await DB.from('allianceMemberships')
+            .update({ [ac.role]: 'officer' })
+            .eq(ac.playerId, playerId)
+            .eq(ac.allianceId, myAllianceId);
+        showToast('Oficial designado', 'success');
+        loadManagement(); loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function revokeOfficer(playerId) {
+    if (!confirm('Quitar rol de Oficial?')) return;
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        await DB.from('allianceMemberships')
+            .update({ [ac.role]: 'member' })
+            .eq(ac.playerId, playerId)
+            .eq(ac.allianceId, myAllianceId);
+        showToast('Rol de Oficial removido', 'success');
+        loadManagement(); loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function suspendMember(playerId) {
+    if (!confirm('Suspender miembro? No podra participar en partidas de la alianza.')) return;
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        await DB.from('allianceMemberships')
+            .update({ [ac.status]: 'suspended' })
+            .eq(ac.playerId, playerId)
+            .eq(ac.allianceId, myAllianceId);
+        showToast('Miembro suspendido', 'info');
+        loadManagement(); loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function unsuspendMember(playerId) {
+    if (!confirm('Reactivar miembro?')) return;
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        await DB.from('allianceMemberships')
+            .update({ [ac.status]: 'approved' })
+            .eq(ac.playerId, playerId)
+            .eq(ac.allianceId, myAllianceId);
+        showToast('Miembro reactivado', 'success');
+        loadManagement(); loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function expelMember(playerId) {
+    if (!confirm('EXPULSAR miembro de la alianza? Esta accion no se puede deshacer.')) return;
+    try {
+        var ac = DB.tableCols('allianceMemberships');
+        var pc = DB.tableCols('players');
+        // Delete membership
+        await DB.from('allianceMemberships')
+            .delete()
+            .eq(ac.playerId, playerId)
+            .eq(ac.allianceId, myAllianceId);
+        // Clear current_alliance_id in players
+        await DB.from('players')
+            .update({ [pc.currentAllianceId]: null })
+            .eq(pc.id, playerId);
+        showToast('Miembro expulsado', 'success');
+        loadManagement(); loadMembers();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
 // ===================== TAB SWITCHING =====================
 
 function switchTab(tab) {
     currentTab = tab;
-    ['members', 'requests', 'rankings', 'duels', 'global'].forEach(function(t) {
-        document.getElementById('panel-' + t).classList.add('hidden');
-        document.getElementById('tab-' + t).classList.remove('tab-active');
-        document.getElementById('tab-' + t).classList.add('tab-inactive');
+    ['members', 'requests', 'management', 'rankings', 'duels', 'global'].forEach(function(t) {
+        var panel = document.getElementById('panel-' + t);
+        var tabBtn = document.getElementById('tab-' + t);
+        if (panel) panel.classList.add('hidden');
+        if (tabBtn) { tabBtn.classList.remove('tab-active'); tabBtn.classList.add('tab-inactive'); }
     });
     document.getElementById('panel-' + tab).classList.remove('hidden');
     document.getElementById('tab-' + tab).classList.add('tab-active');
@@ -544,6 +709,7 @@ function switchTab(tab) {
     if (tab === 'duels') loadDuels();
     if (tab === 'global') loadGlobalRankings();
     if (tab === 'requests') loadPendingRequests();
+    if (tab === 'management') loadManagement();
 }
 
 // ===================== INIT =====================
