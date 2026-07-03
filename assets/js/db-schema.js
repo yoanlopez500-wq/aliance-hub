@@ -357,7 +357,6 @@
         }
     };
 
-    // ===================== ACTIVE FILTERS =====================
     var ACTIVE_FILTERS = {
         players: function() { return { col: SCHEMA.players.cols.status, val: 'active' }; },
         alliances: function() { return { col: SCHEMA.alliances.cols.status, val: 'active' }; },
@@ -365,7 +364,6 @@
         matchRegistrations: function() { return { col: SCHEMA.matchRegistrations.cols.status, val: 'pending', op: 'neq' }; }
     };
 
-    // ===================== PUBLIC API =====================
     window.DB = {
         schema: function(tableKey) { return SCHEMA[tableKey] || null; },
         from: function(tableKey) {
