@@ -8,8 +8,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js?v=18"></script>
     <script src="../assets/js/base.js?v=18"></script>
-    <script src="../assets/js/components.js?v=18"></script>
-    <script src="../assets/js/auth.js?v=18"></script>
+    <script src="../assets/js/components.js?v=19"></script>
+    <script src="../assets/js/roles-data.js?v=19"></script>
+    <script src="../assets/js/auth-core.js?v=19"></script>
+    <script src="../assets/js/messaging.js?v=19"></script>
+    <script src="../assets/js/notifications.js?v=19"></script>
+    <script src="../assets/js/nav-engine.js?v=19"></script>
+    <script src="../assets/js/training.js?v=19"></script>
     <meta name="theme-color" content="#0f172a">
 </head>
 <body class="bg-slate-900 min-h-screen" data-role="admin">
@@ -30,38 +35,63 @@
                 <p class="text-xs text-slate-500">Gestion de jugadores</p>
             </a>
             <a href="alliances.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
-                <div class="text-2xl mb-2">&#127942;</div>
+                <div class="text-2xl mb-2">&#127988;</div>
                 <h3 class="font-bold text-slate-800">Alianzas</h3>
                 <p class="text-xs text-slate-500">Gestion de alianzas</p>
             </a>
             <a href="rankings.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
-                <div class="text-2xl mb-2">&#128200;</div>
+                <div class="text-2xl mb-2">&#127942;</div>
                 <h3 class="font-bold text-slate-800">Rankings</h3>
-                <p class="text-xs text-slate-500">Ver rankings completos</p>
-            </a>
-            <a href="strikes.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
-                <div class="text-2xl mb-2">&#9889;</div>
-                <h3 class="font-bold text-slate-800">Strikes</h3>
-                <p class="text-xs text-slate-500">Gestionar strikes</p>
-            </a>
-            <a href="chat.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
-                <div class="text-2xl mb-2">&#128172;</div>
-                <h3 class="font-bold text-slate-800">Chat</h3>
-                <p class="text-xs text-slate-500">Chat global</p>
+                <p class="text-xs text-slate-500">Ver rankings globales</p>
             </a>
             <a href="import.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
                 <div class="text-2xl mb-2">&#128229;</div>
-                <h3 class="font-bold text-slate-800">Importar</h3>
-                <p class="text-xs text-slate-500">Importar resultados CSV</p>
+                <h3 class="font-bold text-slate-800">Importar CSV</h3>
+                <p class="text-xs text-slate-500">Importar resultados</p>
+            </a>
+            <a href="reports.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
+                <div class="text-2xl mb-2">&#128680;</div>
+                <h3 class="font-bold text-slate-800">Reportes</h3>
+                <p class="text-xs text-slate-500">Reportes de jugadores</p>
+            </a>
+            <a href="invites.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
+                <div class="text-2xl mb-2">&#127381;</div>
+                <h3 class="font-bold text-slate-800">Invitaciones</h3>
+                <p class="text-xs text-slate-500">Gestion de invitaciones</p>
             </a>
             <a href="admins.html" class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition">
-                <div class="text-2xl mb-2">&#9881;</div>
+                <div class="text-2xl mb-2">&#128373;</div>
                 <h3 class="font-bold text-slate-800">Admins</h3>
-                <p class="text-xs text-slate-500">Gestionar administradores</p>
+                <p class="text-xs text-slate-500">Gestion de administradores</p>
             </a>
         </div>
     </div>
 
-    <script> requireAdmin(); </script>
+    <script>
+        // Redirigir si no es admin
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = '../login.html';
+                    return;
+                }
+                
+                // Verificar que es admin
+                const { data: admin, error } = await supabase
+                    .from('admin_users')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (error || !admin) {
+                    window.location.href = '../index.html';
+                }
+            } catch (e) {
+                console.error('Auth error:', e);
+                window.location.href = '../login.html';
+            }
+        });
+    </script>
 </body>
 </html>

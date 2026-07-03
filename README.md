@@ -1,91 +1,100 @@
 # Alliance Hub
 
-Plataforma de torneos, rankings y gestion de comunidades para Supremacy 1914.
+Plataforma de torneos, rankings y ligas para comunidades de **Supremacy 1914**.
 
-## Flujos Principales
+## Stack Tecnologico
 
-### 1. Jugador (Sesion Pública)
-- **Landing** (`index.html`) - Estadisticas, features, preview del reglamento con precedentes
-- **Reglas** (`rules.html`) - Reglamento nativo desde `rule_sections` + precedentes/jurisprudencia desde `rule_precedents`
-- **Rankings** (`rankings.html`) - Rankings globales con kills efectivas (penalizadas por strikes/sanciones)
-- **Reportar** (`report.html`) - Reportar jugador seleccionando seccion del reglamento violada
-- **Solicitar Liderazgo** (`apply-leader.html`) - Formulario para registrar nueva alianza (reemplaza curso)
+| Capa | Tecnologia |
+|------|-----------|
+| Frontend | HTML5 + Tailwind CSS (CDN) + Vanilla JS |
+| Backend | Supabase (PostgreSQL + Auth + Realtime) |
+| Auth | Supabase Auth (JWT) |
+| Hosting | GitHub Pages |
+| PWA | Service Worker + Manifest |
 
-### 2. Jugador (Sesion Autenticada)
-- **Dashboard** (`dashboard.html`) - Lista de partidas disponibles
-- **Game** (`game.html`) - Detalle de partida con reglamento nativo cargado desde Supabase
-- **Player** (`player.html`) - Perfil publico con kills efectivas calculadas por strike penalty
-- **Chat** (`chat.html`) - Chat global
-- **Alianza** (`alliance-panel.html`) - Panel de alianza del jugador
+## Arquitectura de Modulos JS (v19)
 
-### 3. Admin (Panel de Control)
-#### Gestión Principal
-- **Dashboard** (`admin/index.html`) - Panel principal con estadisticas
-- **Partidas** (`admin/matches.html`) - CRUD de partidas
-- **Detalle Partida** (`admin/match-detail.html`) - Editar partida + importar CSV de resultados
-- **Jugadores** (`admin/players.html`) - Lista de jugadores con busqueda
+```
+assets/js/
+├── config.js          # Supabase client init
+├── base.js            # Utilidades globales (formatDate, showToast, etc.)
+├── db-schema.js       # Centralizador de schema DB (v19)
+├── auth-core.js       # Autenticacion (login/logout/session)
+├── roles-data.js      # Jerarquia de roles y permisos
+├── nav-engine.js      # Navegacion dual (admin/jugador)
+├── messaging.js       # Chat y mensajeria
+├── notifications.js   # Notificaciones push
+├── training.js        # Sistema de capacitacion
+├── components.js      # Componentes UI reutilizables
+├── theme.js           # Tema oscuro/claro
+├── pwa-utils.js       # Instalacion PWA
+└── sw-register.js     # Registro del Service Worker
+```
 
-#### Reglamento y Sanciones
-- **Editor de Reglamento** (`admin/rules-editor.html`) - CRUD de `rule_sections` + gestion de precedentes
-- **Motor de Sanciones** (`admin/sanctions-engine.html`) - Fórmulas de penalizacion + simulador
-- **Strikes** (`admin/strikes.html`) - Aplicar strikes conectados a secciones del reglamento
+## Tablas Principales (DB)
 
-#### Reportes y Solicitudes
-- **Reportes** (`admin/reports.html`) - Gestion de reportes con filtro por regla + sugerencias de precedentes
-- **Certificaciones** (`admin/certifications.html`) - Vista de solicitudes de liderazgo
-- **Solicitudes de Liderazgo** (`admin/leader-requests.html`) - Aprobar/rechazar solicitudes de liderazgo
+| Tabla | Proposito |
+|-------|-----------|
+| `players` | Jugadores registrados |
+| `alliances` | Alianzas y sus lideres |
+| `matches` | Partidas y torneos |
+| `match_registrations` | Registro de jugadores a partidas |
+| `match_results` | Estadisticas de partida (kills/deaths) |
+| `match_winners` | Podio de ganadores |
+| `alliance_memberships` | Membresias de alianza |
+| `alliance_officers` | Oficiales y permisos |
+| `rule_sections` | Secciones del reglamento |
+| `rule_precedents` | Precedentes y jurisprudencia |
+| `player_strikes` | Strikes aplicados a jugadores |
+| `strike_types` | Tipos de strikes configurables |
+| `player_reports` | Reportes de jugadores |
+| `chat_messages` | Chat de partidas |
+| `admin_users` | Administradores |
 
-#### Configuración
-- **Alianzas** (`admin/alliances.html`) - Gestion de alianzas
-- **Admins** (`admin/admins.html`) - Gestion de administradores
-- **Invitaciones** (`admin/invites.html`) - Codigos de invitacion
-- **Importar CSV** (`admin/import.html`) - Importar resultados masivos
+## Jerarquia de Roles
 
-## Arquitectura Técnica
+```
+superadmin > event_admin > moderator > alliance_leader > co_leader > officer
+```
 
-### Frontend
-- HTML5 + Tailwind CSS (via CDN) + Vanilla JavaScript
-- Supabase Client v2 (`assets/js/config.js`)
-- Service Worker con Workbox (auto-update, network-first para HTML)
-- PWA con `manifest.json` e iconos
+| Rol | Capacidades |
+|-----|------------|
+| superadmin | Todo CRUD, editar/eliminar precedentes, gestion de admins |
+| event_admin | Crear partidas, gestionar torneos, importar CSV |
+| moderator | Gestionar reportes, aplicar strikes, moderar chat |
+| alliance_leader | Panel de alianza, crear partidas internas, gestionar miembros |
+| co_leader | Mismo que lider con restricciones |
+| officer | Ver strikes, gestionar miembros basicos |
 
-### JS Core
-| Archivo | Función |
-|---------|---------|
-| `assets/js/config.js` | Inicializacion de Supabase client |
-| `assets/js/base.js` | Utilidades (formatDate, showToast, getStatusBadge, etc.) |
-| `assets/js/auth.js` | Auth dual + navegación fluida + ROLE_PANELS |
-| `assets/js/theme.js` | Variables CSS del tema oscuro |
-| `assets/js/sw-register.js` | Registro inteligente del SW con detección de versiones |
+## Iniciar el Proyecto
 
-### Base de Datos (Supabase)
-- **Tablas principales**: `players`, `alliances`, `matches`, `match_registrations`, `match_results`
-- **Sistema de reglas**: `rule_sections` (jerarquico), `rule_precedents` (jurisprudencia)
-- **Sistema de strikes**: `player_strikes`, `strike_types`, `player_sanctions`
-- **Reportes**: `player_reports` (con `rule_section_id`)
-- **Solicitudes**: `alliance_leader_requests`
-- **Auth**: `admin_users`, `admin_invites`, `player_tokens`
+1. Clonar el repo:
+```bash
+git clone https://github.com/yoanlopez500-wq/aliance-hub.git
+cd aliance-hub
+```
 
-### Sistema de Penalizacion por Strikes
-Las kills efectivas se calculan restando strikes activos:
-- 1 strike = -10% kills
-- 2 strikes = -30% kills
-- 3+ strikes = -50% kills
-- El motor de sanciones (`admin/sanctions-engine.html`) permite crear fórmulas custom
+2. Configurar Supabase:
+   - Crear proyecto en [Supabase](https://supabase.com)
+   - Ejecutar `schema.sql` en el SQL Editor
+   - Copiar URL y anon key a `assets/js/config.js`
 
-**IMPORTANTE**: `players.strikes` NO EXISTE. Siempre contar desde `player_strikes`.
+3. Ejecutar setup inicial:
+```sql
+SELECT complete_setup();
+```
 
-## Service Worker
-- **Workbox CDN** v7.1.0 con strategies:
-  - HTML: `NetworkFirst` (siempre fresco)
-  - JS/CSS: `StaleWhileRevalidate`
-  - Imagenes/Fuentes: `CacheFirst`
-  - Supabase API: `NetworkOnly`
-- Auto-limpieza de caches viejos al instalar
-- Deteccion de version via `sw-register.js`
+4. Desplegar:
+   - Push a `main` branch
+   - Activar GitHub Pages desde Settings
 
-## Deploy
-- GitHub Pages: `https://yoanlopez500-wq.github.io/aliance-hub/`
+## Convenciones de Codigo
 
-## Version
-**v16.1** - Sistema nativo de reglas, motor de sanciones, solicitud de liderazgo, Workbox SW
+- **Versionado**: `?v=19` en todos los recursos JS/CSS
+- **DB**: Usar `DB.from('tableKey')` y `DB.col('tableKey', 'colKey')` de `db-schema.js`
+- **Auth**: Usar `auth-core.js` directamente (no el shim legacy `auth.js`)
+- **Tabs**: Tablas de 2 espacios en JS, 4 en HTML
+
+## Licencia
+
+Proyecto de comunidad. No oficial. No afiliado a Bytro Games.
