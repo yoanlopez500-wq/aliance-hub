@@ -32,6 +32,16 @@
 </div>
 </div>
 <script>
+// Defensive guard: ensure getStatusBadgePlayer is available even if base.js fails to load
+if (typeof getStatusBadgePlayer !== 'function') {
+    window.getStatusBadgePlayer = function(status) {
+        if (status === 'active') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(46,125,50,0.15);color:#4caf50">ACTIVO</span>';
+        if (status === 'banned') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350">BANEADO</span>';
+        if (status === 'suspended') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00">SUSPENDIDO</span>';
+        return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">' + (status || '?') + '</span>';
+    };
+}
+
 var allPlayers = [];
 var allAlliances = [];
 
