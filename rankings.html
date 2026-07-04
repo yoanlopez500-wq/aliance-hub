@@ -7,22 +7,22 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Rankings - Alliance Hub</title>
-<!-- v18: Modular Architecture -->
-<script src="assets/js/theme.js?v=18"></script>
+<!-- v21: Fix rankings display - correct DB column names -->
+<script src="assets/js/theme.js?v=27"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
-<!-- v18: DB Schema Centralizer -->
-<script src="assets/js/db-schema.js?v=18"></script>
-<script src="assets/js/roles-data.js?v=18"></script>
-<script src="assets/js/auth-core.js?v=18"></script>
-<script src="assets/js/messaging.js?v=18"></script>
-<script src="assets/js/notifications.js?v=18"></script>
-<script src="assets/js/nav-engine.js?v=18"></script>
-<script src="assets/js/training.js?v=18"></script>
-<script src="assets/js/components.js?v=18"></script>
-<script src="assets/js/pwa-utils.js?v=18"></script>
+<script src="assets/js/config.js?v=27"></script>
+<script src="assets/js/base.js?v=27"></script>
+<!-- v21: DB Schema with currentAllianceId -->
+<script src="assets/js/db-schema.js?v=27"></script>
+<script src="assets/js/roles-data.js?v=27"></script>
+<script src="assets/js/auth-core.js?v=27"></script>
+<script src="assets/js/messaging.js?v=27"></script>
+<script src="assets/js/notifications.js?v=27"></script>
+<script src="assets/js/nav-engine.js?v=27"></script>
+<script src="assets/js/training.js?v=27"></script>
+<script src="assets/js/components.js?v=27"></script>
+<script src="assets/js/pwa-utils.js?v=27"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
@@ -149,6 +149,9 @@ async function loadRankings() {
         var mc = DB.tableCols('matches');
         var rc = DB.tableCols('matchResults');
 
+        // v21 FIX: Use correct column names from DB schema
+        // pc.currentUsername (not pc.username), pc.currentAllianceId (not pc.allianceId)
+
         // Query match_results JOIN matches, excluding internal matches from global ranking
         var q = supabase.from('match_results')
             .select('player_id, kills, deaths, matches!inner(match_type, alliance_id)')
@@ -167,12 +170,13 @@ async function loadRankings() {
             playerStats[pid].games += 1;
         });
 
-        // Get player details
+        // Get player details using correct schema column names
         var playerIds = Object.keys(playerStats).map(Number);
         var playersData = [];
         if (playerIds.length > 0) {
-            var pq = DB.from('players').select([pc.id, pc.username, pc.allianceId, pc.gamesPlayed].join(', ')).in(pc.id, playerIds);
-            if (af) pq = pq.eq(pc.allianceId, af);
+            // FIX: pc.currentUsername (not pc.username), pc.currentAllianceId (not pc.allianceId)
+            var pq = DB.from('players').select([pc.id, pc.currentUsername, pc.currentAllianceId, pc.gamesPlayed].join(', ')).in(pc.id, playerIds);
+            if (af) pq = pq.eq(pc.currentAllianceId, af);
             var pres = await pq;
             if (!pres.error && pres.data) {
                 playersData = pres.data.map(function(p) {
@@ -194,7 +198,8 @@ async function loadRankings() {
             var penalty = getPenaltyPct(p);
             var killClass = penalty > 0 ? 'kill-nullified' : '';
             var badge = penalty > 0 ? '<span class="text-[10px] px-1 py-0.5 rounded font-bold ml-1" style="background:rgba(198,40,40,0.2);color:#ef5350">-' + penalty + '%</span>' : '';
-            return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-bold text-ah-muted">' + (i+1) + '</td><td class="p-3 font-medium"><a href="player.html?id=' + p[pc.id] + '" style="color:#ff8f00;">' + p[pc.username] + '</a>' + badge + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p[pc.allianceId]) + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.gamesPlayed] || 0) + '</td><td class="p-3 text-right font-bold ' + killClass + '" style="color:' + (eff > 0 ? '#4caf50' : '#9fa8da') + ';">' + eff + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.deaths] || 0) + '</td><td class="p-3 text-right font-bold">' + (p[pc.deaths] > 0 ? (eff / p[pc.deaths]).toFixed(2) : (eff > 0 ? eff.toFixed(2) : '0')) + '</td><td class="p-3 text-right">' + (penalty > 0 ? '<span title="Penalizacion por strikes/sanciones" style="color:#ef5350;">&#9889;</span>' : '') + '</td></tr>';
+            // FIX: p[pc.currentUsername] (not p[pc.username]), p[pc.currentAllianceId] (not p[pc.allianceId])
+            return '<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-bold text-ah-muted">' + (i+1) + '</td><td class="p-3 font-medium"><a href="player.html?id=' + p[pc.id] + '" style="color:#ff8f00;">' + p[pc.currentUsername] + '</a>' + badge + '</td><td class="p-3 text-ah-muted">' + getAllianceTag(p[pc.currentAllianceId]) + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.gamesPlayed] || 0) + '</td><td class="p-3 text-right font-bold ' + killClass + '" style="color:' + (eff > 0 ? '#4caf50' : '#9fa8da') + ';">' + eff + '</td><td class="p-3 text-right text-ah-muted">' + (p[pc.deaths] || 0) + '</td><td class="p-3 text-right font-bold">' + (p[pc.deaths] > 0 ? (eff / p[pc.deaths]).toFixed(2) : (eff > 0 ? eff.toFixed(2) : '0')) + '</td><td class="p-3 text-right">' + (penalty > 0 ? '<span title="Penalizacion por strikes/sanciones" style="color:#ef5350;">&#9889;</span>' : '') + '</td></tr>';
         }).join('');
     } catch(e) { console.error('[Rankings] jugadores:', e); document.getElementById('players-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ' + e.message + '</td></tr>'; }
 }
@@ -206,14 +211,15 @@ async function loadAlliances() {
         var res = await DB.from('alliances').select(DB.select('alliances', 'basic'));
         if (res.error) throw res.error;
 
-        var playersRes = await DB.from('players').select([pc.allianceId, pc.kills].join(', '));
+        // v21 FIX: Use pc.currentAllianceId (not pc.allianceId)
+        var playersRes = await DB.from('players').select([pc.currentAllianceId, pc.kills].join(', '));
         var playerStats = {};
         if (!playersRes.error && playersRes.data) {
             playersRes.data.forEach(function(p) {
-                if (!p[pc.allianceId]) return;
-                if (!playerStats[p[pc.allianceId]]) playerStats[p[pc.allianceId]] = { count: 0, kills: 0 };
-                playerStats[p[pc.allianceId]].count++;
-                playerStats[p[pc.allianceId]].kills += (p[pc.kills] || 0);
+                if (!p[pc.currentAllianceId]) return;
+                if (!playerStats[p[pc.currentAllianceId]]) playerStats[p[pc.currentAllianceId]] = { count: 0, kills: 0 };
+                playerStats[p[pc.currentAllianceId]].count++;
+                playerStats[p[pc.currentAllianceId]].kills += (p[pc.kills] || 0);
             });
         }
 
