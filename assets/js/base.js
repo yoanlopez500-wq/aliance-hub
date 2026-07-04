@@ -1,6 +1,4 @@
 // assets/js/base.js v13 - Alliance Hub utilities + Session persistence
-// Depends on: config.js
-
 window.__AH_BASE_PATH = (function() {
     var parts = window.location.pathname.split('/').filter(function(p) { return p.length > 0; });
     // Admin/chat/register subfolders: base is root (hrefs already include the subfolder)
@@ -15,97 +13,79 @@ window.__AH_BASE_PATH = (function() {
     if (parts.length >= 2) return '/' + parts[0] + '/';
     return '/';
 })();
-
-window.ahPath = function(relative) {
-    var base = window.__AH_BASE_PATH;
-    if (base === '/') return '/' + relative;
-    return base + relative;
-};
-
-// ---- Utilities ----
-function formatDate(d) {
-    if (!d) return '-';
-    var date = new Date(d);
-    if (isNaN(date.getTime())) return d;
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function ahPath(relative) { var base = window.__AH_BASE_PATH; if (!base.endsWith('/')) base += '/'; return base + relative.replace(/^\//, ''); }
+function showToast(message, type) {
+    var toast = document.createElement('div');
+    var bg = type === 'error' ? 'rgba(198,40,40,0.9)' : type === 'warning' ? 'rgba(255,143,0,0.9)' : type === 'info' ? 'rgba(33,150,243,0.9)' : 'rgba(46,125,50,0.9)';
+    var textColor = type === 'warning' ? '#1a1a2e' : '#fff';
+    toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;padding:12px 20px;border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:fadeIn 0.3s ease-out;background:' + bg + ';color:' + textColor + ';';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(function(){toast.remove()}, 500); }, 3000);
 }
+function formatDate(iso) { if (!iso) return '-'; var d = new Date(iso); var now = new Date(); var diff = now - d; if (diff < 60000) return 'hace un momento'; if (diff < 3600000) return 'hace ' + Math.floor(diff / 60000) + ' min'; if (diff < 86400000) return 'hace ' + Math.floor(diff / 3600000) + ' h'; return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
+function formatDateTime(iso) { if (!iso) return '-'; return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+function showLoading(containerId, message) { var c = document.getElementById(containerId); if (c) c.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">' + (message || 'Cargando...') + '</div>'; }
+function confirmAction(message) { return confirm(message || 'Estas seguro?'); }
 function getStatusBadge(status) {
-    var map = {
-        open: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ABIERTA</span>',
-        in_progress: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN CURSO</span>',
-        finished: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">FINALIZADA</span>',
-        archived: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(120,144,156,0.15);color:#78909c;">ARCHIVADA</span>',
-        draft: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">BORRADOR</span>',
-        pending: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">PENDIENTE</span>',
-        confirmed: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">CONFIRMADO</span>',
-        active: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ACTIVO</span>',
-        suspended: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(239,83,80,0.15);color:#ef5350;">SUSPENDIDO</span>',
-        approved: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">APROBADO</span>',
-        rejected: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">RECHAZADO</span>'
-    };
-    return map[status] || '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da;">' + (status || '-') + '</span>';
+    var badges = { draft: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">BORRADOR</span>', open: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50">ABIERTA</span>', in_progress: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3">EN CURSO</span>', finished: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8">FINALIZADA</span>', archived: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">ARCHIVADA</span>', cancelled: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350">CANCELADA</span>' };
+    return badges[status] || '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">' + (status || '?') + '</span>';
+}
+function getStatusBadgePlayer(status) {
+    if (status === 'active') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(46,125,50,0.15);color:#4caf50">ACTIVO</span>';
+    if (status === 'banned') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350">BANEADO</span>';
+    if (status === 'suspended') return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00">SUSPENDIDO</span>';
+    return '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">' + (status || '?') + '</span>';
 }
 function getTypeBadge(type) {
-    var map = {
-        duel: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">DUELO</span>',
-        internal: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">INTERNA</span>',
-        tournament: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.15);color:#ce93d8;">TORNEO</span>',
-        public_31: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(0,150,136,0.15);color:#009688;">PUBLICA 31</span>',
-        public_500: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(0,150,136,0.15);color:#009688;">EVENTO 500</span>',
-        public_quick: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(0,150,136,0.15);color:#009688;">RAPIDA</span>'
-    };
-    return map[type] || '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da;">' + (type || '-') + '</span>';
+    var badges = { internal: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.1);color:#ff8f00">INTERNA</span>', duel: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(239,83,80,0.1);color:#ef5350">DUELO</span>', public_31: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.1);color:#4fc3f7">PUBLICA 31</span>', public_500: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(156,39,176,0.1);color:#ce93d8">EVENTO 500</span>', public_quick: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.1);color:#81c784">RAPIDA</span>' };
+    return badges[type] || '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da">' + (type || '?') + '</span>';
 }
-function getPlayerStatusBadge(status) {
-    var map = {
-        active: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">ACTIVO</span>',
-        suspended: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">SUSPENDIDO</span>',
-        banned: '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">BANEADO</span>'
-    };
-    return map[status] || '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,255,255,0.05);color:#9fa8da;">' + (status || '-') + '</span>';
-}
-function showToast(message, type) {
-    var el = document.createElement('div');
-    var colors = { success: '#4caf50', error: '#ef5350', warning: '#ff8f00', info: '#2196f3' };
-    el.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateY(100px);transition:transform 0.3s ease;background:' + (colors[type] || colors.info) + ';';
-    el.textContent = message;
-    document.body.appendChild(el);
-    requestAnimationFrame(function() { el.style.transform = 'translateY(0)'; });
-    setTimeout(function() { el.style.transform = 'translateY(100px)'; setTimeout(function() { el.remove(); }, 300); }, 3000);
-}
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+async function removeRegistration(regId, playerName) { if (!confirm('Quitar a ' + (playerName || 'este jugador') + ' de la partida?')) return; try { var { error } = await supabase.from('match_registrations').delete().eq('id', regId); if (error) { showToast('Error: ' + error.message, 'error'); return; } showToast('Jugador quitado de la partida', 'success'); setTimeout(function() { location.reload(); }, 500); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+function openSuspendModal(playerId, playerName) { if (!confirm('Suspender a ' + (playerName || 'este jugador') + '?')) return; suspendPlayer(playerId); }
+async function suspendPlayer(playerId) { try { var { error } = await supabase.from('players').update({ status: 'suspended' }).eq('id', playerId); if (error) { showToast('Error: ' + error.message, 'error'); return; } showToast('Jugador suspendido', 'success'); setTimeout(function(){location.reload()},500); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function reactivatePlayer(playerId) { try { var { error } = await supabase.from('players').update({ status: 'active', suspension_reason: null }).eq('id', playerId); if (error) { showToast('Error: ' + error.message, 'error'); return; } showToast('Jugador reactivado', 'success'); setTimeout(function(){location.reload()},500); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function generatePlayerToken(playerId, displayName) { try { var { data: existing } = await supabase.from('players').select('id, current_username').eq('id', playerId).maybeSingle(); var pid = parseInt(playerId); if (existing) { await supabase.from('players').update({ current_username: displayName, last_seen: new Date().toISOString() }).eq('id', pid); } else { var { error: insertErr } = await supabase.from('players').insert({ id: pid, current_username: displayName, status: 'active' }); if (insertErr) return { success: false, message: insertErr.message }; } var token = 'ah_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now(); var { error: tokenErr } = await supabase.from('player_tokens').upsert({ player_id: pid, token: token }, { onConflict: 'player_id' }); if (tokenErr) return { success: false, message: tokenErr.message }; return { success: true, token: token }; } catch(e) { return { success: false, message: e.message }; } }
+async function verifyPlayerToken(playerId, token) { try { var { data } = await supabase.from('player_tokens').select('token').eq('player_id', parseInt(playerId)).eq('token', token).maybeSingle(); return !!data; } catch(e) { return false; } }
+async function registerForMatch(matchId) { var playerData = getPlayerData(); if (!playerData) { showToast('Inicia sesion como jugador primero', 'error'); return; } try { var { error } = await supabase.from('match_registrations').insert({ match_id: matchId, player_id: parseInt(playerData.playerId) }); if (error) { showToast('Error: ' + error.message, 'error'); return; } showToast('Registrado en la partida', 'success'); setTimeout(function(){location.reload()},500); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function unregisterFromMatch(matchId) { var playerData = getPlayerData(); if (!playerData) return; try { var { error } = await supabase.from('match_registrations').delete().eq('match_id', matchId).eq('player_id', parseInt(playerData.playerId)); if (error) { showToast('Error: ' + error.message, 'error'); return; } showToast('Desregistrado de la partida', 'success'); setTimeout(function(){location.reload()},500); } catch(e) { showToast('Error: ' + e.message, 'error'); } }
+async function getPlayerMatches() { var playerData = getPlayerData(); if (!playerData) return []; try { var { data } = await supabase.from('match_registrations').select('match_id').eq('player_id', parseInt(playerData.playerId)); return data || []; } catch(e) { return []; } }
+async function generateTransferCode() { var playerData = getPlayerData(); if (!playerData) return null; try { var { data, error } = await supabase.rpc('generate_transfer_code', { p_player_id: parseInt(playerData.playerId) }); if (error) throw error; return data; } catch(e) { return null; } }
+async function transferPlayerWithCode(code) { var playerData = getPlayerData(); if (!playerData) return { success: false, message: 'No hay sesion de jugador' }; try { var { data, error } = await supabase.rpc('transfer_player', { p_player_id: parseInt(playerData.playerId), p_transfer_code: code }); if (error) return { success: false, message: error.message }; return { success: true, message: 'Transferencia completada' }; } catch(e) { return { success: false, message: e.message }; } }
+async function verifyPlayerLogin(playerId, token) { try { var { data } = await supabase.from('player_tokens').select('token').eq('player_id', parseInt(playerId)).eq('token', token).maybeSingle(); return !!data; } catch(e) { return false; } }
+async function subscribeToPushNotifications() { try { var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY) }); var subJson = JSON.parse(JSON.stringify(sub)); await supabase.from('push_subscriptions').upsert({ endpoint: subJson.endpoint, p256dh: subJson.keys ? subJson.keys.p256dh : null, auth: subJson.keys ? subJson.keys.auth : null, player_id: getPlayerData() ? parseInt(getPlayerData().playerId) : null }, { onConflict: 'endpoint' }); localStorage.setItem('ah_v2_push_subscribed', 'true'); return true; } catch(e) { console.error('Push error:', e); return false; } }
+async function unsubscribePush() { try { var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.getSubscription(); if (sub) { await supabase.from('push_subscriptions').delete().eq('endpoint', sub.toJSON().endpoint); await sub.unsubscribe(); } localStorage.removeItem('ah_v2_push_subscribed'); return true; } catch(e) { return false; } }
+function urlBase64ToUint8Array(base64String) { var padding = '='.repeat((4 - base64String.length % 4) % 4); var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); var rawData = window.atob(base64); var outputArray = new Uint8Array(rawData.length); for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
 
-// ---- Player Session (localStorage) ----
-function getPlayerData() {
-    try {
-        var id = localStorage.getItem('ah_v2_player_id');
-        var token = localStorage.getItem('ah_v2_player_token');
-        if (!id || !token) return null;
-        return { playerId: id, token: token, displayName: localStorage.getItem('ah_v2_player_name') || '' };
-    } catch(e) { return null; }
-}
-function clearPlayerData() {
-    localStorage.removeItem('ah_v2_player_id');
-    localStorage.removeItem('ah_v2_player_token');
-    localStorage.removeItem('ah_v2_player_name');
-}
-function getModePreference() {
-    try { return localStorage.getItem('ah_v2_mode'); } catch(e) { return null; }
-}
-function setModePreference(mode) {
-    try { localStorage.setItem('ah_v2_mode', mode); } catch(e) {}
-}
-function clearModePreference() {
-    try { localStorage.removeItem('ah_v2_mode'); } catch(e) {}
-}
+// Player session helpers
+function getPlayerData() { try { var pid = localStorage.getItem('ah_v2_player_id'); var name = localStorage.getItem('ah_v2_player_name'); var token = localStorage.getItem('ah_v2_player_token'); if (!pid || !token) return null; return { playerId: pid, displayName: name, token: token }; } catch(e) { return null; } }
+function setPlayerData(playerId, displayName, token) { localStorage.setItem('ah_v2_player_id', playerId); localStorage.setItem('ah_v2_player_name', displayName); localStorage.setItem('ah_v2_player_token', token); }
+function clearPlayerData() { localStorage.removeItem('ah_v2_player_id'); localStorage.removeItem('ah_v2_player_name'); localStorage.removeItem('ah_v2_player_token'); }
+function requirePlayer() { var pd = getPlayerData(); if (!pd) { showToast('Debes iniciar sesion como jugador primero', 'error'); return false; } return pd; }
 
-// ---- Auto-hide nav on mobile ----
-document.addEventListener('click', function(e) {
-    var nav = document.getElementById('mobile-nav');
-    if (nav && nav.classList.contains('open') && !nav.contains(e.target) && (!e.target.closest || !e.target.closest('#mobile-menu-btn'))) {
-        nav.classList.remove('open');
+// v12.1: Added savePlayerSession for login-player.html
+async function savePlayerSession(playerId, displayName) {
+    var result = await generatePlayerToken(playerId, displayName);
+    if (result.success) {
+        setPlayerData(playerId, displayName, result.token);
+        return true;
     }
-});
+    console.error('savePlayerSession failed:', result.message);
+    return false;
+}
+
+// Admin guard
+function requireAdmin() {
+    supabase.auth.getSession().then(function(sd) {
+        if (!sd.data.session) {
+            window.location.href = ahPath('admin/login.html');
+        }
+    });
+}
+
+// Player logout
+function logoutPlayer() {
+    clearPlayerData();
+    showToast('Sesion de jugador cerrada', 'success');
+    setTimeout(function() { window.location.href = 'index.html'; }, 500);
+}
