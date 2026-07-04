@@ -85,7 +85,10 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 <div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Titulo *</label><input type="text" id="section-title" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: Regla 1 - Conducta"></div>
 <div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Contenido *</label><textarea id="section-content" rows="6" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Describe la regla..."></textarea></div>
 <div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Visibilidad</label><select id="section-visibility" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="public">Publica (todos)</option><option value="training">Capacitacion</option><option value="officials_only">Solo Oficiales</option></select></div>
-<div class="mb-4"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Orden</label><input type="number" id="section-order" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="0, 1, 2..."></div>
+<!-- Fix A: section_number as text with pattern validation -->
+<div class="mb-3"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Numero de Seccion *</label><input type="text" id="section-number" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: 1, 1.1, 2.3.4" pattern="^\d+(\.\d+)*$" required><p class="text-xs mt-1" style="color:#64748b;">Formato: 1, 1.1, 1.2, 2.3.4</p></div>
+<!-- Fix B: parent section selector -->
+<div class="mb-4"><label class="block text-sm font-medium mb-1" style="color:#0f172a;">Seccion Padre (opcional)</label><select id="section-parent" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin padre (seccion principal) --</option></select><p class="text-xs mt-1" style="color:#64748b;">Selecciona una seccion principal si esta es una subseccion</p></div>
 <div class="flex gap-2 justify-end"><button onclick="closeSectionModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#e2e8f0;color:#0f172a;">Cancelar</button><button onclick="saveSection()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button></div>
 </div></div>
 
@@ -195,6 +198,38 @@ function switchTab(tab) {
 }
 
 // ===================== SECTIONS =====================
+// Helper: get indentation level from section_number ("1.1.2" -> 3)
+function getSectionLevel(num) {
+    if (!num) return 1;
+    return String(num).split('.').length;
+}
+
+// Helper: hierarchical sort (1, 1.1, 1.2, 2, 2.1 instead of 1, 1.1, 1.2, 2, 2.1)
+function sortSectionsHierarchical(sections) {
+    return sections.slice().sort(function(a, b) {
+        var partsA = String(a.section_number || a.order_index || '0').split('.').map(Number);
+        var partsB = String(b.section_number || b.order_index || '0').split('.').map(Number);
+        for (var i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            var valA = partsA[i] || 0;
+            var valB = partsB[i] || 0;
+            if (valA !== valB) return valA - valB;
+        }
+        return 0;
+    });
+}
+
+// Helper: build hierarchical options for dropdowns
+function buildHierarchicalOptions(sections, selectedId) {
+    var sorted = sortSectionsHierarchical(sections);
+    return sorted.map(function(s) {
+        var level = getSectionLevel(s.section_number);
+        var indent = '\u00A0\u00A0'.repeat(Math.max(0, level - 1));
+        var num = s.section_number || (s.order_index + 1);
+        var sel = (s.id === selectedId) ? ' selected' : '';
+        return '<option value="' + s.id + '"' + sel + '>' + indent + num + '. ' + s.title + '</option>';
+    }).join('');
+}
+
 async function loadSections() {
     try {
         var { data, error } = await DB.selectAll('ruleSections', 'all', 'order_index');
@@ -203,21 +238,48 @@ async function loadSections() {
         var list = document.getElementById('sections-list');
         if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 text-sm" style="color:#9fa8da;">No hay secciones. Crea la primera.</div>'; return; }
 
-        // Update section dropdowns
-        var sectionOpts = data.map(function(s) { return '<option value="' + s.id + '">' + s.title + '</option>'; }).join('');
+        // Sort hierarchically
+        var sorted = sortSectionsHierarchical(sectionsCache);
+
+        // Fix E: Update section dropdowns with hierarchy
+        var sectionOpts = buildHierarchicalOptions(sectionsCache);
         var precSelect = document.getElementById('prec-section');
         if (precSelect) precSelect.innerHTML = '<option value="">Seleccionar...</option>' + sectionOpts;
 
-        list.innerHTML = data.map(function(s, i) {
+        // Fix D: Render with indentation based on section_number level
+        list.innerHTML = sorted.map(function(s) {
+            var level = getSectionLevel(s.section_number);
+            var indentPx = (level - 1) * 20;
+            var num = s.section_number || (s.order_index + 1);
             var visBadge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' : s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#4caf50;color:white;">PUBLICA</span>';
             var activeBadge = s.is_active === false ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:rgba(198,40,40,0.3);color:#ef5350;">INACTIVA</span>' : '';
-            return '<div class="rule-item rounded-xl p-4 flex items-start gap-3" style="background:#11183a;border:1px solid #1a237e;" draggable="true" data-id="' + s.id + '" data-order="' + s.order_index + '"><div class="mt-1" style="color:#9fa8da;cursor:grab;">&#8942;&#8942;</div><div class="flex-1"><div class="flex items-center flex-wrap gap-1"><h3 class="font-bold">' + (i+1) + '. ' + s.title + '</h3>' + visBadge + activeBadge + '</div><p class="text-sm mt-1" style="color:#9fa8da;">' + (s.content || '').substring(0, 140) + '...</p></div><div class="flex gap-1 flex-shrink-0"><button onclick="editSection(\'' + s.id + '\')" class="px-2 py-1 rounded text-xs font-bold transition hover:opacity-80" style="background:#1a237e;color:#fff;">Editar</button><button onclick="toggleSection(\'' + s.id + '\', ' + (s.is_active !== false) + ')" class="px-2 py-1 rounded text-xs font-bold transition hover:opacity-80" style="background:' + (s.is_active !== false ? 'rgba(198,40,40,0.3)' : 'rgba(76,175,80,0.3)') + ';color:' + (s.is_active !== false ? '#ef5350' : '#4caf50') + ';">' + (s.is_active !== false ? 'Desactivar' : 'Activar') + '</button></div></div>';
+            var levelColor = level === 1 ? '#3b82f6' : level === 2 ? '#10b981' : level === 3 ? '#f59e0b' : '#9fa8da';
+            return '<div class="rule-item rounded-xl p-4 flex items-start gap-3" style="background:#11183a;border:1px solid #1a237e;border-left:3px solid ' + levelColor + ';margin-left:' + indentPx + 'px;" draggable="true" data-id="' + s.id + '" data-order="' + s.order_index + '"><div class="mt-1" style="color:#9fa8da;cursor:grab;">&#8942;&#8942;</div><div class="flex-1"><div class="flex items-center flex-wrap gap-1"><h3 class="font-bold">' + num + '. ' + s.title + '</h3>' + visBadge + activeBadge + '</div><p class="text-sm mt-1" style="color:#9fa8da;">' + (s.content || '').substring(0, 140) + '...</p></div><div class="flex gap-1 flex-shrink-0"><button onclick="editSection(\'' + s.id + '\')" class="px-2 py-1 rounded text-xs font-bold transition hover:opacity-80" style="background:#1a237e;color:#fff;">Editar</button><button onclick="toggleSection(\'' + s.id + '\', ' + (s.is_active !== false) + ')" class="px-2 py-1 rounded text-xs font-bold transition hover:opacity-80" style="background:' + (s.is_active !== false ? 'rgba(198,40,40,0.3)' : 'rgba(76,175,80,0.3)') + ';color:' + (s.is_active !== false ? '#ef5350' : '#4caf50') + ';">' + (s.is_active !== false ? 'Desactivar' : 'Activar') + '</button></div></div>';
         }).join('');
         setupDragAndDrop();
     } catch(e) { console.error('[RulesEditor] loadSections:', e); showToast('Error cargando secciones', 'error'); }
 }
 
-function openSectionModal() { document.getElementById('section-modal').classList.remove('hidden'); document.getElementById('section-modal-title').textContent = 'Nueva Seccion'; document.getElementById('section-id').value = ''; document.getElementById('section-title').value = ''; document.getElementById('section-content').value = ''; document.getElementById('section-visibility').value = 'public'; document.getElementById('section-order').value = sectionsCache.length; }
+// Fix A: Validate section_number format
+function validateSectionNumber(value) {
+    var regex = /^\d+(\.\d+)*$/;
+    return regex.test(value.trim());
+}
+
+function openSectionModal() {
+    document.getElementById('section-modal').classList.remove('hidden');
+    document.getElementById('section-modal-title').textContent = 'Nueva Seccion';
+    document.getElementById('section-id').value = '';
+    document.getElementById('section-title').value = '';
+    document.getElementById('section-content').value = '';
+    document.getElementById('section-visibility').value = 'public';
+    // Fix A: suggest next section number
+    var nextNum = sectionsCache.length > 0 ? String((sortSectionsHierarchical(sectionsCache).length) + 1) : '1';
+    document.getElementById('section-number').value = nextNum;
+    // Fix B: populate parent dropdown
+    var parentSelect = document.getElementById('section-parent');
+    parentSelect.innerHTML = '<option value="">-- Sin padre (seccion principal) --</option>' + buildHierarchicalOptions(sectionsCache);
+}
 function closeSectionModal() { document.getElementById('section-modal').classList.add('hidden'); }
 
 async function editSection(id) {
@@ -230,7 +292,11 @@ async function editSection(id) {
         document.getElementById('section-title').value = data.title || '';
         document.getElementById('section-content').value = data.content || '';
         document.getElementById('section-visibility').value = data.visibility || 'public';
-        document.getElementById('section-order').value = data.order_index;
+        // Fix A: load section_number
+        document.getElementById('section-number').value = data.section_number || (data.order_index + 1);
+        // Fix B: populate and select parent
+        var parentSelect = document.getElementById('section-parent');
+        parentSelect.innerHTML = '<option value="">-- Sin padre (seccion principal) --</option>' + buildHierarchicalOptions(sectionsCache, data.parent_id);
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
@@ -239,12 +305,43 @@ async function saveSection() {
     var title = document.getElementById('section-title').value.trim();
     var content = document.getElementById('section-content').value.trim();
     var visibility = document.getElementById('section-visibility').value;
-    var order = parseInt(document.getElementById('section-order').value) || 0;
+    var sectionNumber = document.getElementById('section-number').value.trim();
+    var parentId = document.getElementById('section-parent').value || null;
+
     if (!title || !content) { showToast('Titulo y contenido son obligatorios', 'error'); return; }
+    if (!sectionNumber) { showToast('Numero de seccion es obligatorio', 'error'); return; }
+    if (!validateSectionNumber(sectionNumber)) { showToast('Formato invalido. Use: 1, 1.1, 2.3.4', 'error'); return; }
+
     try {
         var table = DB.tableName('ruleSections');
-        if (id) { var { error } = await supabase.from(table).update({ title: title, content: content, visibility: visibility, order_index: order }).eq('id', id); }
-        else { var { error } = await supabase.from(table).insert({ title: title, content: content, visibility: visibility, order_index: order, is_active: true }); }
+
+        // Fix C: Auto-infer parent from section_number if not selected
+        if (!parentId && sectionNumber.indexOf('.') !== -1) {
+            var parentParts = sectionNumber.split('.');
+            parentParts.pop();
+            var parentNumber = parentParts.join('.');
+            var parent = sectionsCache.find(function(s) { return s.section_number === parentNumber; });
+            if (parent) {
+                parentId = parent.id;
+            } else {
+                showToast('Seccion padre "' + parentNumber + '" no encontrada. Creala primero o selecciona un padre manualmente.', 'warning');
+                // Continue anyway -- allow orphan subsections
+            }
+        }
+
+        var order = parseInt(sectionNumber.split('.')[0]) || 0;
+
+        if (id) {
+            var { error } = await supabase.from(table).update({
+                title: title, content: content, visibility: visibility,
+                section_number: sectionNumber, parent_id: parentId, order_index: order
+            }).eq('id', id);
+        } else {
+            var { error } = await supabase.from(table).insert({
+                title: title, content: content, visibility: visibility,
+                section_number: sectionNumber, parent_id: parentId, order_index: order, is_active: true
+            });
+        }
         if (error) throw error;
         showToast('Guardado correctamente', 'success'); closeSectionModal(); loadSections();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
