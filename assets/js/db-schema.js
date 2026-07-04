@@ -1,8 +1,8 @@
 // ============================================================
-// assets/js/db-schema.js v20
+// assets/js/db-schema.js v21
 // Centralized Database Schema - Single source of truth for all DB mappings
 // Use DB.from('tableKey'), DB.col('tableKey', 'colKey'), DB.select('tableKey', 'setName')
-// v20: Added section_number and parent_id to ruleSections
+// v21: Added currentAllianceId to players schema (fixes rankings display)
 // ============================================================
 
 (function() {
@@ -84,6 +84,7 @@
             cols: {
                 id: 'id',
                 currentUsername: 'current_username',
+                currentAllianceId: 'current_alliance_id',
                 status: 'status',
                 strikes: 'strikes',
                 totalKills: 'total_kills',
@@ -93,8 +94,8 @@
                 createdAt: 'created_at'
             },
             selectSets: {
-                basic: 'id, current_username, status, strikes',
-                profile: 'id, current_username, status, strikes, total_kills, total_deaths, games_played, last_seen',
+                basic: 'id, current_username, current_alliance_id, status, strikes',
+                profile: 'id, current_username, current_alliance_id, status, strikes, total_kills, total_deaths, games_played, last_seen',
                 all: '*'
             }
         },
@@ -424,5 +425,5 @@
     window.DB.TABLES = Object.keys(SCHEMA);
     window.DB.SCHEMA = SCHEMA;
 
-    console.log('[DB-Schema] v20 initialized. Tables:', window.DB.TABLES.length);
+    console.log('[DB-Schema] v21 initialized. Tables:', window.DB.TABLES.length);
 })();
