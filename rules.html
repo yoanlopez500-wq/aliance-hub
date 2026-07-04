@@ -27,6 +27,12 @@
 .severity-low{background:rgba(76,175,80,0.15);color:#4caf50;border:1px solid rgba(76,175,80,0.3);}
 .precedent-card{transition:all .2s ease}
 .precedent-card:hover{border-color:#ff6f00!important}
+/* Fix D: Hierarchical rule section styles */
+.rule-section{border-left:2px solid transparent;padding-left:12px;margin-bottom:16px;}
+.rule-section.level-1{border-left-color:#3b82f6;padding-left:0;}
+.rule-section.level-2{border-left-color:#10b981;}
+.rule-section.level-3{border-left-color:#f59e0b;}
+.rule-section.level-4{border-left-color:#ab47bc;}
 </style>
 </head>
 <body class="min-h-screen" data-role="public">
@@ -52,7 +58,20 @@
 </div>
 <script src="sw-register.js?v=27"></script>
 <script>
-// v19: Carga reglas y precedentes usando db-schema.js con relaciones completas
+// Helpers for hierarchical sections
+function getSectionLevel(num) { return num ? String(num).split('.').length : 1; }
+function sortSectionsHierarchical(sections) {
+    return sections.slice().sort(function(a, b) {
+        var partsA = String(a.section_number || a.order_index || '0').split('.').map(Number);
+        var partsB = String(b.section_number || b.order_index || '0').split('.').map(Number);
+        for (var i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            if ((partsA[i] || 0) !== (partsB[i] || 0)) return (partsA[i] || 0) - (partsB[i] || 0);
+        }
+        return 0;
+    });
+}
+
+// v20: Carga reglas con visualizacion jerarquica
 async function loadRules() {
     try {
         var { data, error } = await DB.selectActive('ruleSections', 'all', 'order_index');
@@ -62,10 +81,16 @@ async function loadRules() {
             container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#9fa8da;">No hay reglas configuradas. Contacta a un administrador.</div>';
             return;
         }
-        container.innerHTML = data.map(function(s) {
+        // Fix D: Sort hierarchically and render with indentation
+        var sorted = sortSectionsHierarchical(data);
+        container.innerHTML = sorted.map(function(s) {
+            var level = getSectionLevel(s.section_number);
+            var indentPx = (level - 1) * 24;
+            var num = s.section_number || (s.order_index + 1);
             var badge = s.visibility === 'officials_only' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#ff6f00;color:white;">OFICIALES</span>' :
                         s.visibility === 'training' ? '<span class="text-[10px] px-2 py-0.5 rounded font-bold ml-2" style="background:#2196f3;color:white;">CAPACITACION</span>' : '';
-            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;" data-search="' + ((s.title || '') + ' ' + (s.content || '')).toLowerCase() + '"><h3 class="font-bold text-lg mb-2" style="color:#ff8f00;">' + (s.order_index + 1) + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
+            var headingClass = level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base';
+            return '<div class="rule-section level-' + level + ' rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;margin-left:' + indentPx + 'px;" data-search="' + ((s.title || '') + ' ' + (s.content || '')).toLowerCase() + '"><h3 class="font-bold ' + headingClass + ' mb-2" style="color:#ff8f00;">' + num + '. ' + s.title + badge + '</h3><div class="text-sm leading-relaxed" style="color:#e8eaf6;">' + (s.content || '').replace(/\n/g, '<br>') + '</div></div>';
         }).join('');
     } catch(e) {
         console.error('[Rules]', e);
