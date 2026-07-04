@@ -8,13 +8,13 @@
     <meta http-equiv="Expires" content="0">
     <title>Registro - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="../assets/js/theme.js?v=18"></script>
+    <script src="../assets/js/theme.js?v=27"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../assets/js/config.js?v=18"></script>
-    <script src="../assets/js/base.js?v=18"></script>
-    <script src="../assets/js/components.js?v=18"></script>
-    <script src="../assets/js/auth.js?v=18"></script>
-    <script src="../assets/js/pwa-utils.js?v=18"></script>
+    <script src="../assets/js/config.js?v=27"></script>
+    <script src="../assets/js/base.js?v=27"></script>
+    <script src="../assets/js/components.js?v=27"></script>
+    <script src="../assets/js/auth.js?v=27"></script>
+    <script src="../assets/js/pwa-utils.js?v=27"></script>
     <meta name="theme-color" content="#0a0e27">
 </head>
 <body class="min-h-screen" style="background: #0a0e27;" data-role="public">
@@ -65,14 +65,6 @@
                         style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;"
                         readonly>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1" style="color: #9fa8da;">Nacion que elegiras *</label>
-                    <input type="text" id="reg-nation" required
-                        class="w-full px-4 py-3 rounded-lg text-white text-sm"
-                        style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;"
-                        placeholder="Ej: Imperio Aleman">
-                </div>
-
                 <button type="submit" class="w-full font-bold py-3 rounded-lg transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">
                     Confirmar Registro
                 </button>
@@ -118,7 +110,7 @@
                 return;
             }
 
-            if (reg && reg.status === 'pending_approval') {
+            if (reg && reg.status === 'pending') {
                 document.getElementById('register-form').classList.add('hidden');
                 document.getElementById('waiting-approval-banner').classList.remove('hidden');
                 return;
@@ -170,7 +162,7 @@
                     document.getElementById('cred-game-id').textContent = match.game_id || '---';
                     document.getElementById('cred-password').textContent = match.password || '---';
                 }
-                if (match.requires_approval && myRegistration && myRegistration.status === 'pending_approval') {
+                if (match.requires_approval && myRegistration && myRegistration.status === 'pending') {
                     document.getElementById('waiting-approval-banner').classList.remove('hidden');
                 }
             }
@@ -184,16 +176,10 @@
             errorMsg.classList.add('hidden');
             successMsg.classList.add('hidden');
 
-            var nation = document.getElementById('reg-nation').value.trim();
-            if (!nation) { errorMsg.textContent = '\u2716 Elige una nacion'; errorMsg.classList.remove('hidden'); return; }
-
             var { error } = await supabase.from('match_registrations').upsert({
                 match_id: matchId,
                 player_id: parseInt(playerData.playerId),
-                nation: nation,
-                username: playerData.displayName || 'Jugador',
-                status: currentMatch && currentMatch.requires_approval ? 'pending_approval' : 'confirmed',
-                registered_at: new Date().toISOString()
+                status: currentMatch && currentMatch.requires_approval ? 'pending' : 'confirmed'
             }, { onConflict: 'match_id,player_id' });
 
             if (error) { errorMsg.textContent = '\u2716 Error: ' + error.message; errorMsg.classList.remove('hidden'); }
