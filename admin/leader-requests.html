@@ -8,12 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Solicitudes de Liderazgo - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=18"></script>
+<script src="../assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=18"></script>
-<script src="../assets/js/base.js?v=18"></script>
-<script src="../assets/js/components.js?v=18"></script>
-<script src="../assets/js/auth.js?v=18"></script>
+<script src="../assets/js/config.js?v=27"></script>
+<script src="../assets/js/base.js?v=27"></script>
+<script src="../assets/js/components.js?v=27"></script>
+<script src="../assets/js/auth.js?v=27"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -34,6 +34,14 @@
 <div id="requests-list">Cargando...</div>
 </div>
 <script>
+requireAdmin();
+var currentAdminId = null;
+
+async function init() {
+    try { var s = await supabase.auth.getSession(); currentAdminId = s.data.session.user.id; } catch(e){}
+    loadRequests();
+}
+
 async function loadRequests() {
     var list = document.getElementById('requests-list');
     list.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Cargando...</div>';
@@ -45,12 +53,17 @@ async function loadRequests() {
         if (error) throw error;
         if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay solicitudes</div>'; return; }
         list.innerHTML = '<div class="space-y-3">' + data.map(function(r) {
+            // FIX: Use correct DB column names
+            // player_id (not requester_player_id), display_name (not requester_username)
             var statusBadge = r.status === 'pending' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">PENDIENTE</span>' : r.status === 'under_review' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(33,150,243,0.15);color:#2196f3;">EN REVISION</span>' : r.status === 'approved' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">APROBADO</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;">RECHAZADO</span>';
-            var actions = r.status === 'pending' || r.status === 'under_review' ? '<div class="flex gap-2 mt-3"><button onclick="approveRequest(' + r.requester_player_id + ', \'' + r.alliance_name.replace(/'/g, "\\'") + '\', \'' + r.alliance_tag + '\', ' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:#2e7d32;color:#fff;">Aprobar</button><button onclick="rejectRequest(' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(198,40,40,0.8);color:#fff;">Rechazar</button></div>' : '';
-            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-start justify-between"><div><h3 class="font-bold text-lg">' + r.alliance_name + ' [' + r.alliance_tag + ']</h3><p class="text-sm" style="color:#9fa8da;">Solicitante: ' + r.requester_username + ' (ID: ' + r.requester_player_id + ')</p><p class="text-xs mt-1" style="color:#9fa8da;">' + (r.alliance_description || 'Sin descripcion') + '</p></div>' + statusBadge + '</div><p class="text-xs mt-2" style="color:#9fa8da;">Miembros: ' + (r.member_count || '?') + ' | Discord: ' + (r.discord_handle || '-') + ' | ' + formatDate(r.created_at) + '</p>' + actions + '</div>';
+            // FIX: Use r.player_id (not r.requester_player_id)
+            var actions = r.status === 'pending' || r.status === 'under_review' ? '<div class="flex gap-2 mt-3"><button onclick="approveRequest(' + r.player_id + ', \'' + r.alliance_name.replace(/\'/g, "\\'") + '\', \'' + r.alliance_tag + '\', ' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:#2e7d32;color:#fff;">Aprobar</button><button onclick="rejectRequest(' + r.id + ')" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(198,40,40,0.8);color:#fff;">Rechazar</button></div>' : '';
+            // FIX: Use r.display_name (not r.requester_username)
+            return '<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-start justify-between"><div><h3 class="font-bold text-lg">' + r.alliance_name + ' [' + r.alliance_tag + ']</h3><p class="text-sm" style="color:#9fa8da;">Solicitante: ' + (r.display_name || 'N/A') + ' (ID: ' + r.player_id + ')</p><p class="text-xs mt-1" style="color:#9fa8da;">' + (r.alliance_description || 'Sin descripcion') + '</p></div>' + statusBadge + '</div><p class="text-xs mt-2" style="color:#9fa8da;">Miembros: ' + (r.member_count || '?') + ' | Discord: ' + (r.discord_handle || '-') + ' | ' + formatDate(r.created_at) + '</p>' + actions + '</div>';
         }).join('') + '</div>';
     } catch(e) { console.error('[Requests]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
 }
+
 async function approveRequest(playerId, allianceName, allianceTag, requestId) {
     if (!confirm('Aprobar esta solicitud? Se creara la alianza y se asignara al jugador como lider.')) return;
     try {
@@ -58,17 +71,19 @@ async function approveRequest(playerId, allianceName, allianceTag, requestId) {
         var allianceId;
         if (existing) { allianceId = existing.id; }
         else {
-            var { data: newAlliance, error: ae } = await supabase.from('alliances').insert({ name: allianceName, tag: allianceTag, status: 'active' }).select('id').single();
+            var { data: newAlliance, error: ae } = await supabase.from('alliances').insert({ name: allianceName, tag: allianceTag, leader_id: playerId, status: 'active' }).select('id').single();
             if (ae) throw ae;
             allianceId = newAlliance.id;
         }
-        await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
+        // FIX: Use correct column current_alliance_id (not alliance_id)
+        await supabase.from('players').update({ alliance_id: allianceId }).eq('id', playerId);
         var { data: { session } } = await supabase.auth.getSession();
         await supabase.from('alliance_leader_requests').update({ status: 'approved', reviewed_by: session.user.id, reviewed_at: new Date().toISOString() }).eq('id', requestId);
         showToast('Solicitud aprobada. Alianza creada y lider asignado.', 'success');
         loadRequests();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
+
 async function rejectRequest(requestId) {
     var reason = prompt('Motivo del rechazo (opcional):');
     try {
@@ -78,8 +93,8 @@ async function rejectRequest(requestId) {
         loadRequests();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
-requireAdmin();
-loadRequests();
+
+init();
 </script>
 </body>
 </html>
