@@ -6,41 +6,37 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Chat Reports - Alliance Hub</title>
+<title>Reportes de Chat - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=18"></script>
+<script src="../assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=18"></script>
-<script src="../assets/js/base.js?v=18"></script>
-<script src="../assets/js/components.js?v=18"></script>
-<script src="../assets/js/auth.js?v=18"></script>
+<script src="../assets/js/config.js?v=27"></script>
+<script src="../assets/js/base.js?v=27"></script>
+<script src="../assets/js/components.js?v=27"></script>
+<script src="../assets/js/auth.js?v=27"></script>
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<h1 class="text-2xl font-bold mb-6">&#128172; Chat Reports</h1>
-<div id="chat-reports-list">Cargando...</div>
+<h1 class="text-2xl font-bold mb-6">&#128172; Reportes de Chat</h1>
+<div id="reports-list">Cargando...</div>
 </div>
 <script>
-var allPlayers = {};
-
-async function loadPlayersMap() {
-    try { var { data } = await supabase.from('players').select('id, current_username'); (data || []).forEach(function(p) { allPlayers[p.id] = p.current_username; }); } catch(e) { console.error('[ChatReports] Error cargando players:', e); }
-}
-
-async function loadChatReports() {
+async function loadReports() {
     try {
-        await loadPlayersMap();
-        var { data, error } = await supabase.from('chat_reports').select('*').order('created_at', { ascending: false }).limit(50);
+        var { data, error } = await supabase.from('chat_reports').select('*').order('reported_at', { ascending: false });
         if (error) throw error;
-        var list = document.getElementById('chat-reports-list');
-        if (!data || data.length === 0) { list.innerHTML = '<div class="text-center py-8 rounded-xl" style="background:#11183a;border:1px solid #1a237e;color:#9fa8da;">No hay reportes de chat</div>'; return; }
-        list.innerHTML = '<div class="space-y-3">' + data.map(function(r) { var playerName = allPlayers[r.player_id] || 'Jugador ' + r.player_id; return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><h3 class="font-bold">Reporte de ' + playerName + '</h3><p class="text-sm" style="color:#9fa8da;">' + r.reason + '</p></div><span class="text-xs" style="color:#9fa8da;">' + formatDate(r.created_at) + '</span></div></div>'; }).join('') + '</div>';
-    } catch(e) { console.error('[ChatReports]', e); }
+        var container = document.getElementById('reports-list');
+        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Sin reportes</div>'; return; }
+        container.innerHTML = '<div class="space-y-3">' + data.map(function(r) {
+            var statusBadge = r.status === 'resolved' ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">RESUELTO</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,143,0,0.15);color:#ff8f00;">PENDIENTE</span>';
+            return '<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><div><p class="font-bold">Canal: ' + r.channel + '</p><p class="text-sm" style="color:#9fa8da;">Por: ' + r.reporter_name + '</p></div>' + statusBadge + '</div><p class="text-sm mt-2" style="color:#e8eaf6;">' + r.reason + '</p><p class="text-xs mt-1" style="color:#9fa8da;">' + formatDate(r.reported_at) + '</p></div>';
+        }).join('') + '</div>';
+    } catch(e) { console.error('[ChatReports]', e); document.getElementById('reports-list').innerHTML = '<div class="text-center py-8 text-red-400">Error</div>'; }
 }
 requireAdmin();
-loadChatReports();
+loadReports();
 </script>
 </body>
 </html>
