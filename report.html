@@ -8,12 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Reportar Jugador - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=18"></script>
+<script src="assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
-<script src="assets/js/components.js?v=18"></script>
-<script src="assets/js/auth.js?v=18"></script>
+<script src="assets/js/config.js?v=27"></script>
+<script src="assets/js/base.js?v=27"></script>
+<script src="assets/js/components.js?v=27"></script>
+<script src="assets/js/auth.js?v=27"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
@@ -32,7 +32,7 @@
 <button type="submit" id="submit-btn" class="w-full py-3 rounded-lg font-bold text-sm transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white;">&#128680; Enviar Reporte</button>
 </form>
 </div>
-<script src="sw-register.js?v=18"></script>
+<script src="sw-register.js?v=27"></script>
 <script>
 async function loadRules() {
     try {
@@ -60,7 +60,7 @@ document.getElementById('report-form').addEventListener('submit', async function
         document.getElementById('success-msg').classList.remove('hidden');
         document.getElementById('report-form').reset();
     } catch(err) { document.getElementById('error-banner').textContent = err.message; document.getElementById('error-banner').classList.remove('hidden'); }
-    btn.disabled = false; btn.textContent = '\uD83D\DEA8 Enviar Reporte';
+    btn.disabled = false; btn.textContent = '\uD83D\uDEA8 Enviar Reporte';
 });
 loadRules();
 </script>
