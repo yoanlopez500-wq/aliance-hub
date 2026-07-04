@@ -67,7 +67,7 @@ var matchesMap = {};
 
 async function loadStrikes() {
     try {
-        // v18: Cargar strike_types por separado ya que la FK no existe en el schema
+        // v18: Cargar strike_types por separados ya que la FK no existe en el schema
         var typesRes = await supabase.from('strike_types').select('*').order('severity');
         strikeTypesMap = {};
         (typesRes.data || []).forEach(function(t) { strikeTypesMap[t.id] = t; });

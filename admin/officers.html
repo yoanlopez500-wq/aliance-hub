@@ -17,7 +17,7 @@
 <div id="admin-nav"></div>
 
 <div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-white mb-2">⭐ Mi Equipo</h1>
+    <h1 class="text-3xl font-bold text-white mb-2">&#11088; Mi Equipo</h1>
     <p class="text-slate-400 mb-6">Gestiona los oficiales y co-líderes de tu alianza.</p>
 
     <!-- Stats -->
@@ -43,7 +43,7 @@
     <div class="grid md:grid-cols-2 gap-6 mb-8">
         <!-- Nombrar oficial -->
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-            <h2 class="font-bold text-white mb-4">➕ Nombrar Oficial</h2>
+            <h2 class="font-bold text-white mb-4">&#10133; Nombrar Oficial</h2>
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">ID del Jugador</label>
@@ -52,8 +52,8 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Rol</label>
                     <select id="off-role" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none">
-                        <option value="officer">⭐ Oficial</option>
-                        <option value="co_leader">👑 Co-Líder</option>
+                        <option value="officer">&#11088; Oficial</option>
+                        <option value="co_leader">&#128081; Co-Líder</option>
                     </select>
                 </div>
                 <div>
@@ -66,7 +66,7 @@
 
         <!-- Transferir liderazgo -->
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-            <h2 class="font-bold text-white mb-4">🔄 Transferir Liderazgo</h2>
+            <h2 class="font-bold text-white mb-4">&#128260; Transferir Liderazgo</h2>
             <p class="text-xs text-slate-500 mb-4">Transfiere el liderazgo a un miembro de tu alianza. Esta acción no se puede deshacer.</p>
             <div class="space-y-3">
                 <div>
@@ -77,13 +77,13 @@
                     <label class="block text-xs font-bold text-slate-400 mb-1">Razón</label>
                     <input type="text" id="transfer-reason" class="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none" placeholder="Ej: Retiro personal">
                 </div>
-                <button onclick="transferLeadership()" class="w-full px-4 py-2.5 rounded-lg font-bold text-sm bg-red-500 hover:bg-red-400 text-white transition">⚠️ Transferir Liderazgo</button>
+                <button onclick="transferLeadership()" class="w-full px-4 py-2.5 rounded-lg font-bold text-sm bg-red-500 hover:bg-red-400 text-white transition">&#9888; Transferir Liderazgo</button>
             </div>
         </div>
     </div>
 
     <!-- Lista de oficiales -->
-    <h2 class="font-bold text-white mb-4">📋 Equipo Actual</h2>
+    <h2 class="font-bold text-white mb-4">&#128203; Equipo Actual</h2>
     <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <table class="w-full text-sm">
             <thead class="bg-slate-700/50">
@@ -152,12 +152,12 @@ async function loadOfficers() {
 
     tbody.innerHTML = officers.map(function(o) {
         var roleBadge = o.role === 'co_leader'
-            ? '<span class="text-xs px-2 py-1 rounded font-bold bg-emerald-500/20 text-emerald-400">👑 Co-Líder</span>'
-            : '<span class="text-xs px-2 py-1 rounded font-bold bg-teal-500/20 text-teal-400">⭐ Oficial</span>';
+            ? '<span class="text-xs px-2 py-1 rounded font-bold bg-emerald-500/20 text-emerald-400">&#128081; Co-Líder</span>'
+            : '<span class="text-xs px-2 py-1 rounded font-bold bg-teal-500/20 text-teal-400">&#11088; Oficial</span>';
 
         var perms = o.permissions || {};
         var permList = Object.keys(perms).filter(function(k) { return perms[k]; }).map(function(k) {
-            var labels = { manage_members: '👥 Miembros', create_matches: '🎮 Partidas', manage_duels: '⚔️ Duelos', view_strikes: '⚡ Strikes', view_reports: '🚨 Reportes', edit_rules: '📜 Reglas', send_notifications: '📢 Notif.', manage_officers: '⭐ Equipo' };
+            var labels = { manage_members: '&#128101; Miembros', create_matches: '&#127918; Partidas', manage_duels: '&#9876;&#65039; Duelos', view_strikes: '&#9889; Strikes', view_reports: '&#128680; Reportes', edit_rules: '&#128220; Reglas', send_notifications: '&#128227; Notif.', manage_officers: '&#11088; Equipo' };
             return labels[k] || k;
         }).join(', ');
 
@@ -197,7 +197,7 @@ async function appointOfficer() {
             }
         });
         if (error) { showToast('Error: ' + error.message, 'error'); return; }
-        showToast('✓ Oficial nombrado', 'success');
+        showToast('&#10003; Oficial nombrado', 'success');
         document.getElementById('off-player-id').value = '';
         document.getElementById('off-title').value = '';
         loadOfficers();
@@ -206,11 +206,11 @@ async function appointOfficer() {
 }
 
 async function removeOfficer(officerId) {
-    if (!confirm('¿Remover a este oficial?')) return;
+    if (!confirm('&#191;Remover a este oficial?')) return;
     try {
         var { error } = await supabase.from('alliance_officers').delete().eq('id', officerId);
         if (error) { showToast('Error: ' + error.message, 'error'); return; }
-        showToast('✓ Oficial removido', 'success');
+        showToast('&#10003; Oficial removido', 'success');
         loadOfficers();
         loadStats();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
@@ -220,7 +220,7 @@ async function transferLeadership() {
     var newLeaderId = document.getElementById('transfer-player-id').value.trim();
     var reason = document.getElementById('transfer-reason').value.trim();
     if (!newLeaderId || !myAllianceId) { showToast('Completa los campos', 'warning'); return; }
-    if (!confirm('⚠️ ¿Estás seguro? Esta acción transfiere el liderazgo PERMANENTEMENTE.')) return;
+    if (!confirm('&#9888; &#191;Estás seguro? Esta acción transfiere el liderazgo PERMANENTEMENTE.')) return;
 
     try {
         var sessionData = await supabase.auth.getSession();
@@ -244,7 +244,7 @@ async function transferLeadership() {
             appointed_by: adminId
         });
 
-        showToast('✓ Liderazgo transferido. Serás redirigido...', 'success');
+        showToast('&#10003; Liderazgo transferido. Serás redirigido...', 'success');
         setTimeout(function() { window.location.href = ahPath('index.html'); }, 2000);
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
