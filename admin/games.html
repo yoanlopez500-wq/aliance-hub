@@ -6,44 +6,135 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Partidas - Alliance Hub</title>
+<title>Games - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="../assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/js/config.js?v=27"></script>
 <script src="../assets/js/base.js?v=27"></script>
 <script src="../assets/js/components.js?v=27"></script>
-<script src="../assets/js/auth.js?v=27"></script>
-<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
+<script src="../assets/js/roles-data.js?v=27"></script>
+<script src="../assets/js/auth-core.js?v=27"></script>
+<script src="../assets/js/messaging.js?v=27"></script>
+<script src="../assets/js/notifications.js?v=27"></script>
+<script src="../assets/js/nav-engine.js?v=27"></script>
+<script src="../assets/js/training.js?v=27"></script>
+<style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;} input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}</style>
 </head>
 <body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<h1 class="text-2xl font-bold mb-6">&#127918; Partidas</h1>
-<div class="flex gap-2 mb-4">
-<select id="filter-type" onchange="loadGames()" class="px-3 py-2 rounded-lg text-sm" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;"><option value="">Todos los tipos</option><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select>
-<select id="filter-status" onchange="loadGames()" class="px-3 py-2 rounded-lg text-sm" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;"><option value="">Todos los estados</option><option value="open">Abierta</option><option value="in_progress">En curso</option><option value="finished">Finalizada</option></select>
+<div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-bold">&#127918; Games</h1><p class="text-sm" style="color:#9fa8da;">Gestion de games y partidas.</p></div><button onclick="openGameModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Nuevo Game</button></div>
+<div class="flex gap-2 mb-4"><button onclick="filterGames('all')" class="filter-btn px-3 py-1.5 text-sm rounded-lg" style="background:#1a237e;color:#e8eaf6;" data-filter="all">Todos</button><button onclick="filterGames('open')" class="filter-btn px-3 py-1.5 text-sm rounded-lg" style="background:transparent;border:1px solid #1a237e;color:#e8eaf6;" data-filter="open">En curso</button><button onclick="filterGames('finished')" class="filter-btn px-3 py-1.5 text-sm rounded-lg" style="background:transparent;border:1px solid #1a237e;color:#e8eaf6;" data-filter="finished">Finalizados</button></div>
+<div id="games-list" class="space-y-3">Cargando...</div>
 </div>
-<div id="games-list">Cargando...</div>
+
+<div id="game-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div class="bg-slate-800 rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+<h2 id="modal-title" class="text-xl font-bold text-white mb-4">Nuevo Game</h2>
+<input type="hidden" id="game-id">
+<div class="space-y-4">
+<div><label class="block text-sm text-slate-300 mb-1">Nombre</label><input type="text" id="game-name" class="w-full px-3 py-2 rounded-lg border"></div>
+<div><label class="block text-sm text-slate-300 mb-1">Descripcion</label><textarea id="game-desc" class="w-full px-3 py-2 rounded-lg border" rows="3"></textarea></div>
+<div class="grid grid-cols-2 gap-4">
+<div><label class="block text-sm text-slate-300 mb-1">Tipo</label><select id="game-type" class="w-full px-3 py-2 rounded-lg border"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="tournament">Torneo</option></select></div>
+<div><label class="block text-sm text-slate-300 mb-1">Max Jugadores</label><input type="number" id="game-max" class="w-full px-3 py-2 rounded-lg border" value="10"></div>
 </div>
+<div><label class="block text-sm text-slate-300 mb-1">Alianza</label><select id="game-alliance" class="w-full px-3 py-2 rounded-lg border"><option value="">Ninguna</option></select></div>
+<div class="grid grid-cols-2 gap-4">
+<div><label class="block text-sm text-slate-300 mb-1">ID del Juego</label><input type="text" id="game-game-id" class="w-full px-3 py-2 rounded-lg border" placeholder="ej: torneo-1"></div>
+<div><label class="block text-sm text-slate-300 mb-1">Contrasena</label><input type="text" id="game-password" class="w-full px-3 py-2 rounded-lg border"></div>
+</div>
+</div>
+<div class="flex gap-3 mt-6"><button onclick="closeGameModal()" class="flex-1 px-4 py-2 rounded-lg bg-slate-600 text-white font-bold">Cancelar</button><button onclick="saveGame()" class="flex-1 px-4 py-2 rounded-lg font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Guardar</button></div>
+</div></div>
+
 <script>
+var allGames = [];
+var allAlliances = [];
+
+async function loadAlliances() {
+    try {
+        var { data, error } = await supabase.from('alliances').select('id,name').order('name');
+        if (error) throw error;
+        allAlliances = data || [];
+        var sel = document.getElementById('game-alliance');
+        sel.innerHTML = '<option value="">Ninguna</option>' + allAlliances.map(function(a){ return '<option value="'+a.id+'">'+a.name+'</option>'; }).join('');
+    } catch(e) { console.error(e); }
+}
+
 async function loadGames() {
     try {
-        var type = document.getElementById('filter-type').value;
-        var status = document.getElementById('filter-status').value;
-        var q = supabase.from('matches').select('*, alliances(name, tag)').order('created_at', { ascending: false });
-        if (type) q = q.eq('match_type', type);
-        if (status) q = q.eq('status', status);
-        var { data, error } = await q;
+        var { data, error } = await supabase.from('matches').select('*').order('created_at', {ascending: false});
         if (error) throw error;
-        var container = document.getElementById('games-list');
-        if (!data || data.length === 0) { container.innerHTML = '<div class="text-center py-8" style="color:#9fa8da;">Sin partidas</div>'; return; }
-        container.innerHTML = '<div class="space-y-3">' + data.map(function(m) {
-            return '<a href="game-detail.html?id=' + m.id + '" class="block rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex items-center justify-between"><h3 class="font-bold">' + m.name + '</h3><div class="flex gap-1">' + getStatusBadge(m.status) + ' ' + getTypeBadge(m.match_type) + '</div></div><p class="text-sm" style="color:#9fa8da;">Alianza: ' + (m.alliances ? m.alliances.name : 'N/A') + '</p><p class="text-xs" style="color:#9fa8da;">' + formatDate(m.created_at) + '</p></a>';
-        }).join('') + '</div>';
-    } catch(e) { console.error('[Games]', e); document.getElementById('games-list').innerHTML = '<div class="text-center py-8 text-red-400">Error</div>'; }
+        allGames = data || [];
+        renderGames(allGames);
+    } catch(e) { console.error(e); document.getElementById('games-list').innerHTML = '<div class="text-red-400">Error: '+e.message+'</div>'; }
 }
-requireAdmin();
+
+function renderGames(list) {
+    var container = document.getElementById('games-list');
+    if (!list || list.length === 0) { container.innerHTML = '<div class="text-center py-8 text-slate-400">No hay partidas</div>'; return; }
+    container.innerHTML = list.map(function(g) {
+        var typeLabel = {internal: 'Interna', duel: 'Duelo', tournament: 'Torneo'}[g.match_type] || g.match_type;
+        var statusColor = {draft: 'bg-slate-600', open: 'bg-green-600', in_progress: 'bg-yellow-600', finished: 'bg-blue-600', archived: 'bg-slate-500'}[g.status] || 'bg-slate-600';
+        return '<div class="bg-slate-800 rounded-lg p-4 border border-slate-700 flex items-center justify-between"><div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded text-xs font-bold '+statusColor+' text-white">'+g.status+'</span><span class="text-sm text-slate-400">'+typeLabel+'</span></div><h3 class="font-bold text-white mt-1">'+g.name+'</h3><p class="text-xs text-slate-400">'+ (g.description || '') + '</p></div><div class="flex gap-2"><a href="game-detail.html?id='+g.id+'" class="px-3 py-1.5 rounded text-sm font-bold bg-blue-600 text-white">Ver</a><button onclick="editGame(\''+g.id+'\')" class="px-3 py-1.5 rounded text-sm font-bold bg-slate-600 text-white">Editar</button><button onclick="deleteGame(\''+g.id+'\')" class="px-3 py-1.5 rounded text-sm font-bold bg-red-600 text-white">Eliminar</button></div></div>';
+    }).join('');
+}
+
+function filterGames(status) {
+    document.querySelectorAll('.filter-btn').forEach(function(b) {
+        b.style.background = b.dataset.filter === status ? '#1a237e' : 'transparent';
+        b.style.border = b.dataset.filter === status ? 'none' : '1px solid #1a237e';
+    });
+    if (status === 'all') renderGames(allGames);
+    else renderGames(allGames.filter(function(g) { return g.status === status; }));
+}
+
+function openGameModal() { document.getElementById('game-modal').classList.remove('hidden'); document.getElementById('modal-title').textContent = 'Nuevo Game'; document.getElementById('game-id').value = ''; }
+function closeGameModal() { document.getElementById('game-modal').classList.add('hidden'); }
+
+async function editGame(id) {
+    var g = allGames.find(function(x) { return x.id === id; });
+    if (!g) return;
+    document.getElementById('game-modal').classList.remove('hidden');
+    document.getElementById('modal-title').textContent = 'Editar Game';
+    document.getElementById('game-id').value = g.id;
+    document.getElementById('game-name').value = g.name || '';
+    document.getElementById('game-desc').value = g.description || '';
+    document.getElementById('game-type').value = g.match_type || 'internal';
+    document.getElementById('game-max').value = g.max_players || 10;
+    document.getElementById('game-alliance').value = g.alliance_id || '';
+    document.getElementById('game-game-id').value = g.game_id || '';
+    document.getElementById('game-password').value = g.password || '';
+}
+
+async function saveGame() {
+    var id = document.getElementById('game-id').value;
+    var payload = {
+        name: document.getElementById('game-name').value,
+        description: document.getElementById('game-desc').value,
+        match_type: document.getElementById('game-type').value,
+        max_players: parseInt(document.getElementById('game-max').value) || 10,
+        alliance_id: document.getElementById('game-alliance').value || null,
+        game_id: document.getElementById('game-game-id').value || null,
+        password: document.getElementById('game-password').value || null
+    };
+    try {
+        if (id) { var { error } = await supabase.from('matches').update(payload).eq('id', id); }
+        else { payload.status = 'draft'; var { error } = await supabase.from('matches').insert(payload); }
+        if (error) throw error;
+        closeGameModal(); loadGames();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteGame(id) {
+    if (!confirm('Eliminar esta partida?')) return;
+    try { var { error } = await supabase.from('matches').delete().eq('id', id); if (error) throw error; loadGames(); }
+    catch(e) { alert('Error: ' + e.message); }
+}
+
+loadAlliances();
 loadGames();
 </script>
 </body>
