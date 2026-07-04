@@ -8,17 +8,17 @@
 <meta http-equiv="Expires" content="0">
 <title>Solicitar Liderazgo - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="assets/js/theme.js?v=18"></script>
+<script src="assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/base.js?v=18"></script>
-<script src="assets/js/components.js?v=19"></script>
-<script src="assets/js/roles-data.js?v=19"></script>
-<script src="assets/js/auth-core.js?v=19"></script>
-<script src="assets/js/messaging.js?v=19"></script>
-<script src="assets/js/notifications.js?v=19"></script>
-<script src="assets/js/nav-engine.js?v=19"></script>
-<script src="assets/js/training.js?v=19"></script>
+<script src="assets/js/config.js?v=27"></script>
+<script src="assets/js/base.js?v=27"></script>
+<script src="assets/js/components.js?v=27"></script>
+<script src="assets/js/roles-data.js?v=27"></script>
+<script src="assets/js/auth-core.js?v=27"></script>
+<script src="assets/js/messaging.js?v=27"></script>
+<script src="assets/js/notifications.js?v=27"></script>
+<script src="assets/js/nav-engine.js?v=27"></script>
+<script src="assets/js/training.js?v=27"></script>
 <meta name="theme-color" content="#0a0e27">
 <style>body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}</style>
 </head>
@@ -59,9 +59,21 @@ document.getElementById('leader-form').addEventListener('submit', async function
         if (!name || !tag || !supremacyId || !username) throw new Error('Completa todos los campos obligatorios');
         var { data: existingPlayer } = await supabase.from('players').select('id').eq('id', supremacyId).maybeSingle();
         if (!existingPlayer) { var { error: pe } = await supabase.from('players').insert({ id: supremacyId, current_username: username, status: 'active' }); if (pe) throw new Error('Error creando jugador: ' + pe.message); }
-        var { data: existingReq } = await supabase.from('alliance_leader_requests').select('id, status').eq('requester_player_id', supremacyId).in('status', ['pending', 'under_review']).maybeSingle();
+        // FIX: Use correct column names that match the DB schema
+        // player_id (not requester_player_id), display_name (not requester_username)
+        var { data: existingReq } = await supabase.from('alliance_leader_requests').select('id, status').eq('player_id', supremacyId).in('status', ['pending', 'under_review']).maybeSingle();
         if (existingReq) throw new Error('Ya tienes una solicitud pendiente. Espera la respuesta del equipo.');
-        var { error } = await supabase.from('alliance_leader_requests').insert({ requester_player_id: supremacyId, requester_username: username, alliance_name: name, alliance_tag: tag, alliance_description: desc || null, discord_handle: discord || null, member_count: memberCount, status: 'pending' });
+        var { error } = await supabase.from('alliance_leader_requests').insert({
+            player_id: supremacyId,
+            display_name: username,
+            supremacy_player_id: supremacyId,
+            alliance_name: name,
+            alliance_tag: tag,
+            alliance_description: desc || null,
+            discord_handle: discord || null,
+            member_count: memberCount,
+            status: 'pending'
+        });
         if (error) throw new Error(error.message);
         document.getElementById('success-msg').textContent = 'Solicitud enviada correctamente. Un superadmin la revisara pronto.';
         document.getElementById('success-msg').classList.remove('hidden');
