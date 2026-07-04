@@ -8,12 +8,12 @@
 <meta http-equiv="Expires" content="0">
 <title>Certificaciones - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=18"></script>
+<script src="../assets/js/theme.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=18"></script>
-<script src="../assets/js/base.js?v=18"></script>
-<script src="../assets/js/components.js?v=18"></script>
-<script src="../assets/js/auth.js?v=18"></script>
+<script src="../assets/js/config.js?v=27"></script>
+<script src="../assets/js/base.js?v=27"></script>
+<script src="../assets/js/components.js?v=27"></script>
+<script src="../assets/js/auth.js?v=27"></script>
 <style>
 body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e27; color: #e8eaf6; }
 .fade-in { animation: fadeIn 0.4s ease-out; }
@@ -27,41 +27,41 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e27; color: 
 <body style="min-height: 100vh;" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-6 fade-in">
-    <div class="flex flex-wrap items-center justify-between mb-6 gap-3">
-        <div>
-            <h1 class="text-2xl font-bold text-white">&#127891; Certificaciones</h1>
-            <p style="color: #9fa8da;" class="text-sm">Solicitudes de lideres de alianza pendientes de revision</p>
-        </div>
-        <div class="flex gap-2">
-            <select id="filter-status" onchange="loadRequests()" class="px-3 py-2 rounded-lg text-sm text-white" style="background: #11183a; border: 1px solid #1a237e;">
-                <option value="all">Todos los estados</option>
-                <option value="pending" selected>Pendientes</option>
-                <option value="under_review">En revision</option>
-                <option value="approved">Aprobados</option>
-                <option value="rejected">Rechazados</option>
-            </select>
-            <button onclick="loadRequests()" class="px-3 py-2 rounded-lg text-sm font-bold text-white transition active:scale-[0.98]" style="background: #1a237e;">&#128260; Recargar</button>
-        </div>
-    </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Pendientes</p>
-            <p class="text-2xl font-bold" style="color: #ff8f00;" id="stat-pending">-</p>
-        </div>
-        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">En revision</p>
-            <p class="text-2xl font-bold" style="color: #2196f3;" id="stat-review">-</p>
-        </div>
-        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Aprobados</p>
-            <p class="text-2xl font-bold" style="color: #4caf50;" id="stat-approved">-</p>
-        </div>
-        <div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
-            <p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Rechazados</p>
-            <p class="text-2xl font-bold" style="color: #ef5350;" id="stat-rejected">-</p>
-        </div>
-    </div>
-    <div id="requests-list">Cargando...</div>
+<div class="flex flex-wrap items-center justify-between mb-6 gap-3">
+<div>
+<h1 class="text-2xl font-bold text-white">&#127891; Certificaciones</h1>
+<p style="color: #9fa8da;" class="text-sm">Solicitudes de lideres de alianza pendientes de revision</p>
+</div>
+<div class="flex gap-2">
+<select id="filter-status" onchange="loadRequests()" class="px-3 py-2 rounded-lg text-sm text-white" style="background: #11183a; border: 1px solid #1a237e;">
+<option value="all">Todos los estados</option>
+<option value="pending" selected>Pendientes</option>
+<option value="under_review">En revision</option>
+<option value="approved">Aprobados</option>
+<option value="rejected">Rechazados</option>
+</select>
+<button onclick="loadRequests()" class="px-3 py-2 rounded-lg text-sm font-bold text-white transition active:scale-[0.98]" style="background: #1a237e;">&#128260; Recargar</button>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
+<p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Pendientes</p>
+<p class="text-2xl font-bold" style="color: #ff8f00;" id="stat-pending">-</p>
+</div>
+<div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
+<p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">En revision</p>
+<p class="text-2xl font-bold" style="color: #2196f3;" id="stat-review">-</p>
+</div>
+<div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
+<p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Aprobados</p>
+<p class="text-2xl font-bold" style="color: #4caf50;" id="stat-approved">-</p>
+</div>
+<div class="rounded-xl p-4" style="background: #11183a; border: 1px solid #1a237e;">
+<p class="text-xs uppercase tracking-wider mb-1" style="color: #9fa8da;">Rechazados</p>
+<p class="text-2xl font-bold" style="color: #ef5350;" id="stat-rejected">-</p>
+</div>
+</div>
+<div id="requests-list">Cargando...</div>
 </div>
 <script>
 async function loadRequests() {
@@ -73,6 +73,7 @@ async function loadRequests() {
         if (status !== 'all') q = q.eq('status', status);
         var { data, error } = await q;
         if (error) throw error;
+        // Stats
         document.getElementById('stat-pending').textContent = '-';
         document.getElementById('stat-review').textContent = '-';
         document.getElementById('stat-approved').textContent = '-';
@@ -90,7 +91,8 @@ async function loadRequests() {
         list.innerHTML = '<div class="space-y-3">' + data.map(function(r) {
             var statusClass = r.status === 'pending' ? 'status-pending' : r.status === 'under_review' ? 'status-review' : r.status === 'approved' ? 'status-approved' : 'status-rejected';
             var statusLabel = r.status === 'pending' ? 'PENDIENTE' : r.status === 'under_review' ? 'EN REVISION' : r.status === 'approved' ? 'APROBADO' : 'RECHAZADO';
-            return '<div class="rounded-xl p-5" style="background: #11183a; border: 1px solid #1a237e;"><div class="flex items-start justify-between gap-3"><div class="flex-1"><h3 class="font-bold text-lg text-white">' + r.alliance_name + ' <span style="color: #9fa8da;">[' + r.alliance_tag + ']</span></h3><p class="text-sm mt-1" style="color: #9fa8da;">Solicitante: <strong class="text-white">' + r.requester_username + '</strong> (ID: ' + r.requester_player_id + ')</p>' + (r.alliance_description ? '<p class="text-sm mt-2" style="color: #9fa8da;">' + r.alliance_description + '</p>' : '') + '<div class="flex gap-4 mt-2 text-xs" style="color: #9fa8da;"><span>&#128101; Miembros: ' + (r.member_count || '?') + '</span><span>&#128172; Discord: ' + (r.discord_handle || '-') + '</span><span>&#128197; ' + formatDate(r.created_at) + '</span></div></div><span class="px-3 py-1 rounded-full text-xs font-bold ' + statusClass + '">' + statusLabel + '</span></div>' + (r.rejection_reason ? '<p class="text-sm mt-2" style="color: #ef5350;">Motivo: ' + r.rejection_reason + '</p>' : '') + '</div>';
+            // FIX: Use correct DB column names - player_id and display_name
+            return '<div class="rounded-xl p-5" style="background: #11183a; border: 1px solid #1a237e;"><div class="flex items-start justify-between gap-3"><div class="flex-1"><h3 class="font-bold text-lg text-white">' + r.alliance_name + ' <span style="color: #9fa8da;">[' + r.alliance_tag + ']</span></h3><p class="text-sm mt-1" style="color: #9fa8da;">Solicitante: <strong class="text-white">' + (r.display_name || 'N/A') + '</strong> (ID: ' + r.player_id + ')</p>' + (r.alliance_description ? '<p class="text-sm mt-2" style="color: #9fa8da;">' + r.alliance_description + '</p>' : '') + '<div class="flex gap-4 mt-2 text-xs" style="color: #9fa8da;"><span>&#128101; Miembros: ' + (r.member_count || '?') + '</span><span>&#128172; Discord: ' + (r.discord_handle || '-') + '</span><span>&#128197; ' + formatDate(r.created_at) + '</span></div></div><span class="px-3 py-1 rounded-full text-xs font-bold ' + statusClass + '">' + statusLabel + '</span></div>' + (r.rejection_reason ? '<p class="text-sm mt-2" style="color: #ef5350;">Motivo: ' + r.rejection_reason + '</p>' : '') + '</div>';
         }).join('') + '</div>';
     } catch(e) { console.error('[Certifications]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
 }
