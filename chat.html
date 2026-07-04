@@ -6,9 +6,9 @@
 <title>Chat - Alliance Hub V2</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/config.js?v=17"></script>
-<script src="assets/js/base.js?v=17"></script>
-<script src="assets/js/auth.js?v=17"></script>
+<script src="assets/js/config.js?v=27"></script>
+<script src="assets/js/base.js?v=27"></script>
+<script src="assets/js/auth.js?v=27"></script>
 <meta name="theme-color" content="#0f172a">
 <style>
 @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -238,7 +238,7 @@ const q = document.getElementById('dm-search-input').value.toLowerCase().trim();
 const el = document.getElementById('dm-search-results');
 if(!q){ el.innerHTML=''; return; }
 const f = admins.filter(a => (a.display_name||'').toLowerCase().includes(q) || (a.alliances?.name||'').toLowerCase().includes(q));
-el.innerHTML = f.length ? f.map(a => '<button onclick="startDM(\''+a.id+'\')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">&#128100;</span><div><div class="font-medium text-sm">'+(a.display_name||'Admin')+(a.alliances?` [${a.alliances.tag}]`:'')+'</div><div class="text-[11px] text-slate-500">'+fmtRole(a.role)+'</div></div></button>').join('') : '<p class="text-sm text-slate-400 text-center py-4">Sin resultados</p>';
+el.innerHTML = f.length ? f.map(a => '<button onclick="startDM(\''+a.id+'\')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">&#128100;</span><div><div class="font-medium text-sm">'+(a.display_name||'Admin')+(a.alliances?` [${a.alliances.tag}]`:"")+'</div><div class="text-[11px] text-slate-500">'+fmtRole(a.role)+'</div></div></button>').join('') : '<p class="text-sm text-slate-400 text-center py-4">Sin resultados</p>';
 }
 function startDM(aid) {
 if(!dms.some(d => d.id === aid)){ dms.push({id:aid}); saveDMs(); renderDMList(); }
