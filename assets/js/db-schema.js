@@ -1,7 +1,8 @@
 // ============================================================
-// assets/js/db-schema.js v19
+// assets/js/db-schema.js v20
 // Centralized Database Schema - Single source of truth for all DB mappings
 // Use DB.from('tableKey'), DB.col('tableKey', 'colKey'), DB.select('tableKey', 'setName')
+// v20: Added section_number and parent_id to ruleSections
 // ============================================================
 
 (function() {
@@ -18,11 +19,13 @@
                 content: 'content',
                 visibility: 'visibility',
                 orderIndex: 'order_index',
+                sectionNumber: 'section_number',
+                parentId: 'parent_id',
                 isActive: 'is_active',
                 createdAt: 'created_at'
             },
             selectSets: {
-                basic: 'id, title, content, visibility, order_index, is_active',
+                basic: 'id, title, content, visibility, order_index, section_number, parent_id, is_active',
                 all: '*'
             }
         },
@@ -421,5 +424,5 @@
     window.DB.TABLES = Object.keys(SCHEMA);
     window.DB.SCHEMA = SCHEMA;
 
-    console.log('[DB-Schema] v19 initialized. Tables:', window.DB.TABLES.length);
+    console.log('[DB-Schema] v20 initialized. Tables:', window.DB.TABLES.length);
 })();
