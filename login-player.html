@@ -38,7 +38,6 @@
 </div>
 </div>
 <script>
-// Defensive guard: ensure savePlayerSession exists even if base.js fails to load
 if (typeof savePlayerSession !== 'function') {
     window.savePlayerSession = async function(playerId, displayName) {
         try {

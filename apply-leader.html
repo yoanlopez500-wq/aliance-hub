@@ -59,8 +59,6 @@ document.getElementById('leader-form').addEventListener('submit', async function
         if (!name || !tag || !supremacyId || !username) throw new Error('Completa todos los campos obligatorios');
         var { data: existingPlayer } = await supabase.from('players').select('id').eq('id', supremacyId).maybeSingle();
         if (!existingPlayer) { var { error: pe } = await supabase.from('players').insert({ id: supremacyId, current_username: username, status: 'active' }); if (pe) throw new Error('Error creando jugador: ' + pe.message); }
-        // FIX: Use correct column names that match the DB schema
-        // player_id (not requester_player_id), display_name (not requester_username)
         var { data: existingReq } = await supabase.from('alliance_leader_requests').select('id, status').eq('player_id', supremacyId).in('status', ['pending', 'under_review']).maybeSingle();
         if (existingReq) throw new Error('Ya tienes una solicitud pendiente. Espera la respuesta del equipo.');
         var { error } = await supabase.from('alliance_leader_requests').insert({
@@ -79,7 +77,7 @@ document.getElementById('leader-form').addEventListener('submit', async function
         document.getElementById('success-msg').classList.remove('hidden');
         document.getElementById('leader-form').reset();
     } catch(err) { document.getElementById('error-banner').textContent = err.message; document.getElementById('error-banner').classList.remove('hidden'); }
-    btn.disabled = false; btn.textContent = '\uD83D\DCE8 Enviar Solicitud';
+    btn.disabled = false; btn.textContent = '\uD83D\uDCE8 Enviar Solicitud';
 });
 </script>
 </body>
