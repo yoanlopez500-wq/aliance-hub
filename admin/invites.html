@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../assets/js/config.js?v=27"></script>
     <script src="../assets/js/base.js?v=27"></script>
+    <script src="../assets/js/roles-data.js?v=27"></script>
     <script src="../assets/js/components.js?v=27"></script>
     <script src="../assets/js/auth.js?v=27"></script>
     <meta name="theme-color" content="#0a0e27">
@@ -43,8 +44,11 @@
     </div>
 
     <script>
-        requireAdmin();
-        requireMinRole('event_admin');
+        (async function init() {
+            await requireAdmin();
+            await requireMinRole('event_admin');
+            loadInvites();
+        })();
 
         async function loadInvites() {
             try {
@@ -79,15 +83,36 @@
         async function generateInvite() {
             var role = document.getElementById('invite-role').value;
             try {
-                var code = 'AH' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                // Validar sesion
+                var { data: { session } } = await supabase.auth.getSession();
+                if (!session) { showToast('Debes iniciar sesion como admin', 'error'); return; }
+
+                // Validar jerarquia de roles: solo puede generar invites para roles IGUAL o INFERIOR al suyo
+                if (typeof ROLE_HIERARCHY !== 'undefined') {
+                    var myRole = await getAdminRole();
+                    if (!myRole) { showToast('No se pudo verificar tu rol', 'error'); return; }
+                    if (ROLE_HIERARCHY[myRole.role] < ROLE_HIERARCHY[role]) {
+                        showToast('No puedes generar un codigo para un rol superior al tuyo', 'error'); return;
+                    }
+                }
+
+                // Generar codigo unico verificando duplicados (max 10 intentos)
+                var code, exists, attempts = 0;
+                do {
+                    code = 'AH' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    var { data: dup } = await supabase.from('admin_invites').select('id').eq('code', code).maybeSingle();
+                    exists = !!dup;
+                    attempts++;
+                } while (exists && attempts < 10);
+                if (exists) { showToast('Error generando codigo unico. Reintenta.', 'error'); return; }
+
                 var expiresAt = new Date();
                 expiresAt.setDate(expiresAt.getDate() + 7);
 
-                var { data: { session } } = await supabase.auth.getSession();
                 var { error } = await supabase.from('admin_invites').insert({
                     code: code,
                     role: role,
-                    created_by: session ? session.user.id : null,
+                    created_by: session.user.id,
                     expires_at: expiresAt.toISOString(),
                     used: false
                 });
@@ -96,8 +121,6 @@
                 loadInvites();
             } catch(e) { showToast('Error: ' + e.message, 'error'); }
         }
-
-        loadInvites();
     </script>
 </body>
 </html>

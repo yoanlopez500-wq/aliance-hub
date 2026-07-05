@@ -210,26 +210,51 @@ async function updatePassword(newPassword) {
 }
 
 async function signupWithInvite(email, password, inviteCode, supremacyId, displayName) {
+    // 1. Validar invite
     var normalizedCode = inviteCode.trim().toUpperCase();
     var inviteResult = await supabase.from('admin_invites').select('*').eq('code', normalizedCode).eq('used', false);
     if (inviteResult.error) return { success: false, message: 'Error verificando codigo: ' + inviteResult.error.message };
     if (!inviteResult.data || inviteResult.data.length === 0) return { success: false, message: 'Codigo de invitacion invalido o ya usado' };
     var invite = inviteResult.data[0];
     if (new Date(invite.expires_at) < new Date()) return { success: false, message: 'Codigo de invitacion expirado' };
-    var { data: player } = await supabase.from('players').select('id, current_username').eq('id', parseInt(supremacyId)).single();
+
+    // 2. Buscar/crear jugador (FIX: .maybeSingle() en vez de .single())
+    var { data: player, error: playerErr } = await supabase.from('players')
+        .select('id, current_username')
+        .eq('id', parseInt(supremacyId))
+        .maybeSingle();
+    if (playerErr) return { success: false, message: 'Error buscando jugador: ' + playerErr.message };
     if (!player) {
-        var { error: insertPlayerError } = await supabase.from('players').insert({ id: parseInt(supremacyId), current_username: displayName, status: 'active' });
+        var { error: insertPlayerError } = await supabase.from('players').insert({
+            id: parseInt(supremacyId), current_username: displayName, status: 'active'
+        });
         if (insertPlayerError) return { success: false, message: 'Error creando jugador: ' + insertPlayerError.message };
     }
-    var authResult = await supabase.auth.signInWithPassword({ email: email, password: password });
+
+    // 3. Crear usuario auth (FIX: signUp en vez de signInWithPassword)
+    var authResult = await supabase.auth.signUp({ email: email, password: password });
     if (authResult.error) return { success: false, message: authResult.error.message };
-    await supabase.from('admin_users').insert({
-        id: authResult.data.user.id, role: invite.role, display_name: displayName,
+    var user = authResult.data.user;
+    if (!user) return { success: false, message: 'No se pudo crear el usuario. Revisa tu email para confirmacion.' };
+
+    // 4. Crear admin_user (FIX: verificar error antes de marcar invite como usado)
+    var { error: adminError } = await supabase.from('admin_users').insert({
+        id: user.id, role: invite.role, display_name: displayName,
         supremacy_player_id: parseInt(supremacyId), approved_by: invite.created_by,
         approved_at: new Date().toISOString(), status: 'active'
     });
-    await supabase.from('admin_invites').update({ used: true, used_by: authResult.data.user.id, used_at: new Date().toISOString() }).eq('id', invite.id);
-    return { success: true, message: 'Cuenta creada. Ya puedes iniciar sesion.' };
+    if (adminError) {
+        console.error('[signupWithInvite] Error creando admin_user:', adminError);
+        return { success: false, message: 'Error creando admin: ' + adminError.message + '. Contacta al superadmin.' };
+    }
+
+    // 5. Solo marcar invite como usado SI admin se creo exitosamente (FIX: operacion atomica)
+    var { error: inviteUpdateErr } = await supabase.from('admin_invites').update({
+        used: true, used_by: user.id, used_at: new Date().toISOString()
+    }).eq('id', invite.id);
+    if (inviteUpdateErr) console.error('[signupWithInvite] Error marcando invite como usado:', inviteUpdateErr);
+
+    return { success: true, message: 'Cuenta creada exitosamente.' };
 }
 
 // ===================== PLAYER SESSION =====================

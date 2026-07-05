@@ -19,9 +19,18 @@
 
 <script>
 function autoLoginAdmin() {
+    // Verificacion rapida: si no hay token en localStorage, no hay sesion
     var token = localStorage.getItem('sb-qkccyjegkgjzwoxytnqp-auth-token');
-    if (token) { window.location.replace('admin/index.html'); return true; }
-    return false;
+    if (!token) return false;
+    // Redirigir inmediatamente (el token existe). La pagina destino validara la sesion real.
+    // En segundo plano, limpiar token invalido si la sesion ya expiro.
+    if (typeof supabase !== 'undefined') {
+        supabase.auth.getSession().then(function(result) {
+            if (!result.data.session) localStorage.removeItem('sb-qkccyjegkgjzwoxytnqp-auth-token');
+        }).catch(function() {});
+    }
+    window.location.replace('admin/index.html');
+    return true;
 }
 if (autoLoginAdmin()) { document.write(''); document.documentElement.style.display = 'none'; }
 window.addEventListener('pageshow', function(event) { if (event.persisted) autoLoginAdmin(); });
