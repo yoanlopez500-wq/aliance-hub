@@ -210,15 +210,34 @@ async function updatePassword(newPassword) {
 }
 
 async function signupWithInvite(email, password, inviteCode, supremacyId, displayName) {
-    // 1. Validar invite
+    // =========================================================================
+    // FLUJO DE SEGURIDAD: Invite Code como Llave Maestra
+    // El invite se valida ANTES de cualquier interaccion con Supabase Auth.
+    // Sin invite valido, no se puede iniciar el proceso de registro.
+    // =========================================================================
+
+    // 1. VALIDAR INVITE PRIMERO (antes de tocar Auth)
     var normalizedCode = inviteCode.trim().toUpperCase();
-    var inviteResult = await supabase.from('admin_invites').select('*').eq('code', normalizedCode).eq('used', false);
+
+    // Formato basico: AH + 6 caracteres alfanumericos
+    if (!normalizedCode || !/^AH[A-Z0-9]{6}$/.test(normalizedCode)) {
+        return { success: false, message: 'Formato de codigo invalido. Debe ser AH + 6 caracteres.' };
+    }
+
+    var inviteResult = await supabase.from('admin_invites').select('*')
+        .eq('code', normalizedCode)
+        .eq('used', false);
     if (inviteResult.error) return { success: false, message: 'Error verificando codigo: ' + inviteResult.error.message };
     if (!inviteResult.data || inviteResult.data.length === 0) return { success: false, message: 'Codigo de invitacion invalido o ya usado' };
     var invite = inviteResult.data[0];
+
+    // Verificar expiracion
     if (new Date(invite.expires_at) < new Date()) return { success: false, message: 'Codigo de invitacion expirado' };
 
-    // 2. Buscar/crear jugador (FIX: .maybeSingle() en vez de .single())
+    // Verificar que el invite tenga rol definido
+    if (!invite.role) return { success: false, message: 'Codigo de invitacion corrupto (sin rol asignado). Contacta al superadmin.' };
+
+    // 2. Buscar/crear jugador en tabla players
     var { data: player, error: playerErr } = await supabase.from('players')
         .select('id, current_username')
         .eq('id', parseInt(supremacyId))
@@ -231,13 +250,13 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         if (insertPlayerError) return { success: false, message: 'Error creando jugador: ' + insertPlayerError.message };
     }
 
-    // 3. Crear usuario auth (FIX: signUp en vez de signInWithPassword)
+    // 3. CREAR USUARIO EN SUPABASE AUTH (solo despues de validar invite)
     var authResult = await supabase.auth.signUp({ email: email, password: password });
     if (authResult.error) return { success: false, message: authResult.error.message };
     var user = authResult.data.user;
     if (!user) return { success: false, message: 'No se pudo crear el usuario. Revisa tu email para confirmacion.' };
 
-    // 4. Crear admin_user (FIX: verificar error antes de marcar invite como usado)
+    // 4. INSERTAR EN admin_users con el ROL del invite
     var { error: adminError } = await supabase.from('admin_users').insert({
         id: user.id, role: invite.role, display_name: displayName,
         supremacy_player_id: parseInt(supremacyId), approved_by: invite.created_by,
@@ -248,13 +267,13 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         return { success: false, message: 'Error creando admin: ' + adminError.message + '. Contacta al superadmin.' };
     }
 
-    // 5. Solo marcar invite como usado SI admin se creo exitosamente (FIX: operacion atomica)
+    // 5. MARCAR INVITE COMO USADO (solo si admin se creo exitosamente)
     var { error: inviteUpdateErr } = await supabase.from('admin_invites').update({
         used: true, used_by: user.id, used_at: new Date().toISOString()
     }).eq('id', invite.id);
     if (inviteUpdateErr) console.error('[signupWithInvite] Error marcando invite como usado:', inviteUpdateErr);
 
-    return { success: true, message: 'Cuenta creada exitosamente.' };
+    return { success: true, message: 'Cuenta de ' + invite.role + ' creada exitosamente.' };
 }
 
 // ===================== PLAYER SESSION =====================

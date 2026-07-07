@@ -45,7 +45,7 @@ window.addEventListener('pageshow', function(event) { if (event.persisted) autoL
 
 <div class="flex mb-6 border-b border-ah-border">
 <button onclick="showTab('login')" id="tab-login" class="flex-1 pb-3 text-sm font-bold text-ah-accent border-b-2 border-ah-accent">Login</button>
-<button onclick="showTab('signup')" id="tab-signup" class="flex-1 pb-3 text-sm font-bold text-ah-muted hover:text-ah-text">Nuevo Admin</button>
+<button onclick="showTab('signup')" id="tab-signup" class="flex-1 pb-3 text-sm font-bold text-ah-muted hover:text-ah-text">Acceso con Codigo</button>
 <button onclick="showTab('reset')" id="tab-reset" class="flex-1 pb-3 text-sm font-bold text-ah-muted hover:text-ah-text">Recuperar</button>
 </div>
 
@@ -68,9 +68,10 @@ window.addEventListener('pageshow', function(event) { if (event.persisted) autoL
 <input type="number" id="signup-supremacy-id" required class="w-full px-4 py-3 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-ah-accent focus:ring-2 focus:ring-ah-accent/20 outline-none transition" placeholder="Ej: 99702975"></div>
 <div><label class="block text-sm font-medium text-ah-muted mb-1">Username en Supremacy *</label>
 <input type="text" id="signup-display-name" required class="w-full px-4 py-3 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-ah-accent focus:ring-2 focus:ring-ah-accent/20 outline-none transition" placeholder="Ej: Tlaloc27"></div>
-<div><label class="block text-sm font-medium text-ah-muted mb-1">Codigo de invitacion</label>
-<input type="text" id="signup-code" required class="w-full px-4 py-3 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-ah-accent focus:ring-2 focus:ring-ah-accent/20 outline-none transition uppercase" placeholder="Ej: A3B7C9D2"></div>
-<button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition">Crear Cuenta Admin</button>
+<div><label class="block text-sm font-medium text-ah-muted mb-1">Codigo de invitacion *</label>
+<input type="text" id="signup-code" required class="w-full px-4 py-3 rounded-lg border border-ah-border bg-ah-bg text-ah-text focus:border-ah-accent focus:ring-2 focus:ring-ah-accent/20 outline-none transition uppercase" placeholder="Ej: AHXXXXXX"></div>
+<p class="text-xs text-amber-400 mt-1">Necesitas un codigo de invitacion del superadmin para acceder. Solicitalo antes de registrarte.</p>
+<button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition">Registrarme como Admin</button>
 </form></div>
 
 <div id="form-reset" class="hidden">
