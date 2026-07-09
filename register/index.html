@@ -51,6 +51,7 @@
             </div>
 
             <form id="register-form" class="space-y-4">
+                <!-- Player ID: readonly (comes from login) -->
                 <div>
                     <label class="block text-sm font-medium mb-1" style="color: #9fa8da;">Tu ID de Jugador</label>
                     <input type="number" id="reg-player-id" required
@@ -58,12 +59,13 @@
                         style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;"
                         readonly>
                 </div>
+                <!-- Username: EDITABLE (user can type their name) -->
                 <div>
-                    <label class="block text-sm font-medium mb-1" style="color: #9fa8da;">Tu Username</label>
+                    <label class="block text-sm font-medium mb-1" style="color: #9fa8da;">Tu Username *</label>
                     <input type="text" id="reg-username" required
-                        class="w-full px-4 py-3 rounded-lg text-white text-sm cursor-not-allowed"
-                        style="background: rgba(255,255,255,0.05); border: 1px solid #1a237e;"
-                        readonly>
+                        class="w-full px-4 py-3 rounded-lg text-white text-sm outline-none focus:border-orange-500 transition"
+                        style="background: rgba(255,255,255,0.08); border: 1px solid #1a237e;"
+                        placeholder="Escribe tu nombre de jugador...">
                 </div>
                 <button type="submit" class="w-full font-bold py-3 rounded-lg transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">
                     Confirmar Registro
@@ -88,6 +90,7 @@
 
         async function init() {
             document.getElementById('reg-player-id').value = playerData.playerId;
+            // Username: pre-fill from login data if available, but allow editing
             document.getElementById('reg-username').value = playerData.displayName || '';
 
             var { data: reg, error: regError } = await supabase
@@ -176,9 +179,18 @@
             errorMsg.classList.add('hidden');
             successMsg.classList.add('hidden');
 
+            // Get the username the user typed (may differ from login displayName)
+            var username = document.getElementById('reg-username').value.trim();
+            if (!username) {
+                errorMsg.textContent = '\u2716 Debes ingresar tu username.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
             var { error } = await supabase.from('match_registrations').upsert({
                 match_id: matchId,
                 player_id: parseInt(playerData.playerId),
+                username: username,
                 status: currentMatch && currentMatch.requires_approval ? 'pending' : 'confirmed'
             }, { onConflict: 'match_id,player_id' });
 
