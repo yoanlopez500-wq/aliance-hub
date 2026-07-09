@@ -100,6 +100,21 @@ var shareToken = urlParams.get('token');
 var playerData = (typeof getPlayerData === 'function') ? getPlayerData() : {};
 if (!matchId) location.href = 'index.html';
 
+// ============================================================
+// REDIRECT FLUJO: Si no hay sesion, guardar URL y ir a login
+// ============================================================
+function goToRegister(matchId) {
+    var hasSession = playerData && playerData.playerId;
+    if (!hasSession) {
+        // No hay sesion: guardar redirect y redirigir a login de jugador
+        localStorage.setItem('ah_redirect_after_login', window.location.href);
+        window.location.href = 'login-player.html';
+    } else {
+        // Hay sesion: ir al registro normalmente
+        window.location.href = 'register/index.html?match=' + matchId;
+    }
+}
+
 async function loadMatch() {
     try {
         var { data: match, error } = await supabase.from('matches').select('*').eq('id', matchId).single();
@@ -156,7 +171,8 @@ async function loadMatch() {
 
         var actionHtml = '';
         if (match.status === 'open' && !isRegistered) {
-            actionHtml = '<div class="mt-4"><a href="register/index.html?match=' + match.id + '" class="inline-block px-6 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Registrarme</a></div>';
+            // Boton que detecta sesion antes de navegar
+            actionHtml = '<div class="mt-4"><button onclick="goToRegister(\'' + match.id + '\')" class="px-6 py-3 rounded-lg font-bold transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Registrarme</button></div>';
         } else {
             actionHtml = regBadge;
         }
