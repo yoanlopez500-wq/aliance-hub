@@ -38,6 +38,15 @@
 </div>
 </div>
 <script>
+// Limpiar redirect si el usuario cancela y vuelve
+// (solo si no venimos de un redirect activo)
+(function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.get('redirect')) {
+        localStorage.removeItem('ah_redirect_after_login');
+    }
+})();
+
 if (typeof savePlayerSession !== 'function') {
     window.savePlayerSession = async function(playerId, displayName) {
         try {
@@ -72,7 +81,19 @@ async function doLogin() {
         if (!ok) { msg.textContent = 'Error guardando sesion'; msg.className = 'text-sm text-red-600'; return; }
         msg.textContent = 'Bienvenido, ' + name + '!';
         msg.className = 'text-sm text-green-600 font-bold';
-        setTimeout(function() { window.location.href = 'index.html'; }, 800);
+
+        // ============================================================
+        // REDIRECT: Despues de login exitoso, verificar si hay URL guardada
+        // ============================================================
+        setTimeout(function() {
+            var redirectUrl = localStorage.getItem('ah_redirect_after_login');
+            if (redirectUrl) {
+                localStorage.removeItem('ah_redirect_after_login');
+                window.location.href = redirectUrl;
+            } else {
+                window.location.href = 'index.html';
+            }
+        }, 800);
     } catch(e) { msg.textContent = 'Error: ' + e.message; msg.className = 'text-sm text-red-600'; }
 }
 </script>
