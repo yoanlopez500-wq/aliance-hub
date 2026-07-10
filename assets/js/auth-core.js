@@ -1,4 +1,4 @@
-// assets/js/auth-core.js v2 - Autenticacion, roles y sesiones
+// assets/js/auth-core.js v3 - Autenticacion, roles y sesiones
 // Depende de: base.js, roles-data.js
 
 // ===================== PERMISOS =====================
@@ -412,6 +412,110 @@ async function unsubscribePush() {
     } catch(e) { return false; }
 }
 
+// ===================== NOTIFICACION POST-APROBACION =====================
+// Muestra un banner al jugador cuando su solicitud de liderazgo fue aprobada
+// y tiene un invite code pendiente.
+
+var __leaderBannerChecked = false;
+
+async function checkPendingLeaderApproval() {
+    // Solo ejecutar una vez por carga de pagina
+    if (__leaderBannerChecked) return;
+    __leaderBannerChecked = true;
+
+    // Solo verificar si hay sesion de jugador (anon con player_id en localStorage)
+    var playerData = (typeof getPlayerData === 'function') ? getPlayerData() : null;
+    if (!playerData || !playerData.playerId) return;
+
+    try {
+        var playerId = parseInt(playerData.playerId);
+
+        // Verificar si tiene invite code pendiente (RLS restringe a invites vinculados)
+        var { data: invite, error } = await supabase
+            .from('admin_invites')
+            .select('code, role, alliances(name)')
+            .eq('player_id', playerId)
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString())
+            .maybeSingle();
+
+        if (error || !invite) return; // No tiene invite pendiente
+
+        // Verificar si ya se mostro este banner (para no repetir)
+        var lastShownCode = localStorage.getItem('ah_leader_banner_shown');
+        if (lastShownCode === invite.code) return;
+
+        // Mostrar banner
+        showLeaderApprovalBanner(invite);
+    } catch(e) {
+        console.error('[checkPendingLeaderApproval]', e);
+    }
+}
+
+function showLeaderApprovalBanner(invite) {
+    // No mostrar en pagina de registro de lider
+    if (window.location.pathname.indexOf('register/leader') !== -1) return;
+
+    var allianceName = (invite.alliances && invite.alliances.name) ? invite.alliances.name : 'tu alianza';
+    var code = invite.code || '';
+
+    var banner = document.createElement('div');
+    banner.id = 'leader-approval-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(17,24,58,0.98);border-bottom:2px solid #ff8f00;padding:12px 16px;font-family:"Inter",system-ui,sans-serif;';
+
+    banner.innerHTML =
+        '<div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:22px;">&#127941;</span>' +
+                '<div>' +
+                    '<p style="margin:0;font-weight:700;color:#ff8f00;font-size:14px;">¡Tu solicitud fue aprobada!</p>' +
+                    '<p style="margin:2px 0 0;color:#9fa8da;font-size:12px;">Eres el lider de <strong style="color:#ff8f00;">' + escapeHtml(allianceName) + '</strong>. Completa tu registro para acceder al panel.</p>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<button onclick="dismissLeaderBanner(\'' + code + '\')" style="background:transparent;border:1px solid #1a237e;color:#9fa8da;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;">&#10005; Cerrar</button>' +
+                '<button onclick="goToLeaderSignup(\'' + code + '\')" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:700;">Completar Registro &#8594;</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.prepend(banner);
+
+    // Pequena animacion de entrada
+    banner.style.transform = 'translateY(-100%)';
+    banner.style.transition = 'transform 0.4s ease-out';
+    requestAnimationFrame(function() {
+        banner.style.transform = 'translateY(0)';
+    });
+}
+
+function dismissLeaderBanner(code) {
+    localStorage.setItem('ah_leader_banner_shown', code);
+    var banner = document.getElementById('leader-approval-banner');
+    if (banner) {
+        banner.style.transform = 'translateY(-100%)';
+        setTimeout(function() { banner.remove(); }, 400);
+    }
+}
+
+function goToLeaderSignup(code) {
+    window.location.href = ahPath('register/leader.html?code=' + encodeURIComponent(code));
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Ejecutar check cuando el DOM este listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkPendingLeaderApproval);
+} else {
+    // DOM ya cargo, ejecutar en proximo tick
+    setTimeout(checkPendingLeaderApproval, 100);
+}
+
 window.canManage = canManage;
 window.canView = canView;
 window.isAdmin = isAdmin;
@@ -445,3 +549,7 @@ window.generateTransferCode = generateTransferCode;
 window.transferPlayerWithCode = transferPlayerWithCode;
 window.subscribeToPushNotifications = subscribeToPushNotifications;
 window.unsubscribePush = unsubscribePush;
+window.checkPendingLeaderApproval = checkPendingLeaderApproval;
+window.showLeaderApprovalBanner = showLeaderApprovalBanner;
+window.dismissLeaderBanner = dismissLeaderBanner;
+window.goToLeaderSignup = goToLeaderSignup;
