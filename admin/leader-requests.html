@@ -44,7 +44,7 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 <div id="requests-list">Cargando...</div>
 </div>
 
-<!-- ===== MODAL: Aprobar Solicitud (integrado al diseño) ===== -->
+<!-- ===== MODAL: Aprobar Solicitud ===== -->
 <div id="approve-modal" class="modal-overlay">
 <div class="rounded-xl w-full max-w-sm p-6 bg-slate-900 border border-indigo-900">
 <h3 class="text-xl font-bold mb-1 text-amber-400">&#127941; Aprobar Solicitud</h3>
@@ -85,6 +85,13 @@ async function init() {
     loadRequests();
 }
 
+function generateInviteCode() {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var result = 'AH';
+    for (var i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+    return result;
+}
+
 async function loadRequests() {
     var list = document.getElementById('requests-list');
     list.innerHTML = '<div class="text-center py-8 text-slate-400">Cargando...</div>';
@@ -112,12 +119,11 @@ async function loadRequests() {
     } catch(e) { console.error('[Requests]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
 }
 
-// ===== MODAL: Aprobar =====
 function openApproveModal(playerId, allianceName, allianceTag, requestId, allianceDescription, playerName) {
     pendingApprove = { playerId: playerId, allianceName: allianceName, allianceTag: allianceTag, requestId: requestId, allianceDescription: allianceDescription, playerName: playerName };
     document.getElementById('approve-modal-text').innerHTML =
         'Aprobar a <strong class="text-amber-400">' + playerName + '</strong> como lider de <strong class="text-amber-400">' + allianceName + ' [' + allianceTag + ']</strong>?<br><br>' +
-        '<span class="text-slate-400">Se creara la alianza y se asignara como lider.</span>';
+        '<span class="text-slate-400">Se creara la alianza y el jugador podra completar su registro automaticamente.</span>';
     document.getElementById('approve-modal').classList.add('active');
 }
 
@@ -144,53 +150,41 @@ async function confirmApprove() {
         if (existing) {
             allianceId = existing.id;
         } else {
-            // 2. Create the alliance
             var { data: newAlliance, error: ae } = await supabase.from('alliances').insert({
-                name: allianceName,
-                tag: allianceTag,
-                description: allianceDescription || '',
-                leader_id: playerId,
-                status: 'active'
+                name: allianceName, tag: allianceTag, description: allianceDescription || '',
+                leader_id: playerId, status: 'active'
             }).select('id').single();
             if (ae) throw ae;
             allianceId = newAlliance.id;
         }
 
-        // 3. Update player current_alliance_id
+        // 2. Update player
         var { error: pe } = await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
         if (pe) throw pe;
 
-        // 4. Create alliance_memberships
-        // FIX: status must be 'approved' (not 'active') per CHECK constraint
-        // FIX: requested_by must be 'leader' per CHECK constraint
+        // 3. Create membership
         var { error: me } = await supabase.from('alliance_memberships').insert({
-            player_id: playerId,
-            alliance_id: allianceId,
-            role: 'leader',
-            status: 'approved',
-            requested_by: 'leader'
+            player_id: playerId, alliance_id: allianceId,
+            role: 'leader', status: 'approved', requested_by: 'leader'
         });
-        if (me) {
-            if (me.code === '23505') {
-                await supabase.from('alliance_memberships').update({
-                    role: 'leader',
-                    status: 'approved'
-                }).eq('player_id', playerId).eq('alliance_id', allianceId);
-            } else {
-                throw me;
-            }
-        }
+        if (me && me.code !== '23505') throw me;
 
-        // 5. Mark request as approved
+        // 4. Mark request approved
         var { data: { session } } = await supabase.auth.getSession();
         var { error: re } = await supabase.from('alliance_leader_requests').update({
-            status: 'approved',
-            reviewed_by: session.user.id,
-            reviewed_at: new Date().toISOString()
+            status: 'approved', reviewed_by: session.user.id, reviewed_at: new Date().toISOString()
         }).eq('id', requestId);
         if (re) throw re;
 
-        showToast('Solicitud aprobada. Alianza creada y lider asignado.', 'success');
+        // 5. Generate invite code VINCULADO al player_id y alliance_id (NO se muestra al admin)
+        var inviteCode = generateInviteCode();
+        var { error: ie } = await supabase.from('admin_invites').insert({
+            code: inviteCode, role: 'alliance_leader', created_by: session.user.id,
+            player_id: playerId, alliance_id: allianceId, used: false
+        });
+        if (ie) console.error('[Invite] Error:', ie);
+
+        showToast('Solicitud aprobada. El jugador puede completar su registro.', 'success');
         loadRequests();
     } catch(e) {
         console.error('[confirmApprove]', e);
@@ -198,7 +192,6 @@ async function confirmApprove() {
     }
 }
 
-// ===== MODAL: Rechazar =====
 function openRejectModal(requestId, playerName, allianceName) {
     pendingReject = { requestId: requestId };
     document.getElementById('reject-modal-text').innerHTML =
@@ -217,22 +210,16 @@ async function confirmReject() {
     var reason = document.getElementById('reject-reason-input').value.trim() || null;
     var requestId = pendingReject.requestId;
     closeRejectModal();
-
     try {
         var { data: { session } } = await supabase.auth.getSession();
         var { error } = await supabase.from('alliance_leader_requests').update({
-            status: 'rejected',
-            reviewed_by: session.user.id,
-            reviewed_at: new Date().toISOString(),
-            rejection_reason: reason
+            status: 'rejected', reviewed_by: session.user.id,
+            reviewed_at: new Date().toISOString(), rejection_reason: reason
         }).eq('id', requestId);
         if (error) throw error;
         showToast('Solicitud rechazada.', 'info');
         loadRequests();
-    } catch(e) {
-        console.error('[confirmReject]', e);
-        showToast('Error: ' + (e.message || e), 'error');
-    }
+    } catch(e) { showToast('Error: ' + (e.message || e), 'error'); }
 }
 
 init();
