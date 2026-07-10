@@ -77,8 +77,8 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 <script>
 requireAdmin();
 var currentAdminId = null;
-var pendingApprove = null;  // { playerId, allianceName, allianceTag, requestId, allianceDescription, playerName }
-var pendingReject = null;   // { requestId, playerName, allianceName }
+var pendingApprove = null;
+var pendingReject = null;
 
 async function init() {
     try { var s = await supabase.auth.getSession(); currentAdminId = s.data.session.user.id; } catch(e){}
@@ -126,11 +126,17 @@ function closeApproveModal() {
     pendingApprove = null;
 }
 
+// FIX: read pendingApprove BEFORE closeApproveModal nullifies it
 async function confirmApprove() {
     if (!pendingApprove) return;
+    var playerId = pendingApprove.playerId;
+    var allianceName = pendingApprove.allianceName;
+    var allianceTag = pendingApprove.allianceTag;
+    var requestId = pendingApprove.requestId;
+    var allianceDescription = pendingApprove.allianceDescription;
     closeApproveModal();
-    var { playerId, allianceName, allianceTag, requestId, allianceDescription } = pendingApprove;
-    pendingApprove = null;
+
+    showToast('Procesando aprobacion...', 'info');
 
     try {
         // 1. Check if alliance already exists
@@ -163,7 +169,6 @@ async function confirmApprove() {
             status: 'active'
         });
         if (me) {
-            // If membership already exists, just update role to leader
             if (me.code === '23505') {
                 await supabase.from('alliance_memberships').update({ role: 'leader', status: 'active' }).eq('player_id', playerId).eq('alliance_id', allianceId);
             } else {
@@ -183,8 +188,8 @@ async function confirmApprove() {
         showToast('Solicitud aprobada. Alianza creada y lider asignado.', 'success');
         loadRequests();
     } catch(e) {
-        console.error('[approveRequest]', e);
-        showToast('Error: ' + e.message, 'error');
+        console.error('[confirmApprove]', e);
+        showToast('Error: ' + (e.message || e), 'error');
     }
 }
 
@@ -207,7 +212,6 @@ async function confirmReject() {
     var reason = document.getElementById('reject-reason-input').value.trim() || null;
     var requestId = pendingReject.requestId;
     closeRejectModal();
-    pendingReject = null;
 
     try {
         var { data: { session } } = await supabase.auth.getSession();
@@ -221,8 +225,8 @@ async function confirmReject() {
         showToast('Solicitud rechazada.', 'info');
         loadRequests();
     } catch(e) {
-        console.error('[rejectRequest]', e);
-        showToast('Error: ' + e.message, 'error');
+        console.error('[confirmReject]', e);
+        showToast('Error: ' + (e.message || e), 'error');
     }
 }
 
