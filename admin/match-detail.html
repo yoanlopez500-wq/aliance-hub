@@ -2,10 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e27">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="manifest" href="../manifest.json">
 <title>Detalle de Partida - Alliance Hub</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -30,63 +34,63 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 <body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<div id="match-header"><div class="text-center py-8" style="color:#9fa8da;">Cargando...</div></div>
+<div id="match-header"><div class="text-center py-8 text-slate-400">Cargando...</div></div>
 <div id="create-match-section" class="hidden mb-6">
-<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;">
-<h1 class="text-2xl font-bold mb-4" style="color:#e8eaf6;">&#10133; Nueva Partida</h1>
+<div class="rounded-xl p-5 bg-slate-900 border border-indigo-900">
+<h1 class="text-2xl font-bold mb-4 text-slate-100">&#10133; Nueva Partida</h1>
 <form id="create-match-form" class="space-y-4">
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="cm-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID del Juego</label><input type="text" id="cm-game-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="ID de Supremacy (opcional)"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contrase&ntilde;a</label><input type="text" id="cm-password" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Contrase&ntilde;a (opcional)"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="cm-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo</label><select id="cm-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="cm-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Nombre *</label><input type="text" id="cm-name" required class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">ID del Juego</label><input type="text" id="cm-game-id" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="ID de Supremacy (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Contrasena</label><input type="text" id="cm-password" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Contrasena (opcional)"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Alianza</label><select id="cm-alliance" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">-- Sin alianza --</option></select></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Tipo</label><select id="cm-type" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Max Jugadores</label><input type="number" id="cm-max" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="31"></div>
 </div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion</label><textarea id="cm-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Descripcion</label><textarea id="cm-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></textarea></div>
 <div class="flex gap-3 pt-2">
-<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Crear Partida</button>
-<a href="matches.html" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</a>
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#10133; Crear Partida</button>
+<a href="matches.html" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px] flex items-center justify-center">Cancelar</a>
 </div>
 </form>
 </div>
 </div>
 <div id="admin-actions-section" class="mt-6 hidden">
-<div class="rounded-xl p-4 mb-6" style="background:#11183a;border:1px solid #1a237e;">
-<h2 class="font-bold mb-3 text-sm" style="color:#ff8f00;">&#9889; Acciones</h2>
+<div class="rounded-xl p-4 mb-6 bg-slate-900 border border-indigo-900">
+<h2 class="font-bold mb-3 text-sm text-amber-400">&#9889; Acciones</h2>
 <div class="flex flex-wrap gap-2">
-<button onclick="updateStatus('open')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(76,175,80,0.2);color:#4caf50;border:1px solid rgba(76,175,80,0.3);">Abrir</button>
-<button onclick="updateStatus('in_progress')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(33,150,243,0.2);color:#2196f3;border:1px solid rgba(33,150,243,0.3);">Iniciar</button>
-<button onclick="updateStatus('finished')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(156,39,176,0.2);color:#ce93d8;border:1px solid rgba(156,39,176,0.3);">Finalizar</button>
-<button onclick="updateStatus('archived')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,255,255,0.05);color:#9fa8da;border:1px solid rgba(255,255,255,0.1);">Archivar</button>
-<button onclick="openWinnersModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(255,143,0,0.2);color:#ff8f00;border:1px solid rgba(255,143,0,0.3);">&#127942; Ganadores</button>
-<button onclick="openCSVModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(0,150,136,0.2);color:#4db6ac;border:1px solid rgba(0,150,136,0.3);">&#128229; Importar CSV</button>
-<button onclick="openEditModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(33,150,243,0.2);color:#2196f3;border:1px solid rgba(33,150,243,0.3);">&#9881; Editar</button>
-<button onclick="deleteMatch()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition" style="background:rgba(198,40,40,0.2);color:#ef5350;border:1px solid rgba(198,40,40,0.3);">&#128465; Eliminar</button>
+<button onclick="updateStatus('open')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-green-500/20 text-green-500 border border-green-500/30 min-h-[32px]">Abrir</button>
+<button onclick="updateStatus('in_progress')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-blue-500/20 text-blue-500 border border-blue-500/30 min-h-[32px]">Iniciar</button>
+<button onclick="updateStatus('finished')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-purple-500/20 text-purple-400 border border-purple-500/30 min-h-[32px]">Finalizar</button>
+<button onclick="updateStatus('archived')" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-white/5 text-slate-400 border border-white/10 min-h-[32px]">Archivar</button>
+<button onclick="openWinnersModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-amber-500/20 text-amber-400 border border-amber-500/30 min-h-[32px]">&#127942; Ganadores</button>
+<button onclick="openCSVModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-teal-500/20 text-teal-400 border border-teal-500/30 min-h-[32px]">&#128229; Importar CSV</button>
+<button onclick="openEditModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-blue-500/20 text-blue-500 border border-blue-500/30 min-h-[32px]">&#9881; Editar</button>
+<button onclick="deleteMatch()" class="px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition bg-red-500/20 text-red-400 border border-red-500/30 min-h-[32px]">&#128465; Eliminar</button>
 </div></div></div>
 <div id="share-section" class="hidden mb-6">
-<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;">
-<h2 class="font-bold mb-2 text-sm" style="color:#2196f3;">&#128279; Enlace</h2>
+<div class="rounded-xl p-4 bg-slate-900 border border-indigo-900">
+<h2 class="font-bold mb-2 text-sm text-blue-400">&#128279; Enlace</h2>
 <div class="flex gap-2">
-<input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border text-xs" style="background:#0a0e27!important;">
-<button onclick="copyShareLink()" class="px-3 py-2 rounded-lg font-bold text-xs hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Copiar</button>
+<input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border text-xs bg-slate-950 border-indigo-900 text-slate-100">
+<button onclick="copyShareLink()" class="px-3 py-2 rounded-lg font-bold text-xs hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[32px]">Copiar</button>
 </div></div></div>
 <div id="registrations-section" class="mb-6">
 <h2 class="text-xl font-bold mb-3">&#128100; Registrados (<span id="reg-count">0</span>)</h2>
-<div id="registrations-list" class="rounded-xl overflow-x-auto" style="background:#11183a;border:1px solid #1a237e;"><div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando...</div></div>
+<div id="registrations-list" class="rounded-xl overflow-x-auto bg-slate-900 border border-indigo-900"><div class="text-center py-4 text-sm text-slate-400">Cargando...</div></div>
 </div>
 <div id="results-section" class="mb-6">
 <div class="flex items-center justify-between mb-3">
 <h2 class="text-xl font-bold">&#128202; Resultados</h2>
-<button onclick="openManualModal()" class="text-xs font-bold hover:opacity-80 transition" style="color:#ff8f00;">&#10133; Anadir</button>
+<button onclick="openManualModal()" class="text-xs font-bold hover:opacity-80 transition text-amber-400 min-h-[32px]">&#10133; Anadir</button>
 </div>
-<div id="results-list" class="rounded-xl overflow-x-auto" style="background:#11183a;border:1px solid #1a237e;"><div class="text-center py-4 text-sm" style="color:#9fa8da;">Cargando...</div></div>
+<div id="results-list" class="rounded-xl overflow-x-auto bg-slate-900 border border-indigo-900"><div class="text-center py-4 text-sm text-slate-400">Cargando...</div></div>
 </div>
 <div class="mt-6">
 <h2 class="text-xl font-bold mb-3">&#128229; Importar CSV</h2>
-<div class="rounded-xl p-6" style="background:#11183a;border:1px solid #1a237e;">
-<div class="border-2 border-dashed rounded-xl p-6 text-center" style="border-color:#1a237e;" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
-<p style="color:#9fa8da;">Arrastra CSV o <input type="file" id="csv-file" accept=".csv" onchange="handleFile(this.files[0])" class="hidden"><button onclick="document.getElementById('csv-file').click()" class="px-3 py-1 rounded text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Seleccionar</button></p>
+<div class="rounded-xl p-6 bg-slate-900 border border-indigo-900">
+<div class="border-2 border-dashed rounded-xl p-6 text-center border-indigo-900" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
+<p class="text-slate-400">Arrastra CSV o <input type="file" id="csv-file" accept=".csv" onchange="handleFile(this.files[0])" class="hidden"><button onclick="document.getElementById('csv-file').click()" class="px-3 py-1 rounded text-sm font-bold bg-indigo-900 text-slate-100 min-h-[32px]">Seleccionar</button></p>
 </div>
 <div id="csv-preview" class="hidden mt-4"></div>
 </div></div>
@@ -94,101 +98,101 @@ input:focus,select:focus,textarea:focus{border-color:#ff6f00!important;outline:n
 
 <!-- CSV Modal -->
 <div id="csv-modal" class="modal">
-<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
-<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#00897b,#00695c);border-color:#1a237e;">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto bg-slate-900 border border-indigo-900">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl bg-gradient-to-br from-teal-600 to-teal-800 border-indigo-900">
 <h2 class="text-lg font-bold text-white">&#128229; Importar CSV</h2>
 <button onclick="closeCSVModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
 <div class="p-5 space-y-4">
-<div class="border-2 border-dashed rounded-xl p-6 text-center hover:border-[#ff6f00] transition cursor-pointer" style="border-color:#1a237e;" onclick="document.getElementById('csv-file-input').click()">
+<div class="border-2 border-dashed rounded-xl p-6 text-center hover:border-amber-500 transition cursor-pointer border-indigo-900" onclick="document.getElementById('csv-file-input').click()">
 <div class="text-3xl mb-2">&#128193;</div>
-<p class="text-sm" style="color:#9fa8da;">Arrastra o haz click para seleccionar CSV</p>
+<p class="text-sm text-slate-400">Arrastra o haz click para seleccionar CSV</p>
 <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
 </div>
 <div id="csv-preview-section" class="hidden">
-<h3 class="font-bold text-sm mb-2" style="color:#e8eaf6;">Vista previa:</h3>
-<div id="csv-preview-content" class="max-h-60 overflow-y-auto rounded-lg p-3 text-xs" style="background:#0a0e27;border:1px solid #1a237e;"></div>
+<h3 class="font-bold text-sm mb-2 text-slate-100">Vista previa:</h3>
+<div id="csv-preview-content" class="max-h-60 overflow-y-auto rounded-lg p-3 text-xs bg-slate-950 border border-indigo-900"></div>
 <div class="flex gap-3 mt-4">
-<button onclick="confirmCSVImport()" class="flex-1 font-bold py-2 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#00897b,#00695c);color:#fff;">&#10003; Confirmar</button>
-<button onclick="document.getElementById('csv-preview-section').classList.add('hidden')" class="px-4 py-2 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+<button onclick="confirmCSVImport()" class="flex-1 font-bold py-2 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-teal-600 to-teal-800 text-white">&#10003; Confirmar</button>
+<button onclick="document.getElementById('csv-preview-section').classList.add('hidden')" class="px-4 py-2 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button>
 </div></div>
 </div></div></div>
 
 <!-- Manual Result Modal -->
 <div id="manual-modal" class="modal">
-<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
-<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto bg-slate-900 border border-indigo-900">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl bg-gradient-to-br from-orange-600 to-amber-500 border-indigo-900">
 <h2 class="text-lg font-bold text-white">&#9998; Resultado Manual</h2>
 <button onclick="closeManualModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
 <form id="manual-form" class="p-5 space-y-4">
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Jugador *</label>
-<select id="mr-player-select" class="w-full px-3 py-2 rounded-lg border text-sm" onchange="document.getElementById('mr-player-id').value=this.value">
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Jugador *</label>
+<select id="mr-player-select" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" onchange="document.getElementById('mr-player-id').value=this.value">
 <option value="">-- Seleccionar de registrados --</option>
 </select>
 <input type="hidden" id="mr-player-id">
-<p class="text-xs mt-1" style="color:#64748b;">O escribe el ID manualmente en el campo de abajo</p>
-<input type="number" id="mr-player-id-override" class="w-full px-3 py-2 rounded-lg border text-sm mt-1" placeholder="ID manual (opcional)" onchange="document.getElementById('mr-player-id').value=this.value">
+<p class="text-xs mt-1 text-slate-500">O escribe el ID manualmente en el campo de abajo</p>
+<input type="number" id="mr-player-id-override" class="w-full px-3 py-2 rounded-lg border text-sm mt-1 min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="ID manual (opcional)" onchange="document.getElementById('mr-player-id').value=this.value">
 </div>
 <div class="grid grid-cols-2 gap-3">
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Bajas</label><input type="number" id="mr-kills" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Muertes</label><input type="number" id="mr-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm"></div></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nacion</label><input type="text" id="mr-nation" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: USA"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Bajas</label><input type="number" id="mr-kills" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Muertes</label><input type="number" id="mr-deaths" required min="0" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Nacion</label><input type="text" id="mr-nation" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Ej: USA"></div>
 <div class="flex gap-3 pt-2">
-<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10003; Guardar</button>
-<button type="button" onclick="closeManualModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#10003; Guardar</button>
+<button type="button" onclick="closeManualModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button>
 </div></form></div></div>
 
 <!-- Edit Registration Modal -->
 <div id="edit-reg-modal" class="modal">
-<div class="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
-<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-color:#1a237e;">
+<div class="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto bg-slate-900 border border-indigo-900">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl bg-gradient-to-br from-blue-700 to-blue-900 border-indigo-900">
 <h2 class="text-lg font-bold text-white">&#9998; Editar Registro</h2>
 <button onclick="closeEditRegModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
 <div class="p-5 space-y-4">
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID de Jugador</label><input type="text" id="er-player-id" readonly class="w-full px-3 py-2 rounded-lg border text-sm" style="color:#64748b!important;"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre de Usuario</label><input type="text" id="er-username" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nacion</label><input type="text" id="er-nation" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: USA"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Estado</label><select id="er-status" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="pending">Pendiente</option><option value="confirmed">Confirmado</option><option value="rejected">Rechazado</option></select></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Notas</label><textarea id="er-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">ID de Jugador</label><input type="text" id="er-player-id" readonly class="w-full px-3 py-2 rounded-lg border text-sm text-slate-500 bg-slate-900 border-indigo-900"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Nombre de Usuario</label><input type="text" id="er-username" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Nacion</label><input type="text" id="er-nation" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Ej: USA"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Estado</label><select id="er-status" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="pending">Pendiente</option><option value="confirmed">Confirmado</option><option value="rejected">Rechazado</option></select></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Notas</label><textarea id="er-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></textarea></div>
 <div class="flex gap-3 pt-2">
-<button onclick="saveEditRegistration()" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10003; Guardar</button>
-<button onclick="closeEditRegModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+<button onclick="saveEditRegistration()" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#10003; Guardar</button>
+<button onclick="closeEditRegModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button>
 </div></div></div></div>
 
 <!-- Winners Modal -->
 <div id="winners-modal" class="modal">
-<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
-<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);border-color:#1a237e;">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto bg-slate-900 border border-indigo-900">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl bg-gradient-to-br from-orange-600 to-amber-500 border-indigo-900">
 <h2 class="text-lg font-bold text-white">&#127942; Ganadores</h2>
 <button onclick="closeWinnersModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
 <form id="winners-form" class="p-5 space-y-3">
 <div id="winners-list" class="space-y-3"></div>
 <div class="flex gap-3 pt-2">
-<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#127942; Guardar</button>
-<button type="button" onclick="closeWinnersModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#127942; Guardar</button>
+<button type="button" onclick="closeWinnersModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button>
 </div></form></div></div>
 
 <!-- Edit Match Modal -->
 <div id="edit-modal" class="modal">
-<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style="background:#11183a;border:1px solid #1a237e;">
-<div class="p-5 border-b flex items-center justify-between rounded-t-2xl" style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-color:#1a237e;">
+<div class="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto bg-slate-900 border border-indigo-900">
+<div class="p-5 border-b flex items-center justify-between rounded-t-2xl bg-gradient-to-br from-blue-700 to-blue-900 border-indigo-900">
 <h2 class="text-lg font-bold text-white">&#9881; Editar Partida</h2>
 <button onclick="closeEditModal()" class="text-white hover:opacity-70 text-xl">&#10005;</button>
 </div>
 <form id="edit-form" class="p-5 space-y-4">
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Nombre *</label><input type="text" id="em-name" required class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">ID Juego</label><input type="text" id="em-game-id" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Contrase&ntilde;a</label><input type="text" id="em-password" class="w-full px-3 py-2 rounded-lg border text-sm"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Alianza</label><select id="em-alliance" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">-- Sin alianza --</option></select></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Tipo</label><select id="em-type" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Max Jugadores</label><input type="number" id="em-max" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="31"></div>
-<div><label class="block text-xs font-medium mb-1" style="color:#9fa8da;">Descripcion</label><textarea id="em-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Nombre *</label><input type="text" id="em-name" required class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">ID Juego</label><input type="text" id="em-game-id" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Contrasena</label><input type="text" id="em-password" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Alianza</label><select id="em-alliance" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">-- Sin alianza --</option></select></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Tipo</label><select id="em-type" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="internal">Interna</option><option value="duel">Duelo</option><option value="public_31">Publica 31</option><option value="public_500">Evento 500</option><option value="public_quick">Rapida</option></select></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Max Jugadores</label><input type="number" id="em-max" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="31"></div>
+<div><label class="block text-xs font-medium mb-1 text-slate-400">Descripcion</label><textarea id="em-desc" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></textarea></div>
 <div class="flex gap-3 pt-2">
-<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;">Guardar</button>
-<button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition" style="background:#1a237e;color:#e8eaf6;">Cancelar</button>
+<button type="submit" class="flex-1 font-bold py-2.5 rounded-lg hover:opacity-80 transition text-sm min-h-[44px] bg-gradient-to-r from-blue-700 to-blue-900 text-white">Guardar</button>
+<button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button>
 </div></form></div></div>
 
 <script>
@@ -201,7 +205,7 @@ var csvData=null;
 var cachedRegistrations=[];
 var currentEditRegId=null;
 
-async function loadMatch(){if(action==='new'){showCreateForm();return;}if(!matchId){document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">No se especifico ID</div>';return;}try{var{data:m,error}=await supabase.from('matches').select('*').eq('id',matchId).single();if(error||!m){document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">Partida no encontrada</div>';return;}currentMatch=m;var alliance=null;if(m.alliance_id){var{data:a}=await supabase.from('alliances').select('name,tag').eq('id',m.alliance_id).single();alliance=a;}var alLabel=alliance?' ['+alliance.tag+']':'';var shareUrl=window.location.origin+'/aliance-hub/game.html?id='+matchId;document.getElementById('match-header').innerHTML='<div class="rounded-xl p-5" style="background:#11183a;border:1px solid #1a237e;"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold" style="color:#e8eaf6;">&#127918; '+(m.name||'Partida')+alLabel+'</h1><div class="flex gap-2 mt-1 flex-wrap">'+getStatusBadge(m.status)+' '+getTypeBadge(m.match_type||m.type)+' '+(m.csv_imported?'<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(76,175,80,0.15);color:#4caf50;">&#10003; CSV</span>':'')+'</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm self-start" style="background:#1a237e;color:#e8eaf6;">&larr; Volver</a></div><div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm"><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">ID Juego</p><p class="font-bold">'+(m.game_id||'-')+'</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Max</p><p class="font-bold">'+(m.max_players||'-')+'</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Creada</p><p class="font-bold">'+formatDate(m.created_at)+'</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Alianza</p><p class="font-bold">'+(alliance?alliance.name:'Ninguna')+'</p></div><div class="rounded-lg p-3" style="background:#0a0e27;"><p class="text-xs" style="color:#9fa8da;">Password</p><p class="font-bold">'+(m.password||'-')+'</p></div></div>'+(m.description?'<div class="mt-3 p-3 rounded-lg text-sm" style="background:#0a0e27;color:#9fa8da;">'+m.description+'</div>':'')+'</div>';document.getElementById('share-section').classList.remove('hidden');document.getElementById('share-link').value=shareUrl;document.getElementById('admin-actions-section').classList.remove('hidden');await Promise.all([loadRegistrations(),loadResults()]);}catch(e){console.error(e);document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">Error: '+e.message+'</div>';}}
+async function loadMatch(){if(action==='new'){showCreateForm();return;}if(!matchId){document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">No se especifico ID</div>';return;}try{var{data:m,error}=await supabase.from('matches').select('*').eq('id',matchId).single();if(error||!m){document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">Partida no encontrada</div>';return;}currentMatch=m;var alliance=null;if(m.alliance_id){var{data:a}=await supabase.from('alliances').select('name,tag').eq('id',m.alliance_id).single();alliance=a;}var alLabel=alliance?' ['+alliance.tag+']':'';var shareUrl=window.location.origin+'/aliance-hub/game.html?id='+matchId;document.getElementById('match-header').innerHTML='<div class="rounded-xl p-5 bg-slate-900 border border-indigo-900"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3"><div><h1 class="text-2xl font-bold text-slate-100">&#127918; '+(m.name||'Partida')+alLabel+'</h1><div class="flex gap-2 mt-1 flex-wrap">'+getStatusBadge(m.status)+' '+getTypeBadge(m.match_type||m.type)+' '+(m.csv_imported?'<span class="px-2 py-0.5 rounded text-xs font-bold bg-green-500/15 text-green-500">&#10003; CSV</span>':'')+'</div></div><a href="matches.html" class="px-3 py-1.5 rounded-lg font-bold text-sm self-start bg-indigo-900 text-slate-100">&larr; Volver</a></div><div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm"><div class="rounded-lg p-3 bg-slate-950"><p class="text-xs text-slate-400">ID Juego</p><p class="font-bold">'+(m.game_id||'-')+'</p></div><div class="rounded-lg p-3 bg-slate-950"><p class="text-xs text-slate-400">Max</p><p class="font-bold">'+(m.max_players||'-')+'</p></div><div class="rounded-lg p-3 bg-slate-950"><p class="text-xs text-slate-400">Creada</p><p class="font-bold">'+formatDate(m.created_at)+'</p></div><div class="rounded-lg p-3 bg-slate-950"><p class="text-xs text-slate-400">Alianza</p><p class="font-bold">'+(alliance?alliance.name:'Ninguna')+'</p></div><div class="rounded-lg p-3 bg-slate-950"><p class="text-xs text-slate-400">Password</p><p class="font-bold">'+(m.password||'-')+'</p></div></div>'+(m.description?'<div class="mt-3 p-3 rounded-lg text-sm bg-slate-950 text-slate-400">'+m.description+'</div>':'')+'</div>';document.getElementById('share-section').classList.remove('hidden');document.getElementById('share-link').value=shareUrl;document.getElementById('admin-actions-section').classList.remove('hidden');await Promise.all([loadRegistrations(),loadResults()]);}catch(e){console.error(e);document.getElementById('match-header').innerHTML='<div class="text-center py-8 text-red-400">Error: '+e.message+'</div>';}}
 
 function showCreateForm(){document.getElementById('match-header').classList.add('hidden');document.getElementById('admin-actions-section').classList.add('hidden');document.getElementById('share-section').classList.add('hidden');document.getElementById('registrations-section').classList.add('hidden');document.getElementById('results-section').classList.add('hidden');document.getElementById('create-match-section').classList.remove('hidden');loadAllianceSelect('cm-alliance',null);}
 
@@ -213,7 +217,7 @@ document.getElementById('create-match-form').addEventListener('submit',async fun
 // LOAD REGISTRATIONS — match-specific stats (NOT global)
 // Uses match_results for kills/deaths of THIS match only
 // ============================================================
-async function loadRegistrations(){try{var{data:regs,error}=await supabase.from('match_registrations').select('*').eq('match_id',matchId).order('registered_at',{ascending:false});if(error)throw error;var r=regs||[];cachedRegistrations=r;document.getElementById('reg-count').textContent=r.length;if(r.length===0){document.getElementById('registrations-list').innerHTML='<div class="text-center py-6 text-sm" style="color:#9fa8da;">Sin registrados</div>';return;}var playerIds=r.map(function(x){return x.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});var{data:matchResults}=await supabase.from('match_results').select('player_id,kills,deaths').eq('match_id',matchId);var rm={};(matchResults||[]).forEach(function(mr){rm[mr.player_id]={kills:mr.kills||0,deaths:mr.deaths||0};});var html='<table class="w-full text-sm"><thead><tr style="background:#0a0e27;"><th class="text-left p-2" style="color:#9fa8da;font-size:11px;">ID</th><th class="text-left p-2" style="color:#9fa8da;">Jugador</th><th class="text-right p-2" style="color:#9fa8da;">Kills</th><th class="text-right p-2" style="color:#9fa8da;">Deaths</th><th class="text-left p-2" style="color:#9fa8da;">Nacion</th><th class="text-left p-2" style="color:#9fa8da;">Estado</th><th class="text-center p-2" style="color:#9fa8da;">Acciones</th></tr></thead><tbody>'+r.map(function(x){var p=pm[x.player_id]||{};var mr=rm[x.player_id]||{kills:0,deaths:0};return'<tr style="border-bottom:1px solid #1a237e;"><td class="p-2 font-mono text-xs" style="color:#64748b;">'+x.player_id+'</td><td class="p-2 font-medium">'+(p.current_username||'Jugador '+x.player_id)+'</td><td class="p-2 text-right">'+mr.kills+'</td><td class="p-2 text-right">'+mr.deaths+'</td><td class="p-2 text-sm" style="color:#9fa8da;">'+(x.nation||'-')+'</td><td class="p-2">'+getStatusBadge(x.status)+'</td><td class="p-2 text-center"><button onclick="editRegistration(\''+x.id+'\')" class="text-xs px-1 py-0.5 rounded mr-1" style="background:rgba(33,150,243,0.15);color:#2196f3;" title="Editar">&#9998;</button><button onclick="deleteRegistration(\''+x.id+'\')" class="text-xs px-1 py-0.5 rounded mr-1" style="background:rgba(198,40,40,0.15);color:#ef5350;" title="Eliminar">&#128465;</button><button onclick="strikeFromRegistration('+x.player_id+')" class="text-xs px-1 py-0.5 rounded" style="background:rgba(255,143,0,0.15);color:#ff8f00;" title="Sancionar">&#9889;</button></td></tr>';}).join('')+'</tbody></table>';document.getElementById('registrations-list').innerHTML=html;}catch(e){document.getElementById('registrations-list').innerHTML='<div class="text-center py-4 text-red-400 text-sm">Error: '+e.message+'</div>';}}
+async function loadRegistrations(){try{var{data:regs,error}=await supabase.from('match_registrations').select('*').eq('match_id',matchId).order('registered_at',{ascending:false});if(error)throw error;var r=regs||[];cachedRegistrations=r;document.getElementById('reg-count').textContent=r.length;if(r.length===0){document.getElementById('registrations-list').innerHTML='<div class="text-center py-6 text-sm text-slate-400">Sin registrados</div>';return;}var playerIds=r.map(function(x){return x.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});var{data:matchResults}=await supabase.from('match_results').select('player_id,kills,deaths').eq('match_id',matchId);var rm={};(matchResults||[]).forEach(function(mr){rm[mr.player_id]={kills:mr.kills||0,deaths:mr.deaths||0};});var html='<table class="w-full text-sm min-w-full"><thead><tr class="bg-slate-950"><th class="text-left p-2 text-slate-400 text-[11px]">ID</th><th class="text-left p-2 text-slate-400">Jugador</th><th class="text-right p-2 text-slate-400">Kills</th><th class="text-right p-2 text-slate-400">Deaths</th><th class="text-left p-2 text-slate-400">Nacion</th><th class="text-left p-2 text-slate-400">Estado</th><th class="text-center p-2 text-slate-400">Acciones</th></tr></thead><tbody>'+r.map(function(x){var p=pm[x.player_id]||{};var mr=rm[x.player_id]||{kills:0,deaths:0};return'<tr class="border-b border-indigo-900"><td class="p-2 font-mono text-xs text-slate-500">'+x.player_id+'</td><td class="p-2 font-medium">'+(p.current_username||'Jugador '+x.player_id)+'</td><td class="p-2 text-right">'+mr.kills+'</td><td class="p-2 text-right">'+mr.deaths+'</td><td class="p-2 text-sm text-slate-400">'+(x.nation||'-')+'</td><td class="p-2">'+getStatusBadge(x.status)+'</td><td class="p-2 text-center"><button onclick="editRegistration(\''+x.id+'\')" class="text-xs px-1 py-0.5 rounded mr-1 bg-blue-500/15 text-blue-500" title="Editar">&#9998;</button><button onclick="deleteRegistration(\''+x.id+'\')" class="text-xs px-1 py-0.5 rounded mr-1 bg-red-500/15 text-red-400" title="Eliminar">&#128465;</button><button onclick="strikeFromRegistration('+x.player_id+')" class="text-xs px-1 py-0.5 rounded bg-amber-500/15 text-amber-400" title="Sancionar">&#9889;</button></td></tr>';}).join('')+'</tbody></table>';document.getElementById('registrations-list').innerHTML=html;}catch(e){document.getElementById('registrations-list').innerHTML='<div class="text-center py-4 text-red-400 text-sm">Error: '+e.message+'</div>';}}
 
 // ============================================================
 // EDIT REGISTRATION
@@ -244,7 +248,7 @@ function closeManualModal(){document.getElementById('manual-modal').classList.re
 
 document.getElementById('manual-form').addEventListener('submit',async function(e){e.preventDefault();var playerId=parseInt(document.getElementById('mr-player-id').value)||parseInt(document.getElementById('mr-player-id-override').value);var kills=parseInt(document.getElementById('mr-kills').value)||0;var deaths=parseInt(document.getElementById('mr-deaths').value)||0;var nation=document.getElementById('mr-nation').value||null;if(!playerId){showToast('Selecciona o escribe un ID de jugador','warning');return;}try{var kd=deaths>0?(kills/deaths):kills;await supabase.from('match_results').upsert({match_id:matchId,player_id:playerId,nation:nation,kills:kills,deaths:deaths,kd_ratio:parseFloat(kd.toFixed(2))},{onConflict:'match_id,player_id'});showToast('Guardado','success');closeManualModal();loadResults();}catch(e){showToast('Error: '+e.message,'error');}});
 
-async function loadResults(){try{var{data:results,error}=await supabase.from('match_results').select('*').eq('match_id',matchId).order('imported_at',{ascending:false});if(error)throw error;var res=results||[];if(res.length===0){document.getElementById('results-list').innerHTML='<div class="text-center py-6 text-sm" style="color:#9fa8da;">Sin resultados</div>';return;}var playerIds=res.map(function(r){return r.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});var html='<table class="w-full text-sm"><thead><tr style="background:#0a0e27;"><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead><tbody>'+res.map(function(r){var p=pm[r.player_id]||{};return'<tr style="border-bottom:1px solid #1a237e;"><td class="p-3 font-medium">'+(p.current_username||'Jugador '+r.player_id)+'</td><td class="p-3 text-right" style="color:#4caf50;">'+(r.kills||0)+'</td><td class="p-3 text-right" style="color:#ef5350;">'+(r.deaths||0)+'</td><td class="p-3 text-right font-bold">'+(r.kd_ratio||0)+'</td></tr>';}).join('')+'</tbody></table>';document.getElementById('results-list').innerHTML=html;}catch(e){document.getElementById('results-list').innerHTML='<div class="text-center py-4 text-red-400 text-sm">Error: '+e.message+'</div>';}}
+async function loadResults(){try{var{data:results,error}=await supabase.from('match_results').select('*').eq('match_id',matchId).order('imported_at',{ascending:false});if(error)throw error;var res=results||[];if(res.length===0){document.getElementById('results-list').innerHTML='<div class="text-center py-6 text-sm text-slate-400">Sin resultados</div>';return;}var playerIds=res.map(function(r){return r.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});var html='<table class="w-full text-sm min-w-full"><thead><tr class="bg-slate-950"><th class="text-left p-3">Jugador</th><th class="text-right p-3">Bajas</th><th class="text-right p-3">Muertes</th><th class="text-right p-3">KD</th></tr></thead><tbody>'+res.map(function(r){var p=pm[r.player_id]||{};return'<tr class="border-b border-indigo-900"><td class="p-3 font-medium">'+(p.current_username||'Jugador '+r.player_id)+'</td><td class="p-3 text-right text-green-500">'+(r.kills||0)+'</td><td class="p-3 text-right text-red-400">'+(r.deaths||0)+'</td><td class="p-3 text-right font-bold">'+(r.kd_ratio||0)+'</td></tr>';}).join('')+'</tbody></table>';document.getElementById('results-list').innerHTML=html;}catch(e){document.getElementById('results-list').innerHTML='<div class="text-center py-4 text-red-400 text-sm">Error: '+e.message+'</div>';}}
 
 async function updateStatus(newStatus){if(!confirm('Cambiar a '+newStatus+'?'))return;try{var{error}=await supabase.from('matches').update({status:newStatus}).eq('id',matchId);if(error)throw error;showToast('Estado actualizado','success');loadMatch();}catch(e){showToast('Error: '+e.message,'error');}}
 
@@ -252,7 +256,7 @@ function openCSVModal(){document.getElementById('csv-modal').classList.add('acti
 function closeCSVModal(){document.getElementById('csv-modal').classList.remove('active');}
 function handleDrop(e){e.preventDefault();var f=e.dataTransfer.files[0];if(f)handleFile(f);}
 function handleFile(f){if(!f||!f.name.endsWith('.csv')){showToast('Solo CSV','error');return;}var r=new FileReader();r.onload=function(e){parseCSV(e.target.result);};r.readAsText(f);}
-function parseCSV(text){var lines=text.split('\n').filter(function(l){return l.trim();});var preview=document.getElementById('csv-preview');preview.classList.remove('hidden');var html='<table class="w-full text-sm"><thead><tr style="background:#0a0e27;"><th class="p-2">Player ID</th><th class="p-2 text-right">Kills</th><th class="p-2 text-right">Deaths</th></tr></thead><tbody>';csvData=[];for(var i=1;i<lines.length;i++){var c=lines[i].split(',');if(c.length>=3){var pid=parseInt(c[0].trim());var kills=parseInt(c[1].trim())||0;var deaths=parseInt(c[2].trim())||0;if(pid){csvData.push({player_id:pid,kills:kills,deaths:deaths});html+='<tr style="border-bottom:1px solid #1a237e;"><td class="p-2">'+pid+'</td><td class="p-2 text-right" style="color:#4caf50;">'+kills+'</td><td class="p-2 text-right" style="color:#ef5350;">'+deaths+'</td></tr>';}}}html+='</tbody></table>';document.getElementById('csv-preview').innerHTML=html;}
+function parseCSV(text){var lines=text.split('\n').filter(function(l){return l.trim();});var preview=document.getElementById('csv-preview');preview.classList.remove('hidden');var html='<table class="w-full text-sm"><thead><tr class="bg-slate-950"><th class="p-2">Player ID</th><th class="p-2 text-right">Kills</th><th class="p-2 text-right">Deaths</th></tr></thead><tbody>';csvData=[];for(var i=1;i<lines.length;i++){var c=lines[i].split(',');if(c.length>=3){var pid=parseInt(c[0].trim());var kills=parseInt(c[1].trim())||0;var deaths=parseInt(c[2].trim())||0;if(pid){csvData.push({player_id:pid,kills:kills,deaths:deaths});html+='<tr class="border-b border-indigo-900"><td class="p-2">'+pid+'</td><td class="p-2 text-right text-green-500">'+kills+'</td><td class="p-2 text-right text-red-400">'+deaths+'</td></tr>';}}}html+='</tbody></table>';document.getElementById('csv-preview').innerHTML=html;}
 async function importCSVResults(){if(!matchId||!csvData||csvData.length===0)return;try{for(var i=0;i<csvData.length;i++){var r=csvData[i];var kd=r.deaths>0?(r.kills/r.deaths):r.kills;await supabase.from('match_results').upsert({match_id:matchId,player_id:r.player_id,kills:r.kills,deaths:r.deaths,kd_ratio:parseFloat(kd.toFixed(2))},{onConflict:'match_id,player_id'});}await supabase.from('matches').update({csv_imported:true}).eq('id',matchId);showToast(csvData.length+' resultados importados','success');document.getElementById('csv-preview').classList.add('hidden');loadResults();loadMatch();}catch(e){showToast('Error: '+e.message,'error');}}
 function handleCSVUpload(input){var f=input.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){parseCSV(e.target.result);};r.readAsText(f);}
 async function confirmCSVImport(){if(!csvData||!matchId)return;try{for(var i=0;i<csvData.length;i++){var r=csvData[i];var kd=r.deaths>0?(r.kills/r.deaths):r.kills;await supabase.from('match_results').upsert({match_id:matchId,player_id:r.player_id,kills:r.kills,deaths:r.deaths,kd_ratio:parseFloat(kd.toFixed(2))},{onConflict:'match_id,player_id'});}await supabase.from('matches').update({csv_imported:true}).eq('id',matchId);showToast('CSV importado: '+csvData.length+' jugadores','success');closeCSVModal();loadResults();loadMatch();}catch(e){showToast('Error: '+e.message,'error');}}
@@ -260,7 +264,7 @@ function openEditModal(){if(!currentMatch)return;document.getElementById('em-nam
 function closeEditModal(){document.getElementById('edit-modal').classList.remove('active');}
 document.getElementById('edit-form').addEventListener('submit',async function(e){e.preventDefault();try{var{error}=await supabase.from('matches').update({name:document.getElementById('em-name').value,game_id:document.getElementById('em-game-id').value||null,password:document.getElementById('em-password').value||null,alliance_id:document.getElementById('em-alliance').value||null,match_type:document.getElementById('em-type').value,max_players:parseInt(document.getElementById('em-max').value)||null,description:document.getElementById('em-desc').value||null}).eq('id',matchId);if(error)throw error;showToast('Actualizada','success');closeEditModal();loadMatch();}catch(e){showToast('Error: '+e.message,'error');}});
 async function deleteMatch(){if(!confirm('Eliminar permanentemente?'))return;try{await supabase.from('match_results').delete().eq('match_id',matchId);await supabase.from('match_registrations').delete().eq('match_id',matchId);await supabase.from('match_winners').delete().eq('match_id',matchId);var{error}=await supabase.from('matches').delete().eq('id',matchId);if(error)throw error;showToast('Eliminada','success');setTimeout(function(){window.location.href='matches.html';},800);}catch(e){showToast('Error: '+e.message,'error');}}
-async function openWinnersModal(){try{var{data:results}=await supabase.from('match_results').select('*').eq('match_id',matchId).order('kills',{ascending:false});var list=document.getElementById('winners-list');if(!results||results.length===0){list.innerHTML='<p class="text-sm text-center" style="color:#9fa8da;">Sin resultados</p>';}else{var playerIds=results.map(function(r){return r.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});list.innerHTML=results.map(function(r,i){var p=pm[r.player_id]||{};return'<div class="flex items-center gap-3 p-3 rounded-lg" style="background:#0a0e27;border:1px solid #1a237e;"><span class="text-lg font-bold w-6" style="color:#ff8f00;">#'+(i+1)+'</span><div class="flex-1"><p class="font-medium text-sm" style="color:#e8eaf6;">'+(p.current_username||'Jugador '+r.player_id)+'</p><p class="text-xs" style="color:#9fa8da;">'+r.kills+' bajas / '+r.deaths+' muertes</p></div><input type="checkbox" name="winner" value="'+r.player_id+'" class="w-5 h-5 rounded"></div>';}).join('');}document.getElementById('winners-modal').classList.add('active');}catch(e){showToast('Error: '+e.message,'error');}}
+async function openWinnersModal(){try{var{data:results}=await supabase.from('match_results').select('*').eq('match_id',matchId).order('kills',{ascending:false});var list=document.getElementById('winners-list');if(!results||results.length===0){list.innerHTML='<p class="text-sm text-center text-slate-400">Sin resultados</p>';}else{var playerIds=results.map(function(r){return r.player_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});var{data:players}=await supabase.from('players').select('id,current_username').in('id',playerIds);var pm={};(players||[]).forEach(function(p){pm[p.id]=p;});list.innerHTML=results.map(function(r,i){var p=pm[r.player_id]||{};return'<div class="flex items-center gap-3 p-3 rounded-lg bg-slate-950 border border-indigo-900"><span class="text-lg font-bold w-6 text-amber-400">#'+(i+1)+'</span><div class="flex-1"><p class="font-medium text-sm text-slate-100">'+(p.current_username||'Jugador '+r.player_id)+'</p><p class="text-xs text-slate-400">'+r.kills+' bajas / '+r.deaths+' muertes</p></div><input type="checkbox" name="winner" value="'+r.player_id+'" class="w-5 h-5 rounded"></div>';}).join('');}document.getElementById('winners-modal').classList.add('active');}catch(e){showToast('Error: '+e.message,'error');}}
 function closeWinnersModal(){document.getElementById('winners-modal').classList.remove('active');}
 document.getElementById('winners-form').addEventListener('submit',async function(e){e.preventDefault();var checked=document.querySelectorAll('input[name="winner"]:checked');var winners=Array.from(checked).map(function(cb){return parseInt(cb.value);});if(winners.length===0){showToast('Selecciona al menos un ganador','warning');return;}try{for(var i=0;i<winners.length;i++){await supabase.from('match_winners').upsert({match_id:matchId,player_id:winners[i],position:i+1},{onConflict:'match_id,player_id'});}await supabase.from('matches').update({winners_declared:true}).eq('id',matchId);showToast(winners.length+' ganador(es)','success');closeWinnersModal();loadMatch();}catch(e){showToast('Error: '+e.message,'error');}});
 function copyShareLink(){var input=document.getElementById('share-link');input.select();navigator.clipboard.writeText(input.value);showToast('Copiado','success');}
