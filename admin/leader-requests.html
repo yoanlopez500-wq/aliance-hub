@@ -126,7 +126,6 @@ function closeApproveModal() {
     pendingApprove = null;
 }
 
-// FIX: read pendingApprove BEFORE closeApproveModal nullifies it
 async function confirmApprove() {
     if (!pendingApprove) return;
     var playerId = pendingApprove.playerId;
@@ -161,16 +160,22 @@ async function confirmApprove() {
         var { error: pe } = await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
         if (pe) throw pe;
 
-        // 4. Create alliance_memberships with role='leader'
+        // 4. Create alliance_memberships
+        // FIX: status must be 'approved' (not 'active') per CHECK constraint
+        // FIX: requested_by must be 'leader' per CHECK constraint
         var { error: me } = await supabase.from('alliance_memberships').insert({
             player_id: playerId,
             alliance_id: allianceId,
             role: 'leader',
-            status: 'active'
+            status: 'approved',
+            requested_by: 'leader'
         });
         if (me) {
             if (me.code === '23505') {
-                await supabase.from('alliance_memberships').update({ role: 'leader', status: 'active' }).eq('player_id', playerId).eq('alliance_id', allianceId);
+                await supabase.from('alliance_memberships').update({
+                    role: 'leader',
+                    status: 'approved'
+                }).eq('player_id', playerId).eq('alliance_id', allianceId);
             } else {
                 throw me;
             }
