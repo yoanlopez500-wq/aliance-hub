@@ -20,12 +20,17 @@
 <script src="../assets/js/nav-engine.js?v=27"></script>
 <script src="../assets/js/training.js?v=27"></script>
 <script src="../assets/js/components.js?v=27"></script>
+<script src="../assets/js/storage-utils.js?v=27"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 .strike-card{border:1px solid #1a237e;transition:all .15s}
 .strike-card:hover{border-color:#ff6f00}
 input,textarea,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
 input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
+#evidence-dropzone-strike{border:2px dashed #1a237e;border-radius:12px;padding:12px;text-align:center;transition:all .2s;cursor:pointer;background:rgba(255,255,255,0.02);}
+#evidence-dropzone-strike.dragover{border-color:#ff6f00;background:rgba(255,111,0,0.05);}
+.evidence-preview-item{position:relative;border-radius:8px;overflow:hidden;border:1px solid #1a237e;}
+.evidence-preview-item .remove-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(198,40,40,0.9);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 </style>
 </head>
 <body class="min-h-screen" data-role="admin">
@@ -47,8 +52,10 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 </div>
 <div id="strikes-list" class="space-y-3">Cargando...</div>
 </div>
+
+<!-- Strike Modal -->
 <div id="strike-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
-<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:90vh;overflow-y:auto;">
 <h3 class="text-lg font-bold mb-4">&#9889; Aplicar Strike</h3>
 <div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Jugador (ID de Supremacy) *</label><input type="number" id="s-player-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: 24549130"></div>
 <div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Partida</label><select id="s-match" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar partida...</option></select></div>
@@ -56,24 +63,91 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 <div id="rule-hint" class="hidden mb-3 p-3 rounded-lg text-sm" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);color:#ff8f00;"></div>
 <div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Seccion del reglamento violada</label><select id="s-rule" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar seccion...</option></select></div>
 <div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Razon *</label><textarea id="s-reason" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Describe la infraccion..."></textarea></div>
-<div class="mb-4"><label class="block text-sm mb-1" style="color:#9fa8da;">Notas adicionales</label><textarea id="s-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Notas adicionales</label><textarea id="s-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+
+<!-- Evidence Upload -->
+<div class="mb-4">
+    <label class="block text-sm mb-1" style="color:#9fa8da;">Evidencia (imagenes o videos)</label>
+    <div id="evidence-dropzone-strike" onclick="document.getElementById('evidence-input-strike').click()">
+        <div class="text-2xl mb-1">&#128247;</div>
+        <p class="text-sm" style="color:#9fa8da;">Arrastra archivos aqui o <strong style="color:#ff8f00;">haz clic</strong></p>
+        <p class="text-xs mt-1" style="color:#64748b;">Max 3 archivos. Max 5MB cada uno.</p>
+        <input type="file" id="evidence-input-strike" class="hidden" accept="image/*,video/*" multiple onchange="handleStrikeEvidence(this.files)">
+    </div>
+    <div id="evidence-preview-strike" class="grid grid-cols-3 gap-2 mt-2"></div>
+    <p id="evidence-status-strike" class="text-xs mt-1 hidden" style="color:#9fa8da;"></p>
+</div>
+
 <div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button><button onclick="saveStrike()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Aplicar Strike</button></div>
 </div></div>
+
+<!-- Detail Modal (view strike + evidence) -->
+<div id="view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:85vh;overflow-y:auto;">
+<h3 class="text-lg font-bold mb-4" id="v-title">Detalle del Strike</h3>
+<div id="v-content"></div>
+<div id="v-evidence" class="mt-4 hidden"></div>
+<div class="flex gap-2 justify-end mt-4"><button onclick="closeViewModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cerrar</button></div>
+</div></div>
+
 <script>
 var allStrikes = [];
 var strikeTypesMap = {};
 var playersMap = {};
 var matchesMap = {};
+var strikeEvidenceFiles = [];
+
+// --- Evidence handlers for strike modal ---
+function handleStrikeEvidence(files) {
+    var statusEl = document.getElementById('evidence-status-strike');
+    if (!files || files.length === 0) return;
+    if (strikeEvidenceFiles.length + files.length > STORAGE_CONFIG.maxFilesPerUpload) {
+        statusEl.textContent = 'Maximo ' + STORAGE_CONFIG.maxFilesPerUpload + ' archivos';
+        statusEl.classList.remove('hidden');
+        return;
+    }
+    for (var i = 0; i < files.length; i++) {
+        if (strikeEvidenceFiles.length >= STORAGE_CONFIG.maxFilesPerUpload) break;
+        strikeEvidenceFiles.push(files[i]);
+    }
+    renderStrikeEvidencePreviews();
+    statusEl.textContent = strikeEvidenceFiles.length + ' archivo(s) seleccionado(s)';
+    statusEl.classList.remove('hidden');
+}
+
+function renderStrikeEvidencePreviews() {
+    var previewEl = document.getElementById('evidence-preview-strike');
+    previewEl.innerHTML = strikeEvidenceFiles.map(function(file, idx) {
+        var isVideo = file.type.startsWith('video/');
+        var url = URL.createObjectURL(file);
+        if (isVideo) {
+            return '<div class="evidence-preview-item"><video src="' + url + '" class="w-full h-16 object-cover"></video><button type="button" class="remove-btn" onclick="removeStrikeEvidence(' + idx + ')">&#10005;</button></div>';
+        }
+        return '<div class="evidence-preview-item"><img src="' + url + '" class="w-full h-16 object-cover"><button type="button" class="remove-btn" onclick="removeStrikeEvidence(' + idx + ')">&#10005;</button></div>';
+    }).join('');
+}
+
+function removeStrikeEvidence(idx) {
+    strikeEvidenceFiles.splice(idx, 1);
+    renderStrikeEvidencePreviews();
+    var statusEl = document.getElementById('evidence-status-strike');
+    if (strikeEvidenceFiles.length === 0) { statusEl.classList.add('hidden'); }
+    else { statusEl.textContent = strikeEvidenceFiles.length + ' archivo(s) seleccionado(s)'; }
+}
+
+var strikeDropzone = document.getElementById('evidence-dropzone-strike');
+strikeDropzone.addEventListener('dragover', function(e) { e.preventDefault(); strikeDropzone.classList.add('dragover'); });
+strikeDropzone.addEventListener('dragleave', function() { strikeDropzone.classList.remove('dragover'); });
+strikeDropzone.addEventListener('drop', function(e) { e.preventDefault(); strikeDropzone.classList.remove('dragover'); handleStrikeEvidence(e.dataTransfer.files); });
 
 async function loadStrikes() {
     try {
-        // v18: Cargar strike_types por separados ya que la FK no existe en el schema
         var typesRes = await supabase.from('strike_types').select('*').order('severity');
         strikeTypesMap = {};
         (typesRes.data || []).forEach(function(t) { strikeTypesMap[t.id] = t; });
 
         var { data: strikesData, error } = await supabase.from('player_strikes')
-            .select('*, players(id, current_username, current_alliance_id)')
+            .select('*, evidence_urls, players(id, current_username, current_alliance_id)')
             .order('applied_at', { ascending: false })
             .limit(100);
         if (error) throw error;
@@ -124,7 +198,8 @@ function renderStrikes(data) {
         var isNullifier = type.nullifies_kills ? ' <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:#ce93d820;color:#ce93d8;">KILL NULLIFIER</span>' : '';
         var playerName = s.players ? s.players.current_username : 'Jugador ' + s.player_id;
         var matchName = s.matches ? s.matches.name : (s.match_id ? 'Partida ' + s.match_id : '-');
-        return '<div class="strike-card rounded-xl p-4" style="background:#11183a;"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold">' + playerName + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' + isNullifier + '</div><p class="text-sm mt-1" style="color:#e8eaf6;">' + s.reason + '</p><p class="text-xs mt-1" style="color:#9fa8da;">Partida: ' + matchName + ' | ' + formatDate(s.applied_at) + (s.strike_types ? ' | ' + s.strike_types.code + ': ' + s.strike_types.name : '') + '</p></div><button onclick="removeStrike(' + s.id + ')" class="px-2 py-1 rounded text-xs" style="background:rgba(198,40,40,0.3);color:#ef5350;">Revocar</button></div></div>';
+        var evBadge = (s.evidence_urls && s.evidence_urls.length > 0) ? ' <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,111,0,0.15);color:#ff6f00;">&#128247; ' + s.evidence_urls.length + '</span>' : '';
+        return '<div class="strike-card rounded-xl p-4" style="background:#11183a;cursor:pointer;" onclick="openViewModal(' + s.id + ')"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold">' + playerName + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' + isNullifier + evBadge + '</div><p class="text-sm mt-1" style="color:#e8eaf6;">' + s.reason + '</p><p class="text-xs mt-1" style="color:#9fa8da;">Partida: ' + matchName + ' | ' + formatDate(s.applied_at) + (s.strike_types ? ' | ' + s.strike_types.code + ': ' + s.strike_types.name : '') + '</p></div><button onclick="event.stopPropagation();removeStrike(' + s.id + ')" class="px-2 py-1 rounded text-xs" style="background:rgba(198,40,40,0.3);color:#ef5350;">Revocar</button></div></div>';
     }).join('');
 }
 
@@ -159,7 +234,12 @@ function showRuleHint() {
 }
 
 function openModal() { document.getElementById('strike-modal').classList.remove('hidden'); loadDropdowns(); }
-function closeModal() { document.getElementById('strike-modal').classList.add('hidden'); }
+function closeModal() {
+    document.getElementById('strike-modal').classList.add('hidden');
+    strikeEvidenceFiles = [];
+    document.getElementById('evidence-preview-strike').innerHTML = '';
+    document.getElementById('evidence-status-strike').classList.add('hidden');
+}
 
 async function saveStrike() {
     var playerId = parseInt(document.getElementById('s-player-id').value);
@@ -171,7 +251,15 @@ async function saveStrike() {
     if (!playerId || !typeId || !reason) { showToast('Jugador, tipo y razon son obligatorios', 'error'); return; }
     try {
         var { data: { session } } = await supabase.auth.getSession();
-        var { error } = await supabase.from('player_strikes').insert({
+
+        // Upload evidence if any
+        var evidenceUrls = [];
+        if (strikeEvidenceFiles.length > 0) {
+            var targetId = 'strike_' + Date.now();
+            evidenceUrls = await compressAndUpload(strikeEvidenceFiles, 'strikes', targetId);
+        }
+
+        var insertPayload = {
             player_id: playerId,
             match_id: matchId,
             strike_type_id: typeId,
@@ -179,7 +267,12 @@ async function saveStrike() {
             notes: notes,
             rule_section_id: ruleId,
             applied_by: session.user.id
-        });
+        };
+        if (evidenceUrls.length > 0) {
+            insertPayload.evidence_urls = evidenceUrls;
+        }
+
+        var { error } = await supabase.from('player_strikes').insert(insertPayload);
         if (error) throw error;
 
         try {
@@ -209,6 +302,43 @@ async function removeStrike(id) {
         showToast('Strike revocado', 'success');
         loadStrikes();
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// --- View modal for strike detail + evidence ---
+function openViewModal(id) {
+    var s = allStrikes.find(function(x) { return x.id === id; });
+    if (!s) return;
+    var type = s.strike_types || {};
+    var sevColor = type.severity === 1 ? '#4caf50' : type.severity === 2 ? '#ff8f00' : '#ef5350';
+    var sevLabel = type.severity === 1 ? 'LEVE' : type.severity === 2 ? 'MEDIO' : 'GRAVE';
+    var playerName = s.players ? s.players.current_username : 'Jugador ' + s.player_id;
+    var matchName = s.matches ? s.matches.name : (s.match_id ? 'Partida ' + s.match_id : '-');
+
+    document.getElementById('v-title').textContent = 'Strike - ' + playerName;
+    document.getElementById('v-content').innerHTML =
+        '<div class="flex items-center gap-2 mb-3 flex-wrap">' +
+        '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' +
+        (type.nullifies_kills ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:#ce93d820;color:#ce93d8;">KILL NULLIFIER</span>' : '') +
+        '<span class="text-xs" style="color:#9fa8da;">' + formatDate(s.applied_at) + '</span></div>' +
+        '<p class="text-sm mb-2"><strong>Razon:</strong> ' + s.reason + '</p>' +
+        '<p class="text-sm mb-2"><strong>Partida:</strong> ' + matchName + '</p>' +
+        (s.notes ? '<p class="text-sm mb-2" style="color:#9fa8da;"><strong>Notas:</strong> ' + s.notes + '</p>' : '');
+
+    var evDiv = document.getElementById('v-evidence');
+    if (s.evidence_urls && s.evidence_urls.length > 0) {
+        evDiv.classList.remove('hidden');
+        evDiv.innerHTML = '<h4 class="font-bold text-sm mb-2" style="color:#ff8f00;">&#128247; Evidencia adjunta:</h4><div id="strike-evidence-grid"></div>';
+        renderEvidenceGrid(s.evidence_urls, 'strike-evidence-grid');
+    } else {
+        evDiv.classList.add('hidden');
+        evDiv.innerHTML = '';
+    }
+
+    document.getElementById('view-modal').classList.remove('hidden');
+}
+
+function closeViewModal() {
+    document.getElementById('view-modal').classList.add('hidden');
 }
 
 requireAdmin();
