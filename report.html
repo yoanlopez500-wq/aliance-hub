@@ -2,10 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e27">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="manifest" href="manifest.json">
 <title>Reportar Jugador - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/theme.js?v=27"></script>
@@ -15,7 +19,6 @@
 <script src="assets/js/components.js?v=27"></script>
 <script src="assets/js/auth.js?v=27"></script>
 <script src="assets/js/storage-utils.js?v=27"></script>
-<meta name="theme-color" content="#0a0e27">
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 #evidence-dropzone{border:2px dashed #1a237e;border-radius:12px;padding:16px;text-align:center;transition:all .2s;cursor:pointer;background:rgba(255,255,255,0.02);}
@@ -28,28 +31,28 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 <div id="admin-nav"></div>
 <div class="max-w-2xl mx-auto px-4 py-8">
 <h1 class="text-2xl font-bold mb-2">&#128680; Reportar Jugador</h1>
-<p class="text-sm mb-6" style="color:#9fa8da;">Reporta una infraccion del reglamento. Selecciona la seccion de la regla que fue violada y adjunta evidencia (imagenes o videos).</p>
-<div id="error-banner" class="hidden mb-4 p-3 rounded-lg text-sm font-bold" style="background:rgba(198,40,40,0.15);color:#ef5350;"></div>
-<div id="success-msg" class="hidden mb-4 p-3 rounded-lg text-sm font-bold" style="background:rgba(46,125,50,0.15);color:#4caf50;"></div>
+<p class="text-sm mb-6 text-slate-400">Reporta una infraccion del reglamento. Selecciona la seccion de la regla que fue violada y adjunta evidencia (imagenes o videos).</p>
+<div id="error-banner" class="hidden mb-4 p-3 rounded-lg text-sm font-bold bg-red-500/15 text-red-400"></div>
+<div id="success-msg" class="hidden mb-4 p-3 rounded-lg text-sm font-bold bg-green-500/15 text-green-500"></div>
 <form id="report-form" class="space-y-4">
-<div><label class="block text-sm font-medium mb-1" style="color:#9fa8da;">ID del jugador reportado *</label><input type="number" id="r-player-id" required class="w-full px-3 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" placeholder="Ej: 24549130"></div>
-<div><label class="block text-sm font-medium mb-1" style="color:#9fa8da;">Seccion del reglamento violada *</label><select id="r-rule" required class="w-full px-3 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;"><option value="">Seleccionar seccion...</option></select></div>
-<div><label class="block text-sm font-medium mb-1" style="color:#9fa8da;">Descripcion de la infraccion *</label><textarea id="r-desc" rows="4" required class="w-full px-3 py-2 rounded-lg border text-sm" style="background:#11183a;border-color:#1a237e;color:#e8eaf6;" placeholder="Describe lo que ocurrio..."></textarea></div>
+<div><label class="block text-sm font-medium mb-1 text-slate-400">ID del jugador reportado *</label><input type="number" id="r-player-id" required class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Ej: 24549130"></div>
+<div><label class="block text-sm font-medium mb-1 text-slate-400">Seccion del reglamento violada *</label><select id="r-rule" required class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">Seleccionar seccion...</option></select></div>
+<div><label class="block text-sm font-medium mb-1 text-slate-400">Descripcion de la infraccion *</label><textarea id="r-desc" rows="4" required class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Describe lo que ocurrio..."></textarea></div>
 
 <!-- EVIDENCE UPLOAD -->
 <div>
-    <label class="block text-sm font-medium mb-1" style="color:#9fa8da;">Evidencia (imagenes o videos)</label>
+    <label class="block text-sm font-medium mb-1 text-slate-400">Evidencia (imagenes o videos)</label>
     <div id="evidence-dropzone" onclick="document.getElementById('evidence-input').click()">
         <div class="text-3xl mb-2">&#128247;</div>
-        <p class="text-sm" style="color:#9fa8da;">Arrastra archivos aqui o <strong style="color:#ff8f00;">haz clic para seleccionar</strong></p>
-        <p class="text-xs mt-1" style="color:#64748b;">Max 3 archivos. Imagenes (PNG, JPG, WebP) y videos (MP4). Max 5MB cada uno.</p>
+        <p class="text-sm text-slate-400">Arrastra archivos aqui o <strong class="text-amber-400">haz clic para seleccionar</strong></p>
+        <p class="text-xs mt-1 text-slate-500">Max 3 archivos. Imagenes (PNG, JPG, WebP) y videos (MP4). Max 5MB cada uno.</p>
         <input type="file" id="evidence-input" class="hidden" accept="image/*,video/*" multiple onchange="handleEvidenceSelect(this.files)">
     </div>
     <div id="evidence-preview" class="grid grid-cols-3 gap-2 mt-3"></div>
-    <p id="evidence-status" class="text-xs mt-1 hidden" style="color:#9fa8da;"></p>
+    <p id="evidence-status" class="text-xs mt-1 hidden text-slate-400"></p>
 </div>
 
-<button type="submit" id="submit-btn" class="w-full py-3 rounded-lg font-bold text-sm transition active:scale-[0.98]" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:white;">&#128680; Enviar Reporte</button>
+<button type="submit" id="submit-btn" class="w-full py-3 rounded-lg font-bold text-sm transition active:scale-[0.98] min-h-[48px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#128680; Enviar Reporte</button>
 </form>
 </div>
 <script src="sw-register.js?v=27"></script>
