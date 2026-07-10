@@ -74,11 +74,35 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </div>
 </div>
 
+<!-- ===== MODAL: Invite Code Generado (post-aprobacion) ===== -->
+<div id="invite-modal" class="modal-overlay">
+<div class="rounded-xl w-full max-w-md p-6 bg-slate-900 border border-green-500/20">
+<h3 class="text-xl font-bold mb-1 text-green-400">&#10003; Solicitud Aprobada</h3>
+<div class="w-full h-px bg-indigo-900 my-3"></div>
+<p class="text-sm text-slate-300 mb-4">
+    La alianza <strong id="im-alliance-name" class="text-amber-400"></strong> ha sido creada.
+</p>
+<div class="rounded-lg p-4 mb-4 bg-slate-950 border border-indigo-900">
+    <p class="text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Codigo de invitacion para el lider</p>
+    <div class="flex items-center gap-2">
+        <code id="im-code" class="flex-1 bg-slate-900 p-3 rounded text-green-400 font-mono text-lg border border-indigo-900"></code>
+        <button onclick="copyInviteCode()" class="px-3 py-3 rounded-lg text-sm font-bold min-h-[48px] bg-blue-700 text-white hover:bg-blue-600 transition" title="Copiar">&#128203;</button>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">Expira en 7 dias</p>
+</div>
+<p class="text-sm text-slate-400 mb-4">
+    Comparte este codigo con <strong id="im-player-name" class="text-slate-100"></strong> para que pueda crear su cuenta de lider de alianza.
+</p>
+<button onclick="closeInviteModal()" class="w-full py-3 rounded-lg text-sm font-bold min-h-[48px] bg-green-700 text-white hover:bg-green-600 transition">Entendido</button>
+</div>
+</div>
+
 <script>
 requireAdmin();
 var currentAdminId = null;
 var pendingApprove = null;
 var pendingReject = null;
+var lastGeneratedInviteCode = '';
 
 async function init() {
     try { var s = await supabase.auth.getSession(); currentAdminId = s.data.session.user.id; } catch(e){}
@@ -123,7 +147,7 @@ function openApproveModal(playerId, allianceName, allianceTag, requestId, allian
     pendingApprove = { playerId: playerId, allianceName: allianceName, allianceTag: allianceTag, requestId: requestId, allianceDescription: allianceDescription, playerName: playerName };
     document.getElementById('approve-modal-text').innerHTML =
         'Aprobar a <strong class="text-amber-400">' + playerName + '</strong> como lider de <strong class="text-amber-400">' + allianceName + ' [' + allianceTag + ']</strong>?<br><br>' +
-        '<span class="text-slate-400">Se creara la alianza y el jugador podra completar su registro automaticamente.</span>';
+        '<span class="text-slate-400">Se creara la alianza, se asignara como lider y se generara un codigo de invitacion.</span>';
     document.getElementById('approve-modal').classList.add('active');
 }
 
@@ -139,6 +163,7 @@ async function confirmApprove() {
     var allianceTag = pendingApprove.allianceTag;
     var requestId = pendingApprove.requestId;
     var allianceDescription = pendingApprove.allianceDescription;
+    var playerName = pendingApprove.playerName;
     closeApproveModal();
 
     showToast('Procesando aprobacion...', 'info');
@@ -162,12 +187,18 @@ async function confirmApprove() {
         var { error: pe } = await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
         if (pe) throw pe;
 
-        // 3. Create membership
+        // 3. Create alliance_memberships (status='approved', requested_by='leader' per CHECK constraints)
         var { error: me } = await supabase.from('alliance_memberships').insert({
             player_id: playerId, alliance_id: allianceId,
             role: 'leader', status: 'approved', requested_by: 'leader'
         });
-        if (me && me.code !== '23505') throw me;
+        if (me) {
+            if (me.code === '23505') {
+                await supabase.from('alliance_memberships').update({ role: 'leader', status: 'approved' }).eq('player_id', playerId).eq('alliance_id', allianceId);
+            } else {
+                throw me;
+            }
+        }
 
         // 4. Mark request approved
         var { data: { session } } = await supabase.auth.getSession();
@@ -176,15 +207,31 @@ async function confirmApprove() {
         }).eq('id', requestId);
         if (re) throw re;
 
-        // 5. Generate invite code VINCULADO al player_id y alliance_id (NO se muestra al admin)
+        // 5. Generate invite code for the new leader (vinculado a player_id y alliance_id)
         var inviteCode = generateInviteCode();
+        lastGeneratedInviteCode = inviteCode;
         var { error: ie } = await supabase.from('admin_invites').insert({
-            code: inviteCode, role: 'alliance_leader', created_by: session.user.id,
-            player_id: playerId, alliance_id: allianceId, used: false
+            code: inviteCode,
+            role: 'alliance_leader',
+            created_by: session.user.id,
+            player_id: playerId,
+            alliance_id: allianceId,
+            used: false
         });
-        if (ie) console.error('[Invite] Error:', ie);
+        if (ie) {
+            console.error('[Invite] Error creating invite:', ie);
+            showToast('Alianza creada pero error al generar codigo de invitacion', 'warning');
+            loadRequests();
+            return;
+        }
 
-        showToast('Solicitud aprobada. El jugador puede completar su registro.', 'success');
+        // 6. SHOW invite code modal to admin
+        document.getElementById('im-alliance-name').textContent = allianceName;
+        document.getElementById('im-player-name').textContent = playerName;
+        document.getElementById('im-code').textContent = inviteCode;
+        document.getElementById('invite-modal').classList.add('active');
+
+        showToast('Solicitud aprobada. Alianza creada y codigo generado.', 'success');
         loadRequests();
     } catch(e) {
         console.error('[confirmApprove]', e);
@@ -192,6 +239,28 @@ async function confirmApprove() {
     }
 }
 
+// ===== MODAL: Invite Code =====
+function closeInviteModal() {
+    document.getElementById('invite-modal').classList.remove('active');
+    lastGeneratedInviteCode = '';
+}
+
+function copyInviteCode() {
+    if (!lastGeneratedInviteCode) return;
+    navigator.clipboard.writeText(lastGeneratedInviteCode).then(function() {
+        showToast('Codigo copiado al portapapeles', 'success');
+    }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = lastGeneratedInviteCode;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Codigo copiado al portapapeles', 'success');
+    });
+}
+
+// ===== MODAL: Rechazar =====
 function openRejectModal(requestId, playerName, allianceName) {
     pendingReject = { requestId: requestId };
     document.getElementById('reject-modal-text').innerHTML =
