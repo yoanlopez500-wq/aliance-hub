@@ -341,8 +341,26 @@ function closeViewModal() {
     document.getElementById('view-modal').classList.add('hidden');
 }
 
+// --- URL Prefill: open modal with prefill_player and prefill_match ---
+var urlParamsStrikes = new URLSearchParams(window.location.search);
+var prefillPlayer = urlParamsStrikes.get('prefill_player');
+var prefillMatch = urlParamsStrikes.get('prefill_match');
+
+async function applyPrefill() {
+    if (!prefillPlayer && !prefillMatch) return;
+    await loadDropdowns();
+    if (prefillPlayer) {
+        document.getElementById('s-player-id').value = prefillPlayer;
+    }
+    if (prefillMatch) {
+        document.getElementById('s-match').value = prefillMatch;
+    }
+    document.getElementById('strike-modal').classList.remove('hidden');
+}
+
 requireAdmin();
 loadStrikes();
+applyPrefill();
 </script>
 </body>
 </html>
