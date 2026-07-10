@@ -2,10 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0e27">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link rel="manifest" href="../manifest.json">
     <title>Registro - Alliance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="../assets/js/theme.js?v=27"></script>
@@ -15,49 +19,48 @@
     <script src="../assets/js/components.js?v=27"></script>
     <script src="../assets/js/auth.js?v=27"></script>
     <script src="../assets/js/pwa-utils.js?v=27"></script>
-    <meta name="theme-color" content="#0a0e27">
 </head>
-<body class="min-h-screen" style="background: #0a0e27;" data-role="public">
+<body class="min-h-screen bg-slate-950" data-role="public">
     <div id="admin-nav"></div>
 
     <div class="max-w-lg mx-auto px-4 py-8">
-        <div id="register-container" class="rounded-2xl p-8" style="background: #11183a; border: 1px solid #1a237e;">
+        <div id="register-container" class="rounded-2xl p-8 bg-slate-900 border border-indigo-900">
             <div class="text-center mb-6">
                 <div class="text-4xl mb-3">&#128221;</div>
                 <h1 class="text-2xl font-bold text-white">Registro a Partida</h1>
-                <p style="color: #9fa8da;" id="match-info">Cargando...</p>
+                <p class="text-slate-400 text-sm" id="match-info">Cargando...</p>
             </div>
 
             <!-- Banner de esperando aprobacion -->
-            <div id="waiting-approval-banner" class="hidden rounded-xl p-6 mb-6 text-center" style="background: rgba(255,143,0,0.1); border: 1px solid rgba(255,143,0,0.2);">
+            <div id="waiting-approval-banner" class="hidden rounded-xl p-6 mb-6 text-center border border-amber-500/20 bg-amber-500/10">
                 <div class="text-4xl mb-3">&#9203;</div>
-                <h2 class="font-bold" style="color: #ff8f00;">Esperando aprobacion del admin</h2>
-                <p class="text-sm mt-2" style="color: #9fa8da;">Tu registro esta pendiente. Cuando el admin te apruebe, veras aqui el ID y contrasena.</p>
+                <h2 class="font-bold text-amber-400">Esperando aprobacion del admin</h2>
+                <p class="text-sm mt-2 text-slate-400">Tu registro esta pendiente. Cuando el admin te apruebe, veras aqui el ID y contrasena.</p>
             </div>
 
             <!-- Datos de partida (solo visibles si aprobado) -->
-            <div id="match-credentials" class="hidden rounded-xl p-6 mb-6" style="background: rgba(46,125,50,0.1); border: 1px solid rgba(46,125,50,0.2);">
-                <h2 class="font-bold mb-3" style="color: #4caf50;">&#128275; Datos de Acceso</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="rounded-lg p-3" style="background: #0a0e27; border: 1px solid #1a237e;">
-                        <p class="text-xs uppercase font-bold" style="color: #4caf50;">ID de Partida</p>
+            <div id="match-credentials" class="hidden rounded-xl p-6 mb-6 border border-green-500/20 bg-green-500/10">
+                <h2 class="font-bold mb-3 text-green-500">&#128275; Datos de Acceso</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="rounded-lg p-3 bg-slate-950 border border-indigo-900">
+                        <p class="text-xs uppercase font-bold text-green-500">ID de Partida</p>
                         <p id="cred-game-id" class="text-lg font-mono font-bold text-white">---</p>
                     </div>
-                    <div class="rounded-lg p-3" style="background: #0a0e27; border: 1px solid #1a237e;">
-                        <p class="text-xs uppercase font-bold" style="color: #4caf50;">Contrasena</p>
+                    <div class="rounded-lg p-3 bg-slate-950 border border-indigo-900">
+                        <p class="text-xs uppercase font-bold text-green-500">Contrasena</p>
                         <p id="cred-password" class="text-lg font-mono font-bold text-white">---</p>
                     </div>
                 </div>
             </div>
 
             <!-- Datos del jugador (display only, NO form fields for username) -->
-            <div id="player-info-display" class="rounded-xl p-4 mb-6" style="background: rgba(255,255,255,0.03); border: 1px solid #1a237e;">
+            <div id="player-info-display" class="rounded-xl p-4 mb-6 bg-white/[0.03] border border-indigo-900">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background: #1a237e;">&#128100;</div>
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-indigo-900">&#128100;</div>
                     <div>
-                        <p class="text-xs" style="color: #9fa8da;">Jugador</p>
+                        <p class="text-xs text-slate-400">Jugador</p>
                         <p class="font-bold text-white" id="display-username">-</p>
-                        <p class="text-xs font-mono" style="color: #64748b;" id="display-player-id">-</p>
+                        <p class="text-xs font-mono text-slate-500" id="display-player-id">-</p>
                     </div>
                 </div>
             </div>
@@ -66,13 +69,13 @@
                 <!-- Hidden field for player ID (required for form validation but not displayed) -->
                 <input type="hidden" id="reg-player-id" value="">
                 
-                <button type="submit" class="w-full font-bold py-3 rounded-lg transition active:scale-[0.98]" style="background: linear-gradient(135deg, #ff6f00, #ff8f00); color: white;">
+                <button type="submit" class="w-full font-bold py-3 rounded-lg transition active:scale-[0.98] min-h-[48px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">
                     Confirmar Registro
                 </button>
             </form>
 
-            <div id="error-msg" class="mt-4 text-sm text-center hidden" style="color: #ef5350;"></div>
-            <div id="success-msg" class="mt-4 text-sm text-center hidden" style="color: #4caf50;"></div>
+            <div id="error-msg" class="mt-4 text-sm text-center hidden text-red-400"></div>
+            <div id="success-msg" class="mt-4 text-sm text-center hidden text-green-400"></div>
         </div>
     </div>
 

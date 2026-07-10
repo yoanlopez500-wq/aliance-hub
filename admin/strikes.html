@@ -2,10 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e27">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="manifest" href="../manifest.json">
 <title>Strikes - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- v18: Modular Architecture -->
@@ -36,58 +40,58 @@ input:focus,textarea:focus,select:focus{border-color:#ff6f00!important;outline:n
 <body class="min-h-screen" data-role="admin">
 <div id="admin-nav"></div>
 <div class="max-w-6xl mx-auto px-4 py-8">
-<div class="flex items-center justify-between mb-6">
-<div><h1 class="text-2xl font-bold">&#9889; Sistema de Strikes</h1><p class="text-sm" style="color:#9fa8da;">Aplica strikes conectados al reglamento, reportes y precedentes.</p></div>
-<button onclick="openModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">&#10133; Aplicar Strike</button>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+<div><h1 class="text-2xl font-bold">&#9889; Sistema de Strikes</h1><p class="text-sm text-slate-400">Aplica strikes conectados al reglamento, reportes y precedentes.</p></div>
+<button onclick="openModal()" class="px-4 py-2 rounded-lg text-sm font-bold min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">&#10133; Aplicar Strike</button>
 </div>
-<div class="grid md:grid-cols-4 gap-4 mb-6">
-<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Leves</p><p class="text-2xl font-bold" style="color:#4caf50;" id="stat-leve">-</p></div>
-<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Medios</p><p class="text-2xl font-bold" style="color:#ff8f00;" id="stat-medio">-</p></div>
-<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Graves</p><p class="text-2xl font-bold" style="color:#ef5350;" id="stat-grave">-</p></div>
-<div class="rounded-xl p-4" style="background:#11183a;border:1px solid #1a237e;"><p class="text-xs uppercase tracking-wider" style="color:#9fa8da;">Kill Nullifiers</p><p class="text-2xl font-bold" style="color:#ce93d8;" id="stat-nullifier">-</p></div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="rounded-xl p-4 bg-slate-900 border border-indigo-900"><p class="text-xs uppercase tracking-wider text-slate-400">Leves</p><p class="text-2xl font-bold text-green-500" id="stat-leve">-</p></div>
+<div class="rounded-xl p-4 bg-slate-900 border border-indigo-900"><p class="text-xs uppercase tracking-wider text-slate-400">Medios</p><p class="text-2xl font-bold text-amber-400" id="stat-medio">-</p></div>
+<div class="rounded-xl p-4 bg-slate-900 border border-indigo-900"><p class="text-xs uppercase tracking-wider text-slate-400">Graves</p><p class="text-2xl font-bold text-red-400" id="stat-grave">-</p></div>
+<div class="rounded-xl p-4 bg-slate-900 border border-indigo-900"><p class="text-xs uppercase tracking-wider text-slate-400">Kill Nullifiers</p><p class="text-2xl font-bold text-purple-400" id="stat-nullifier">-</p></div>
 </div>
-<div class="flex gap-2 mb-4">
-<input type="text" id="search-player" placeholder="Buscar jugador..." class="flex-1 px-3 py-2 rounded-lg border text-sm" oninput="filterStrikes(this.value)">
-<select id="filter-type" onchange="loadStrikes()" class="px-3 py-2 rounded-lg border text-sm"><option value="">Todos los tipos</option></select>
+<div class="flex flex-col sm:flex-row gap-2 mb-4">
+<input type="text" id="search-player" placeholder="Buscar jugador..." class="flex-1 px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" oninput="filterStrikes(this.value)">
+<select id="filter-type" onchange="loadStrikes()" class="px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">Todos los tipos</option></select>
 </div>
 <div id="strikes-list" class="space-y-3">Cargando...</div>
 </div>
 
 <!-- Strike Modal -->
-<div id="strike-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
-<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:90vh;overflow-y:auto;">
+<div id="strike-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4 bg-slate-900 border border-indigo-900 text-slate-100 max-h-[90vh] overflow-y-auto">
 <h3 class="text-lg font-bold mb-4">&#9889; Aplicar Strike</h3>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Jugador (ID de Supremacy) *</label><input type="number" id="s-player-id" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Ej: 24549130"></div>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Partida</label><select id="s-match" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar partida...</option></select></div>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Tipo de Strike *</label><select id="s-type" class="w-full px-3 py-2 rounded-lg border text-sm" onchange="showRuleHint()"><option value="">Seleccionar...</option></select></div>
-<div id="rule-hint" class="hidden mb-3 p-3 rounded-lg text-sm" style="background:rgba(255,143,0,0.1);border:1px solid rgba(255,143,0,0.2);color:#ff8f00;"></div>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Seccion del reglamento violada</label><select id="s-rule" class="w-full px-3 py-2 rounded-lg border text-sm"><option value="">Seleccionar seccion...</option></select></div>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Razon *</label><textarea id="s-reason" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Describe la infraccion..."></textarea></div>
-<div class="mb-3"><label class="block text-sm mb-1" style="color:#9fa8da;">Notas adicionales</label><textarea id="s-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm"></textarea></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Jugador (ID de Supremacy) *</label><input type="number" id="s-player-id" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Ej: 24549130"></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Partida</label><select id="s-match" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">Seleccionar partida...</option></select></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Tipo de Strike *</label><select id="s-type" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" onchange="showRuleHint()"><option value="">Seleccionar...</option></select></div>
+<div id="rule-hint" class="hidden mb-3 p-3 rounded-lg text-sm bg-amber-500/10 border border-amber-500/20 text-amber-400"></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Seccion del reglamento violada</label><select id="s-rule" class="w-full px-3 py-2 rounded-lg border text-sm min-h-[44px] bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"><option value="">Seleccionar seccion...</option></select></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Razon *</label><textarea id="s-reason" rows="3" class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none" placeholder="Describe la infraccion..."></textarea></div>
+<div class="mb-3"><label class="block text-sm mb-1 text-slate-400">Notas adicionales</label><textarea id="s-notes" rows="2" class="w-full px-3 py-2 rounded-lg border text-sm bg-slate-900 border-indigo-900 text-slate-100 focus:border-amber-500 outline-none"></textarea></div>
 
 <!-- Evidence Upload -->
 <div class="mb-4">
-    <label class="block text-sm mb-1" style="color:#9fa8da;">Evidencia (imagenes o videos)</label>
+    <label class="block text-sm mb-1 text-slate-400">Evidencia (imagenes o videos)</label>
     <div id="evidence-dropzone-strike" onclick="document.getElementById('evidence-input-strike').click()">
         <div class="text-2xl mb-1">&#128247;</div>
-        <p class="text-sm" style="color:#9fa8da;">Arrastra archivos aqui o <strong style="color:#ff8f00;">haz clic</strong></p>
-        <p class="text-xs mt-1" style="color:#64748b;">Max 3 archivos. Max 5MB cada uno.</p>
+        <p class="text-sm text-slate-400">Arrastra archivos aqui o <strong class="text-amber-400">haz clic</strong></p>
+        <p class="text-xs mt-1 text-slate-500">Max 3 archivos. Max 5MB cada uno.</p>
         <input type="file" id="evidence-input-strike" class="hidden" accept="image/*,video/*" multiple onchange="handleStrikeEvidence(this.files)">
     </div>
     <div id="evidence-preview-strike" class="grid grid-cols-3 gap-2 mt-2"></div>
-    <p id="evidence-status-strike" class="text-xs mt-1 hidden" style="color:#9fa8da;"></p>
+    <p id="evidence-status-strike" class="text-xs mt-1 hidden text-slate-400"></p>
 </div>
 
-<div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cancelar</button><button onclick="saveStrike()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;">Aplicar Strike</button></div>
+<div class="flex gap-2 justify-end"><button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-900 text-slate-100 min-h-[44px]">Cancelar</button><button onclick="saveStrike()" class="px-4 py-2 rounded-lg text-sm font-bold min-h-[44px] bg-gradient-to-r from-orange-600 to-amber-500 text-white">Aplicar Strike</button></div>
 </div></div>
 
 <!-- Detail Modal (view strike + evidence) -->
-<div id="view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.7);">
-<div class="rounded-xl p-6 w-full max-w-lg mx-4" style="background:#11183a;border:1px solid #1a237e;color:#e8eaf6;max-height:85vh;overflow-y:auto;">
+<div id="view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+<div class="rounded-xl p-6 w-full max-w-lg mx-4 bg-slate-900 border border-indigo-900 text-slate-100 max-h-[85vh] overflow-y-auto">
 <h3 class="text-lg font-bold mb-4" id="v-title">Detalle del Strike</h3>
 <div id="v-content"></div>
 <div id="v-evidence" class="mt-4 hidden"></div>
-<div class="flex gap-2 justify-end mt-4"><button onclick="closeViewModal()" class="px-4 py-2 rounded-lg text-sm font-bold" style="background:#1a237e;color:#e8eaf6;">Cerrar</button></div>
+<div class="flex gap-2 justify-end mt-4"><button onclick="closeViewModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-900 text-slate-100 min-h-[44px]">Cerrar</button></div>
 </div></div>
 
 <script>
@@ -195,11 +199,11 @@ function renderStrikes(data) {
         var type = s.strike_types || {};
         var sevColor = type.severity === 1 ? '#4caf50' : type.severity === 2 ? '#ff8f00' : '#ef5350';
         var sevLabel = type.severity === 1 ? 'LEVE' : type.severity === 2 ? 'MEDIO' : 'GRAVE';
-        var isNullifier = type.nullifies_kills ? ' <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:#ce93d820;color:#ce93d8;">KILL NULLIFIER</span>' : '';
+        var isNullifier = type.nullifies_kills ? ' <span class="px-2 py-0.5 rounded text-xs font-bold bg-purple-400/10 text-purple-400">KILL NULLIFIER</span>' : '';
         var playerName = s.players ? s.players.current_username : 'Jugador ' + s.player_id;
         var matchName = s.matches ? s.matches.name : (s.match_id ? 'Partida ' + s.match_id : '-');
-        var evBadge = (s.evidence_urls && s.evidence_urls.length > 0) ? ' <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,111,0,0.15);color:#ff6f00;">&#128247; ' + s.evidence_urls.length + '</span>' : '';
-        return '<div class="strike-card rounded-xl p-4" style="background:#11183a;cursor:pointer;" onclick="openViewModal(' + s.id + ')"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold">' + playerName + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' + isNullifier + evBadge + '</div><p class="text-sm mt-1" style="color:#e8eaf6;">' + s.reason + '</p><p class="text-xs mt-1" style="color:#9fa8da;">Partida: ' + matchName + ' | ' + formatDate(s.applied_at) + (s.strike_types ? ' | ' + s.strike_types.code + ': ' + s.strike_types.name : '') + '</p></div><button onclick="event.stopPropagation();removeStrike(' + s.id + ')" class="px-2 py-1 rounded text-xs" style="background:rgba(198,40,40,0.3);color:#ef5350;">Revocar</button></div></div>';
+        var evBadge = (s.evidence_urls && s.evidence_urls.length > 0) ? ' <span class="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/15 text-orange-500">&#128247; ' + s.evidence_urls.length + '</span>' : '';
+        return '<div class="strike-card rounded-xl p-4 bg-slate-900 cursor-pointer" onclick="openViewModal(' + s.id + ')"><div class="flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold">' + playerName + '</h3><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' + isNullifier + evBadge + '</div><p class="text-sm mt-1 text-slate-100">' + s.reason + '</p><p class="text-xs mt-1 text-slate-400">Partida: ' + matchName + ' | ' + formatDate(s.applied_at) + (s.strike_types ? ' | ' + s.strike_types.code + ': ' + s.strike_types.name : '') + '</p></div><button onclick="event.stopPropagation();removeStrike(' + s.id + ')" class="px-2 py-1 rounded text-xs bg-red-500/30 text-red-400 min-h-[28px]">Revocar</button></div></div>';
     }).join('');
 }
 
@@ -318,16 +322,16 @@ function openViewModal(id) {
     document.getElementById('v-content').innerHTML =
         '<div class="flex items-center gap-2 mb-3 flex-wrap">' +
         '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel + '</span>' +
-        (type.nullifies_kills ? '<span class="px-2 py-0.5 rounded text-xs font-bold" style="background:#ce93d820;color:#ce93d8;">KILL NULLIFIER</span>' : '') +
-        '<span class="text-xs" style="color:#9fa8da;">' + formatDate(s.applied_at) + '</span></div>' +
+        (type.nullifies_kills ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-purple-400/10 text-purple-400">KILL NULLIFIER</span>' : '') +
+        '<span class="text-xs text-slate-400">' + formatDate(s.applied_at) + '</span></div>' +
         '<p class="text-sm mb-2"><strong>Razon:</strong> ' + s.reason + '</p>' +
         '<p class="text-sm mb-2"><strong>Partida:</strong> ' + matchName + '</p>' +
-        (s.notes ? '<p class="text-sm mb-2" style="color:#9fa8da;"><strong>Notas:</strong> ' + s.notes + '</p>' : '');
+        (s.notes ? '<p class="text-sm mb-2 text-slate-400"><strong>Notas:</strong> ' + s.notes + '</p>' : '');
 
     var evDiv = document.getElementById('v-evidence');
     if (s.evidence_urls && s.evidence_urls.length > 0) {
         evDiv.classList.remove('hidden');
-        evDiv.innerHTML = '<h4 class="font-bold text-sm mb-2" style="color:#ff8f00;">&#128247; Evidencia adjunta:</h4><div id="strike-evidence-grid"></div>';
+        evDiv.innerHTML = '<h4 class="font-bold text-sm mb-2 text-amber-400">&#128247; Evidencia adjunta:</h4><div id="strike-evidence-grid"></div>';
         renderEvidenceGrid(s.evidence_urls, 'strike-evidence-grid');
     } else {
         evDiv.classList.add('hidden');
