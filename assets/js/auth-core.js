@@ -44,7 +44,8 @@ async function requireAdmin() {
         var sessionData = await supabase.auth.getSession();
         if (!sessionData.data.session) { window.location.href = ahPath('admin/login.html'); return; }
         var admin = await getAdminRole();
-        if (admin && admin.status === 'suspended') {
+        if (!admin) { window.location.href = ahPath('index.html'); return; }
+        if (admin.status === 'suspended') {
             if (typeof showToast === 'function') showToast('Tu cuenta ha sido suspendida. Contacta al superadmin.', 'error');
             await supabase.auth.signOut();
             window.location.href = ahPath('admin/login.html');
@@ -238,14 +239,16 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     if (!invite.role) return { success: false, message: 'Codigo de invitacion corrupto (sin rol asignado). Contacta al superadmin.' };
 
     // 2. Buscar/crear jugador en tabla players
+    var sid = parseInt(supremacyId);
+    if (isNaN(sid)) return { success: false, message: 'ID de jugador invalido' };
     var { data: player, error: playerErr } = await supabase.from('players')
         .select('id, current_username')
-        .eq('id', parseInt(supremacyId))
+        .eq('id', sid)
         .maybeSingle();
     if (playerErr) return { success: false, message: 'Error buscando jugador: ' + playerErr.message };
     if (!player) {
         var { error: insertPlayerError } = await supabase.from('players').insert({
-            id: parseInt(supremacyId), current_username: displayName, status: 'active'
+            id: sid, current_username: displayName || ('Jugador ' + sid), status: 'active'
         });
         if (insertPlayerError) return { success: false, message: 'Error creando jugador: ' + insertPlayerError.message };
     }
@@ -259,7 +262,7 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
     // 4. INSERTAR EN admin_users con el ROL del invite
     var { error: adminError } = await supabase.from('admin_users').insert({
         id: user.id, role: invite.role, display_name: displayName,
-        supremacy_player_id: parseInt(supremacyId), approved_by: invite.created_by,
+        supremacy_player_id: sid, approved_by: invite.created_by,
         approved_at: new Date().toISOString(), status: 'active'
     });
     if (adminError) {
