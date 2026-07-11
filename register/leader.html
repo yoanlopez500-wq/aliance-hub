@@ -89,6 +89,8 @@ var inviteCode = urlParams.get('code');
 
 if (!inviteCode) {
     showError('No se proporciono un codigo de invitacion.');
+} else if (!/^AH[A-Z0-9]{6}$/i.test(inviteCode)) {
+    showError('Formato de codigo invalido. Debe ser AH + 6 caracteres alfanumericos.');
 } else {
     verifyInviteCode(inviteCode);
 }
@@ -108,11 +110,12 @@ function showForm() {
 
 async function verifyInviteCode(code) {
     try {
+        var now = new Date().toISOString();
         var { data: invite, error } = await supabase.from('admin_invites')
             .select('*, alliances(name)')
             .eq('code', code)
             .eq('used', false)
-            .gt('expires_at', new Date().toISOString())
+            .or('expires_at.gt.' + now + ',expires_at.is.null')
             .maybeSingle();
 
         if (error) throw error;
@@ -166,7 +169,8 @@ document.getElementById('leader-signup-form').addEventListener('submit', async f
     }
 
     // Use existing signupWithInvite from auth-core.js
-    var result = await signupWithInvite(email, password, code, supremacyId || null, null);
+    var displayName = document.getElementById('ls-username').value || null;
+    var result = await signupWithInvite(email, password, code, supremacyId || null, displayName);
 
     if (result.success) {
         showToast('Cuenta creada! Bienvenido lider.', 'success');
