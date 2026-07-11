@@ -23,9 +23,18 @@
     var basePath = window.__AH_BASE_PATH || '/';
     if (!basePath.endsWith('/')) basePath += '/';
 
+    // Detectar version de cache de los scripts ya cargados en la pagina
+    var cacheVersion = '';
+    var existingScripts = document.querySelectorAll('script[src*="?v="]');
+    if (existingScripts.length > 0) {
+        var match = existingScripts[0].src.match(/\?v=(\d+)/);
+        if (match) cacheVersion = '?v=' + match[1];
+    }
+
     scripts.forEach(function(src) {
-        var fullPath = basePath + src;
-        var existing = document.querySelector('script[src*="' + src.replace('assets/js/', '') + '"],script[src*="' + src + '"]');
+        var fullPath = basePath + src + cacheVersion;
+        var scriptName = src.replace('assets/js/', '');
+        var existing = document.querySelector('script[src*="' + scriptName + '"]');
         if (!existing) {
             document.write('<script src="' + fullPath + '"><\/script>');
         }
