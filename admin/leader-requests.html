@@ -216,7 +216,8 @@ async function confirmApprove() {
             created_by: session.user.id,
             player_id: playerId,
             alliance_id: allianceId,
-            used: false
+            used: false,
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         });
         if (ie) {
             console.error('[Invite] Error creating invite:', ie);
