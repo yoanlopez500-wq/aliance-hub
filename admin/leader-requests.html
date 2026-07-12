@@ -106,6 +106,13 @@ function showToast(message, type) {
 }
 function formatDate(iso) { if (!iso) return '-'; var d = new Date(iso); var now = new Date(); var diff = now - d; if (diff < 60000) return 'hace un momento'; if (diff < 3600000) return 'hace ' + Math.floor(diff / 60000) + ' min'; if (diff < 86400000) return 'hace ' + Math.floor(diff / 3600000) + ' h'; return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
 
+// CRITICAL: Escape strings for use in HTML onclick attributes
+// Must escape: single quotes (') AND newlines (\n, \r)
+function escapeAttr(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n').replace(/\r/g, '\\r');
+}
+
 // ========== AUTH GUARD INLINE ==========
 supabase.auth.getSession().then(function(sd) {
     if (!sd.data.session) {
@@ -145,20 +152,27 @@ async function loadRequests() {
             var playerName = r.display_name || 'Jugador ' + r.player_id;
             var actions = '';
             if (r.status === 'pending' || r.status === 'under_review') {
-                var descEscaped = (r.alliance_description || '').replace(/'/g, "\\'");
-                var nameEscaped = r.alliance_name.replace(/'/g, "\\'");
+                // CRITICAL FIX: escape newlines AND quotes for onclick attributes
+                var descEscaped = escapeAttr(r.alliance_description || '');
+                var nameEscaped = escapeAttr(r.alliance_name);
+                var tagEscaped = escapeAttr(r.alliance_tag);
+                var playerNameEscaped = escapeAttr(playerName);
                 actions = '<div class="flex gap-2 mt-3">' +
-                    '<button onclick="openApproveModal(' + r.player_id + ', \'' + nameEscaped + '\', \'' + r.alliance_tag + '\', \'' + r.id + '\', \'' + descEscaped + '\', \'' + playerName.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 rounded-lg text-xs font-bold min-h-[32px] bg-green-700 text-white hover:bg-green-600 transition">&#10003; Aprobar</button>' +
-                    '<button onclick="openRejectModal(\'' + r.id + '\', \'' + playerName.replace(/'/g, "\\'") + '\', \'' + nameEscaped + '\')" class="px-3 py-1.5 rounded-lg text-xs font-bold min-h-[32px] bg-red-600 text-white hover:bg-red-500 transition">&#10005; Rechazar</button>' +
+                    '<button onclick="openApproveModal(' + r.player_id + ', \'' + nameEscaped + '\', \'' + tagEscaped + '\', \'' + r.id + '\', \'' + descEscaped + '\', \'' + playerNameEscaped + '\')" class="px-3 py-1.5 rounded-lg text-xs font-bold min-h-[32px] bg-green-700 text-white hover:bg-green-600 transition">&#10003; Aprobar</button>' +
+                    '<button onclick="openRejectModal(\'' + r.id + '\', \'' + playerNameEscaped + '\', \'' + nameEscaped + '\')" class="px-3 py-1.5 rounded-lg text-xs font-bold min-h-[32px] bg-red-600 text-white hover:bg-red-500 transition">&#10005; Rechazar</button>' +
                     '</div>';
             }
-            return '<div class="rounded-xl p-5 bg-slate-900 border border-indigo-900"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2"><div><h3 class="font-bold text-lg text-slate-100">' + r.alliance_name + ' [' + r.alliance_tag + ']</h3><p class="text-sm text-slate-400">Solicitante: ' + playerName + ' (ID: ' + r.player_id + ')</p><p class="text-xs mt-1 text-slate-400">' + (r.alliance_description || 'Sin descripcion') + '</p></div>' + statusBadge + '</div><p class="text-xs mt-2 text-slate-400">Miembros: ' + (r.member_count || '?') + ' | Discord: ' + (r.discord_handle || '-') + ' | ' + formatDate(r.created_at) + '</p>' + actions + '</div>';
+            // Truncate description for display (not the onclick)
+            var displayDesc = (r.alliance_description || 'Sin descripcion').substring(0, 120) + ((r.alliance_description && r.alliance_description.length > 120) ? '...' : '');
+            return '<div class="rounded-xl p-5 bg-slate-900 border border-indigo-900"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2"><div><h3 class="font-bold text-lg text-slate-100">' + r.alliance_name + ' [' + r.alliance_tag + ']</h3><p class="text-sm text-slate-400">Solicitante: ' + playerName + ' (ID: ' + r.player_id + ')</p><p class="text-xs mt-1 text-slate-400">' + displayDesc + '</p></div>' + statusBadge + '</div><p class="text-xs mt-2 text-slate-400">Miembros: ' + (r.member_count || '?') + ' | Discord: ' + (r.discord_handle || '-') + ' | ' + formatDate(r.created_at) + '</p>' + actions + '</div>';
         }).join('') + '</div>';
     } catch(e) { console.error('[Requests]', e); list.innerHTML = '<div class="text-center py-8 text-red-400">Error: ' + e.message + '</div>'; }
 }
 
 function openApproveModal(playerId, allianceName, allianceTag, requestId, allianceDescription, playerName) {
     pendingApprove = { playerId: playerId, allianceName: allianceName, allianceTag: allianceTag, requestId: requestId, allianceDescription: allianceDescription, playerName: playerName };
+    // Convert escaped newlines back for display
+    var displayDesc = (allianceDescription || '').replace(/\\n/g, '\n').replace(/\\r/g, '');
     document.getElementById('approve-modal-text').innerHTML =
         'Aprobar a <strong class="text-amber-400">' + playerName + '</strong> como lider de <strong class="text-amber-400">' + allianceName + ' [' + allianceTag + ']</strong>?<br><br>' +
         '<span class="text-slate-400">Se creara la alianza, se asignara como lider y se generara un codigo de invitacion.</span>';
