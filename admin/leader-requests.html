@@ -12,18 +12,8 @@
 <link rel="manifest" href="../manifest.json">
 <title>Solicitudes de Liderazgo - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="../assets/js/theme.js?v=28"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/js/config.js?v=28"></script>
-<script src="../assets/js/base.js?v=28"></script>
-<script src="../assets/js/components.js?v=28"></script>
-<!-- Scripts modulares directos (reemplazan auth.js shim) -->
-<script src="../assets/js/roles-data.js?v=28"></script>
-<script src="../assets/js/auth-core.js?v=28"></script>
-<script src="../assets/js/messaging.js?v=28"></script>
-<script src="../assets/js/notifications.js?v=28"></script>
-<script src="../assets/js/nav-engine.js?v=28"></script>
-<script src="../assets/js/training.js?v=28"></script>
 <style>
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
@@ -85,9 +75,7 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 <div class="rounded-xl w-full max-w-md p-6 bg-slate-900 border border-green-500/20">
 <h3 class="text-xl font-bold mb-1 text-green-400">&#10003; Solicitud Aprobada</h3>
 <div class="w-full h-px bg-indigo-900 my-3"></div>
-<p class="text-sm text-slate-300 mb-4">
-    La alianza <strong id="im-alliance-name" class="text-amber-400"></strong> ha sido creada.
-</p>
+<p class="text-sm text-slate-300 mb-4">La alianza <strong id="im-alliance-name" class="text-amber-400"></strong> ha sido creada.</p>
 <div class="rounded-lg p-4 mb-4 bg-slate-950 border border-indigo-900">
     <p class="text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Codigo de invitacion para el lider</p>
     <div class="flex items-center gap-2">
@@ -96,22 +84,57 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
     </div>
     <p class="text-xs text-slate-500 mt-2">Expira en 7 dias</p>
 </div>
-<p class="text-sm text-slate-400 mb-4">
-    Comparte este codigo con <strong id="im-player-name" class="text-slate-100"></strong> para que pueda crear su cuenta de lider de alianza.
-</p>
+<p class="text-sm text-slate-400 mb-4">Comparte este codigo con <strong id="im-player-name" class="text-slate-100"></strong> para que pueda crear su cuenta de lider de alianza.</p>
 <button onclick="closeInviteModal()" class="w-full py-3 rounded-lg text-sm font-bold min-h-[48px] bg-green-700 text-white hover:bg-green-600 transition">Entendido</button>
 </div>
 </div>
 
 <script>
+// ===================== STANDALONE — NO EXTERNAL SCRIPTS (except config.js for Supabase) =====================
+
+// ---- Inline utilities (from base.js) ----
+function showToast(message, type) {
+    var toast = document.createElement('div');
+    var bg = type === 'error' ? 'rgba(198,40,40,0.9)' : type === 'warning' ? 'rgba(255,143,0,0.9)' : type === 'info' ? 'rgba(33,150,243,0.9)' : 'rgba(46,125,50,0.9)';
+    var textColor = type === 'warning' ? '#1a1a2e' : '#fff';
+    toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;padding:12px 20px;border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:fadeIn 0.3s ease-out;background:' + bg + ';color:' + textColor + ';';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(function(){toast.remove()}, 500); }, 3000);
+}
+function formatDate(iso) { if (!iso) return '-'; var d = new Date(iso); var now = new Date(); var diff = now - d; if (diff < 60000) return 'hace un momento'; if (diff < 3600000) return 'hace ' + Math.floor(diff / 60000) + ' min'; if (diff < 86400000) return 'hace ' + Math.floor(diff / 3600000) + ' h'; return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
+
+// ---- Inline auth guard ----
+function requireAdmin() {
+    supabase.auth.getSession().then(function(sd) {
+        if (!sd.data.session) {
+            var base = window.location.pathname.replace(/\/admin\/.*$/, '/');
+            window.location.href = base + 'admin/login.html';
+        }
+    });
+}
 requireAdmin();
-var currentAdminId = null;
+
+// ---- Inline getAdminRole ----
+async function getAdminRole() {
+    try {
+        var sessionData = await supabase.auth.getSession();
+        if (!sessionData.data.session) return null;
+        var { data: admin } = await supabase.from('admin_users')
+            .select('role, alliance_id, status, display_name, supremacy_player_id')
+            .eq('id', sessionData.data.session.user.id)
+            .single();
+        return admin;
+    } catch(e) { return null; }
+}
+
+// ---- App logic ----
 var pendingApprove = null;
 var pendingReject = null;
 var lastGeneratedInviteCode = '';
 
 async function init() {
-    try { var s = await supabase.auth.getSession(); currentAdminId = s.data.session.user.id; } catch(e){}
+    try { var s = await supabase.auth.getSession(); } catch(e){}
     loadRequests();
 }
 
@@ -174,7 +197,7 @@ async function confirmApprove() {
         closeApproveModal();
         showToast('Procesando aprobacion...', 'info');
 
-        // 1. Check if alliance already exists
+        // 1. Create alliance
         var { data: existing } = await supabase.from('alliances').select('id').eq('name', allianceName).maybeSingle();
         var allianceId;
         if (existing) {
@@ -192,7 +215,7 @@ async function confirmApprove() {
         var { error: pe } = await supabase.from('players').update({ current_alliance_id: allianceId }).eq('id', playerId);
         if (pe) throw pe;
 
-        // 3. Create alliance_memberships (status='approved', requested_by='leader' per CHECK constraints)
+        // 3. Create membership
         var { error: me } = await supabase.from('alliance_memberships').insert({
             player_id: playerId, alliance_id: allianceId,
             role: 'leader', status: 'approved', requested_by: 'leader'
@@ -212,7 +235,7 @@ async function confirmApprove() {
         }).eq('id', requestId);
         if (re) throw re;
 
-        // 5. Generate invite code for the new leader (vinculado a player_id y alliance_id)
+        // 5. Generate invite code
         var inviteCode = generateInviteCode();
         lastGeneratedInviteCode = inviteCode;
         var { error: ie } = await supabase.from('admin_invites').insert({
@@ -225,13 +248,13 @@ async function confirmApprove() {
             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         });
         if (ie) {
-            console.error('[Invite] Error creating invite:', ie);
-            showToast('Alianza creada pero error al generar codigo de invitacion', 'warning');
+            console.error('[Invite] Error:', ie);
+            showToast('Alianza creada pero error al generar codigo: ' + ie.message, 'warning');
             loadRequests();
             return;
         }
 
-        // 6. SHOW invite code modal to admin
+        // 6. Show invite modal
         document.getElementById('im-alliance-name').textContent = allianceName;
         document.getElementById('im-player-name').textContent = playerName;
         document.getElementById('im-code').textContent = inviteCode;
@@ -241,7 +264,7 @@ async function confirmApprove() {
         loadRequests();
     } catch(e) {
         console.error('[confirmApprove]', e);
-        showToast('Error: ' + (e.message || e), 'error');
+        showToast('Error: ' + (e.message || JSON.stringify(e)), 'error');
     }
 }
 
