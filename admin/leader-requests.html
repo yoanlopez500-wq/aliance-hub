@@ -3,27 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0a0e27">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<link rel="manifest" href="../manifest.json">
 <title>Solicitudes de Liderazgo - Alliance Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/js/config.js?v=28"></script>
 <style>
-body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;margin:0;padding:0;}
 input,select{background:#11183a!important;border-color:#1a237e!important;color:#e8eaf6!important;}
 input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:50;align-items:center;justify-content:center;padding:1rem;}
 .modal-overlay.active{display:flex;}
 </style>
 </head>
-<body class="min-h-screen" data-role="admin">
-<div id="admin-nav"></div>
+<body class="min-h-screen">
 <div class="max-w-6xl mx-auto px-4 py-8">
 <h1 class="text-2xl font-bold mb-2">&#127941; Solicitudes de Liderazgo</h1>
 <p class="text-sm mb-6 text-slate-400">Revision y aprobacion de solicitudes para liderar alianzas.</p>
@@ -37,10 +28,10 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </select>
 <button onclick="loadRequests()" class="px-3 py-2 rounded-lg text-sm font-bold min-h-[44px] bg-indigo-900 text-white">&#128260; Recargar</button>
 </div>
-<div id="requests-list">Cargando...</div>
+<div id="requests-list">Inicializando...</div>
 </div>
 
-<!-- ===== MODAL: Aprobar Solicitud ===== -->
+<!-- MODAL: Aprobar -->
 <div id="approve-modal" class="modal-overlay">
 <div class="rounded-xl w-full max-w-sm p-6 bg-slate-900 border border-indigo-900">
 <h3 class="text-xl font-bold mb-1 text-amber-400">&#127941; Aprobar Solicitud</h3>
@@ -53,7 +44,7 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </div>
 </div>
 
-<!-- ===== MODAL: Rechazar Solicitud ===== -->
+<!-- MODAL: Rechazar -->
 <div id="reject-modal" class="modal-overlay">
 <div class="rounded-xl w-full max-w-sm p-6 bg-slate-900 border border-indigo-900">
 <h3 class="text-xl font-bold mb-1 text-red-400">&#128683; Rechazar Solicitud</h3>
@@ -70,7 +61,7 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </div>
 </div>
 
-<!-- ===== MODAL: Invite Code Generado (post-aprobacion) ===== -->
+<!-- MODAL: Invite Code -->
 <div id="invite-modal" class="modal-overlay">
 <div class="rounded-xl w-full max-w-md p-6 bg-slate-900 border border-green-500/20">
 <h3 class="text-xl font-bold mb-1 text-green-400">&#10003; Solicitud Aprobada</h3>
@@ -90,53 +81,47 @@ input:focus,select:focus{border-color:#ff6f00!important;outline:none!important;}
 </div>
 
 <script>
-// ===================== STANDALONE — NO EXTERNAL SCRIPTS (except config.js for Supabase) =====================
+// ========== SUPABASE INIT INLINE ==========
+var SUPABASE_URL = 'https://qkccyjegkgjzwoxytnqp.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_-BBqDHD9LrMiPrk6CihrKA_8p_ABQCK';
+try {
+    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        db: { schema: 'public' },
+        auth: { persistSession: true, autoRefreshToken: true }
+    });
+    console.log('[INIT] Supabase OK');
+} catch(e) {
+    console.error('[INIT] Supabase failed:', e);
+    document.getElementById('requests-list').innerHTML = '<div class="text-center py-8 text-red-400">Error: No se pudo conectar a Supabase. Recarga la pagina (Ctrl+F5).</div>';
+}
 
-// ---- Inline utilities (from base.js) ----
+// ========== UTILITIES INLINE ==========
 function showToast(message, type) {
     var toast = document.createElement('div');
     var bg = type === 'error' ? 'rgba(198,40,40,0.9)' : type === 'warning' ? 'rgba(255,143,0,0.9)' : type === 'info' ? 'rgba(33,150,243,0.9)' : 'rgba(46,125,50,0.9)';
-    var textColor = type === 'warning' ? '#1a1a2e' : '#fff';
-    toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;padding:12px 20px;border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:fadeIn 0.3s ease-out;background:' + bg + ';color:' + textColor + ';';
+    toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;padding:12px 20px;border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.3);background:' + bg + ';color:#fff;transition:opacity 0.5s;';
     toast.textContent = message;
     document.body.appendChild(toast);
-    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(function(){toast.remove()}, 500); }, 3000);
+    setTimeout(function() { toast.style.opacity = '0'; setTimeout(function(){toast.remove()}, 500); }, 3000);
 }
 function formatDate(iso) { if (!iso) return '-'; var d = new Date(iso); var now = new Date(); var diff = now - d; if (diff < 60000) return 'hace un momento'; if (diff < 3600000) return 'hace ' + Math.floor(diff / 60000) + ' min'; if (diff < 86400000) return 'hace ' + Math.floor(diff / 3600000) + ' h'; return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
 
-// ---- Inline auth guard ----
-function requireAdmin() {
-    supabase.auth.getSession().then(function(sd) {
-        if (!sd.data.session) {
-            var base = window.location.pathname.replace(/\/admin\/.*$/, '/');
-            window.location.href = base + 'admin/login.html';
-        }
-    });
-}
-requireAdmin();
+// ========== AUTH GUARD INLINE ==========
+supabase.auth.getSession().then(function(sd) {
+    if (!sd.data.session) {
+        window.location.href = 'login.html';
+    } else {
+        console.log('[AUTH] Admin logged in');
+    }
+}).catch(function(e) {
+    console.error('[AUTH]', e);
+    window.location.href = 'login.html';
+});
 
-// ---- Inline getAdminRole ----
-async function getAdminRole() {
-    try {
-        var sessionData = await supabase.auth.getSession();
-        if (!sessionData.data.session) return null;
-        var { data: admin } = await supabase.from('admin_users')
-            .select('role, alliance_id, status, display_name, supremacy_player_id')
-            .eq('id', sessionData.data.session.user.id)
-            .single();
-        return admin;
-    } catch(e) { return null; }
-}
-
-// ---- App logic ----
+// ========== APP LOGIC ==========
 var pendingApprove = null;
 var pendingReject = null;
 var lastGeneratedInviteCode = '';
-
-async function init() {
-    try { var s = await supabase.auth.getSession(); } catch(e){}
-    loadRequests();
-}
 
 function generateInviteCode() {
     var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -268,7 +253,6 @@ async function confirmApprove() {
     }
 }
 
-// ===== MODAL: Invite Code =====
 function closeInviteModal() {
     document.getElementById('invite-modal').classList.remove('active');
     lastGeneratedInviteCode = '';
@@ -289,7 +273,6 @@ function copyInviteCode() {
     });
 }
 
-// ===== MODAL: Rechazar =====
 function openRejectModal(requestId, playerName, allianceName) {
     pendingReject = { requestId: requestId };
     document.getElementById('reject-modal-text').innerHTML =
@@ -320,7 +303,12 @@ async function confirmReject() {
     } catch(e) { showToast('Error: ' + (e.message || e), 'error'); }
 }
 
-init();
+// Auto-load on init
+supabase.auth.getSession().then(function() {
+    loadRequests();
+}).catch(function() {
+    document.getElementById('requests-list').innerHTML = '<div class="text-center py-8 text-red-400">Error de autenticacion</div>';
+});
 </script>
 </body>
 </html>
