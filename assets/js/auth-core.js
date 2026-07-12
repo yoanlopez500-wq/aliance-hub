@@ -379,7 +379,7 @@ async function transferPlayerWithCode(code) {
 
 function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - base64String.length % 4) % 4);
-    var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    var base64 = (padding + base64String).replace(/\-/g, '+').replace(/_/g, '/');
     var rawData = window.atob(base64);
     var outputArray = new Uint8Array(rawData.length);
     for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
@@ -433,16 +433,22 @@ async function checkPendingLeaderApproval() {
     try {
         var playerId = parseInt(playerData.playerId);
 
-        // Verificar si tiene invite code pendiente (RLS restringe a invites vinculados)
+        // CRITICAL FIX: Use .or() to handle both NULL and valid expires_at
+        // Also filter by specific player_id for security
+        var now = new Date().toISOString();
         var { data: invite, error } = await supabase
             .from('admin_invites')
             .select('code, role, alliances(name)')
             .eq('player_id', playerId)
             .eq('used', false)
-            .gt('expires_at', new Date().toISOString())
+            .or('expires_at.gt.' + now + ',expires_at.is.null')
             .maybeSingle();
 
-        if (error || !invite) return; // No tiene invite pendiente
+        if (error) {
+            console.error('[checkPendingLeaderApproval] Query error:', error);
+            return;
+        }
+        if (!invite) return; // No tiene invite pendiente
 
         // Verificar si ya se mostro este banner (para no repetir)
         var lastShownCode = localStorage.getItem('ah_leader_banner_shown');
@@ -471,7 +477,7 @@ function showLeaderApprovalBanner(invite) {
             '<div style="display:flex;align-items:center;gap:10px;">' +
                 '<span style="font-size:22px;">&#127941;</span>' +
                 '<div>' +
-                    '<p style="margin:0;font-weight:700;color:#ff8f00;font-size:14px;">¡Tu solicitud fue aprobada!</p>' +
+                    '<p style="margin:0;font-weight:700;color:#ff8f00;font-size:14px;">Tu solicitud fue aprobada!</p>' +
                     '<p style="margin:2px 0 0;color:#9fa8da;font-size:12px;">Eres el lider de <strong style="color:#ff8f00;">' + escapeHtml(allianceName) + '</strong>. Completa tu registro para acceder al panel.</p>' +
                 '</div>' +
             '</div>' +
