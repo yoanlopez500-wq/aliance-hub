@@ -1,4 +1,4 @@
-// assets/js/auth-core.js v3 - Autenticacion, roles y sesiones
+// assets/js/auth-core.js v4 - Autenticacion, roles, sesiones, notificaciones post-aprobacion
 // Depende de: base.js, roles-data.js
 
 // ===================== PERMISOS =====================
@@ -211,34 +211,18 @@ async function updatePassword(newPassword) {
 }
 
 async function signupWithInvite(email, password, inviteCode, supremacyId, displayName) {
-    // =========================================================================
-    // FLUJO DE SEGURIDAD: Invite Code como Llave Maestra
-    // El invite se valida ANTES de cualquier interaccion con Supabase Auth.
-    // Sin invite valido, no se puede iniciar el proceso de registro.
-    // =========================================================================
-
-    // 1. VALIDAR INVITE PRIMERO (antes de tocar Auth)
     var normalizedCode = inviteCode.trim().toUpperCase();
-
-    // Formato basico: AH + 6 caracteres alfanumericos
     if (!normalizedCode || !/^AH[A-Z0-9]{6}$/.test(normalizedCode)) {
         return { success: false, message: 'Formato de codigo invalido. Debe ser AH + 6 caracteres.' };
     }
-
     var inviteResult = await supabase.from('admin_invites').select('*')
         .eq('code', normalizedCode)
         .eq('used', false);
     if (inviteResult.error) return { success: false, message: 'Error verificando codigo: ' + inviteResult.error.message };
     if (!inviteResult.data || inviteResult.data.length === 0) return { success: false, message: 'Codigo de invitacion invalido o ya usado' };
     var invite = inviteResult.data[0];
-
-    // Verificar expiracion
     if (new Date(invite.expires_at) < new Date()) return { success: false, message: 'Codigo de invitacion expirado' };
-
-    // Verificar que el invite tenga rol definido
     if (!invite.role) return { success: false, message: 'Codigo de invitacion corrupto (sin rol asignado). Contacta al superadmin.' };
-
-    // 2. Buscar/crear jugador en tabla players
     var sid = parseInt(supremacyId);
     if (isNaN(sid)) return { success: false, message: 'ID de jugador invalido' };
     var { data: player, error: playerErr } = await supabase.from('players')
@@ -252,14 +236,10 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         });
         if (insertPlayerError) return { success: false, message: 'Error creando jugador: ' + insertPlayerError.message };
     }
-
-    // 3. CREAR USUARIO EN SUPABASE AUTH (solo despues de validar invite)
     var authResult = await supabase.auth.signUp({ email: email, password: password });
     if (authResult.error) return { success: false, message: authResult.error.message };
     var user = authResult.data.user;
     if (!user) return { success: false, message: 'No se pudo crear el usuario. Revisa tu email para confirmacion.' };
-
-    // 4. INSERTAR EN admin_users con el ROL del invite
     var { error: adminError } = await supabase.from('admin_users').insert({
         id: user.id, role: invite.role, display_name: displayName,
         supremacy_player_id: sid, approved_by: invite.created_by,
@@ -269,13 +249,10 @@ async function signupWithInvite(email, password, inviteCode, supremacyId, displa
         console.error('[signupWithInvite] Error creando admin_user:', adminError);
         return { success: false, message: 'Error creando admin: ' + adminError.message + '. Contacta al superadmin.' };
     }
-
-    // 5. MARCAR INVITE COMO USADO (solo si admin se creo exitosamente)
     var { error: inviteUpdateErr } = await supabase.from('admin_invites').update({
         used: true, used_by: user.id, used_at: new Date().toISOString()
     }).eq('id', invite.id);
     if (inviteUpdateErr) console.error('[signupWithInvite] Error marcando invite como usado:', inviteUpdateErr);
-
     return { success: true, message: 'Cuenta de ' + invite.role + ' creada exitosamente.' };
 }
 
@@ -379,7 +356,7 @@ async function transferPlayerWithCode(code) {
 
 function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - base64String.length % 4) % 4);
-    var base64 = (padding + base64String).replace(/\-/g, '+').replace(/_/g, '/');
+    var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
     var rawData = window.atob(base64);
     var outputArray = new Uint8Array(rawData.length);
     for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
@@ -416,29 +393,30 @@ async function unsubscribePush() {
 }
 
 // ===================== NOTIFICACION POST-APROBACION =====================
-// Muestra un banner al jugador cuando su solicitud de liderazgo fue aprobada
-// y tiene un invite code pendiente.
 
 var __leaderBannerChecked = false;
 
 async function checkPendingLeaderApproval() {
-    // Solo ejecutar una vez por carga de pagina
     if (__leaderBannerChecked) return;
     __leaderBannerChecked = true;
 
-    // Solo verificar si hay sesion de jugador (anon con player_id en localStorage)
+    console.log('[checkPendingLeaderApproval] Starting check...');
+
     var playerData = (typeof getPlayerData === 'function') ? getPlayerData() : null;
-    if (!playerData || !playerData.playerId) return;
+    if (!playerData || !playerData.playerId) {
+        console.log('[checkPendingLeaderApproval] No player session found');
+        return;
+    }
 
     try {
         var playerId = parseInt(playerData.playerId);
+        console.log('[checkPendingLeaderApproval] Checking player_id:', playerId);
 
-        // CRITICAL FIX: Use .or() to handle both NULL and valid expires_at
-        // Also filter by specific player_id for security
+        // FIX: Two separate queries - no FK join dependency
         var now = new Date().toISOString();
         var { data: invite, error } = await supabase
             .from('admin_invites')
-            .select('code, role, alliances(name)')
+            .select('code, role, alliance_id')
             .eq('player_id', playerId)
             .eq('used', false)
             .or('expires_at.gt.' + now + ',expires_at.is.null')
@@ -448,25 +426,39 @@ async function checkPendingLeaderApproval() {
             console.error('[checkPendingLeaderApproval] Query error:', error);
             return;
         }
-        if (!invite) return; // No tiene invite pendiente
+        if (!invite) {
+            console.log('[checkPendingLeaderApproval] No pending invite for player', playerId);
+            return;
+        }
 
-        // Verificar si ya se mostro este banner (para no repetir)
+        console.log('[checkPendingLeaderApproval] Found invite:', invite.code);
+
+        // Fetch alliance name separately (avoids FK join issues)
+        var allianceName = 'tu alianza';
+        if (invite.alliance_id) {
+            try {
+                var { data: alliance } = await supabase.from('alliances')
+                    .select('name')
+                    .eq('id', invite.alliance_id)
+                    .maybeSingle();
+                if (alliance && alliance.name) allianceName = alliance.name;
+            } catch(e) { console.log('[checkPendingLeaderApproval] Could not fetch alliance name:', e); }
+        }
+
         var lastShownCode = localStorage.getItem('ah_leader_banner_shown');
-        if (lastShownCode === invite.code) return;
+        if (lastShownCode === invite.code) {
+            console.log('[checkPendingLeaderApproval] Banner already shown for', invite.code);
+            return;
+        }
 
-        // Mostrar banner
-        showLeaderApprovalBanner(invite);
+        showLeaderApprovalBanner(invite.code, allianceName);
     } catch(e) {
-        console.error('[checkPendingLeaderApproval]', e);
+        console.error('[checkPendingLeaderApproval] Exception:', e);
     }
 }
 
-function showLeaderApprovalBanner(invite) {
-    // No mostrar en pagina de registro de lider
+function showLeaderApprovalBanner(code, allianceName) {
     if (window.location.pathname.indexOf('register/leader') !== -1) return;
-
-    var allianceName = (invite.alliances && invite.alliances.name) ? invite.alliances.name : 'tu alianza';
-    var code = invite.code || '';
 
     var banner = document.createElement('div');
     banner.id = 'leader-approval-banner';
@@ -477,7 +469,7 @@ function showLeaderApprovalBanner(invite) {
             '<div style="display:flex;align-items:center;gap:10px;">' +
                 '<span style="font-size:22px;">&#127941;</span>' +
                 '<div>' +
-                    '<p style="margin:0;font-weight:700;color:#ff8f00;font-size:14px;">Tu solicitud fue aprobada!</p>' +
+                    '<p style="margin:0;font-weight:700;color:#ff8f00;font-size:14px;">¡Tu solicitud fue aprobada!</p>' +
                     '<p style="margin:2px 0 0;color:#9fa8da;font-size:12px;">Eres el lider de <strong style="color:#ff8f00;">' + escapeHtml(allianceName) + '</strong>. Completa tu registro para acceder al panel.</p>' +
                 '</div>' +
             '</div>' +
@@ -489,12 +481,13 @@ function showLeaderApprovalBanner(invite) {
 
     document.body.prepend(banner);
 
-    // Pequena animacion de entrada
     banner.style.transform = 'translateY(-100%)';
     banner.style.transition = 'transform 0.4s ease-out';
     requestAnimationFrame(function() {
         banner.style.transform = 'translateY(0)';
     });
+
+    console.log('[showLeaderApprovalBanner] Banner shown for', code);
 }
 
 function dismissLeaderBanner(code) {
@@ -517,11 +510,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Ejecutar check cuando el DOM este listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', checkPendingLeaderApproval);
 } else {
-    // DOM ya cargo, ejecutar en proximo tick
     setTimeout(checkPendingLeaderApproval, 100);
 }
 
