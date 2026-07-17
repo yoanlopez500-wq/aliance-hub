@@ -59,6 +59,52 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0e27;color:#e8eaf6;}
 </style>
 </head>
 <body data-role="public">
+<!-- ===== AVISO DE MIGRACION (este es el sitio ANTIGUO) ===== -->
+<style>
+body{padding-top:38px}
+#migration-banner{position:fixed;top:0;left:0;right:0;z-index:99998;background:linear-gradient(90deg,#ff6f00,#ff8f00);color:#fff;text-align:center;font-size:.85rem;font-weight:600;padding:9px 16px;box-shadow:0 2px 12px rgba(0,0,0,.45)}
+#migration-banner a{color:#fff;font-weight:800;text-decoration:underline;margin-left:6px}
+#migration-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,6,20,.88);backdrop-filter:blur(6px)}
+#migration-modal{max-width:520px;width:100%;background:#11183a;border:2px solid #ff6f00;border-radius:20px;padding:32px 28px;text-align:center;box-shadow:0 0 60px rgba(255,111,0,.25);animation:migPop .35s ease-out}
+@keyframes migPop{from{opacity:0;transform:scale(.92) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#migration-modal h2{color:#fff;font-size:1.75rem;font-weight:900;margin:0 0 10px}
+#migration-modal p{color:#c5cae9;font-size:.95rem;line-height:1.55;margin:0 0 18px}
+#migration-url{display:block;background:#0a0e27;border:1px solid #1a237e;border-radius:10px;padding:10px 12px;color:#ff8f00;font-weight:700;font-size:.88rem;word-break:break-all;margin-bottom:18px;text-decoration:none}
+#migration-go{display:block;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#ff6f00,#ff8f00);color:#fff;font-weight:800;font-size:1.05rem;padding:14px 20px;border:none;border-radius:12px;cursor:pointer;text-decoration:none;transition:transform .15s;margin-bottom:14px}
+#migration-go:hover{transform:translateY(-2px)}
+#migration-count{color:#9fa8da;font-size:.85rem;margin-bottom:12px}
+#migration-count b{color:#ff8f00;font-size:1rem}
+#migration-stay{background:none;border:none;color:#5c6bc0;font-size:.8rem;text-decoration:underline;cursor:pointer}
+</style>
+<div id="migration-banner">&#9888;&#65039; Este sitio se mud&oacute;:<a href="https://yoanlopez500-wq.github.io/Alliance-hub/">yoanlopez500-wq.github.io/Alliance-hub</a></div>
+<div id="migration-overlay" role="dialog" aria-modal="true">
+<div id="migration-modal">
+<div style="font-size:3rem;margin-bottom:8px">&#128640;</div>
+<h2>&iexcl;Nos mudamos!</h2>
+<p><strong>Alliance Hub migr&oacute; a una nueva direcci&oacute;n.</strong> Todos los torneos, rankings, partidas y tu cuenta ya est&aacute;n en el nuevo sitio. Actualiza tus marcadores.</p>
+<a id="migration-url" href="https://yoanlopez500-wq.github.io/Alliance-hub/">https://yoanlopez500-wq.github.io/Alliance-hub/</a>
+<a id="migration-go" href="https://yoanlopez500-wq.github.io/Alliance-hub/">Ir al nuevo Alliance Hub &#8594;</a>
+<div id="migration-count">Ser&aacute;s redirigido autom&aacute;ticamente en <b id="migration-timer">10</b> segundos</div>
+<button id="migration-stay" type="button">Permanecer en el sitio antiguo</button>
+</div>
+</div>
+<script>
+(function(){
+    var NEW_URL='https://yoanlopez500-wq.github.io/Alliance-hub/';
+    var t=10,el=document.getElementById('migration-timer');
+    var iv=setInterval(function(){
+        t--;
+        if(t<=0){clearInterval(iv);window.location.href=NEW_URL;return;}
+        if(el)el.textContent=t;
+    },1000);
+    document.getElementById('migration-stay').addEventListener('click',function(){
+        clearInterval(iv);
+        var ov=document.getElementById('migration-overlay');
+        if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);
+    });
+})();
+</script>
+<!-- ===== FIN AVISO DE MIGRACION ===== -->
 <div id="admin-nav"></div>
 <section class="relative overflow-hidden py-20 px-4" style="background:#0a0e27">
 <div class="hero-glow" style="background:#ff6f00;top:-200px;right:-100px"></div>
